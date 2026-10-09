@@ -90,3 +90,13 @@ Reflection:
 Activity mode:
 
 ## Revisions
+
+- Go is built and run with `CGO_ENABLED=0 GOTOOLCHAIN=local` through a Makefile (`make run`), and Go modules are pinned to versions that support go1.22.0 (e.g. scs v2.8.0, not v2.9.0) — pre-build research found that go1.22.0 binaries built with cgo crash at launch on this Mac, and newer module versions would silently pull in a newer toolchain.
+- The frontend runs on port 5174 (strict) instead of 5173 — another app on this machine already uses 5173.
+- Puck is `@puckeditor/core` 0.23.0 (the `@measured/puck` package is deprecated), and right-edge resize is custom code on top of it — Puck has no built-in component resize.
+- Tailwind is v4 through its Vite plugin, with theme tokens in CSS, instead of the CDN script plus config files — that's the current setup for Vite.
+- The kernel's LLM output is `{title, source, query, archetype}` followed by a second LLM call that shapes search results into one fixed item shape — the spec's single call asked for render content before any search results existed, and strict structured output can't describe free-form content.
+- The LLM output is validated in Go instead of trusted — OpenRouter can silently ignore `response_format`, and can return HTTP 200 with an error and no choices.
+- Default model is `openai/gpt-4.1-mini`, checked at startup — the spec's example free model no longer exists on OpenRouter.
+- Brave Search facts updated (paid Search plan with $5/month free credit, separate news endpoint, no events feed) and `SESSION_SECRET` removed — the spec's Brave free tier is outdated, and scs doesn't sign cookies.
+- Signup creates the family and the admin user in one transaction, and the schema gains a `sessions` table and `invites.is_admin` — `users.family_id` is `NOT NULL`, scs needs its own table, and co-admin invites need a role.

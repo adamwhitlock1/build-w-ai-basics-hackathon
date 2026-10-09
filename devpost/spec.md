@@ -11,7 +11,7 @@ Porchlight is two halves that talk to each other over HTTP:
 - **A Go backend** is a single program that runs on your computer. It owns the database (a small SQLite file), handles logins, and is the only thing that talks to the LLM (via OpenRouter) and to Brave Search. It speaks JSON over a REST API.
 - **A React frontend** is a single-page app that runs in a browser. It uses **Puck** to render and edit the homepage canvas, and TanStack Query to fetch data from the Go API. The user logs in, the React app asks the Go API for the family's data, and Puck renders the homepage using the user's saved layout.
 
-The **kernel — "describe a widget"** — works like this: the user clicks the "+" button in Puck, types a sentence, the React app POSTs that sentence to the Go API, the Go API calls OpenRouter with a structured-output prompt, the LLM returns a small JSON spec (which data source to use, what to search for, and how to render the result), the Go API calls Brave Search to fetch the data, persists the new widget, and returns the rendered spec. Puck adds the new widget to the page. The whole loop is server-mediated — the LLM is never called from the browser, so the OpenRouter key stays on the server.
+The **kernel — "describe a widget"** — works like this: the user clicks the "+" button in Puck, types a sentence, the React app POSTs that sentence to the Go API, the Go API calls OpenRouter with a structured-output prompt, the LLM returns a small JSON spec (a title, which data source to use, what to search for, and which display shape to use), the Go API calls Brave Search to fetch the data, asks the LLM once more to shape those results into widget items (grounded only in what the search returned), persists the new widget, and returns it. Puck adds the new widget to the page. The whole loop is server-mediated — the LLM is never called from the browser, so the OpenRouter key stays on the server.
 
 **Why this shape:** it's a clean separation of concerns. The Go side is pure API + database + LLM proxy, which is exactly the work the learner wants to learn. The React side is a thin Puck-powered canvas that talks to the Go API. Both halves are sized for a single afternoon.
 
@@ -19,16 +19,17 @@ The **kernel — "describe a widget"** — works like this: the user clicks the 
 
 PRD ref: `prd.md > The Core Journey`. Walking the 8 steps through the architecture:
 
-1. **Sign up** — POST `/api/signup` with email + password. Go hashes the password (bcrypt), creates a `users` row, creates a `families` row, sets the user as admin.
-2. **Create family** — POST `/api/families` with family name, co-admin emails, parent's interests, parent's location. Go creates a `member_profiles` row for the parent and a `homepage_layouts` row with a default Puck data structure that has the two pre-seeded widget blocks plus empty slots.
+1. **Sign up** — POST `/api/signup` with email + password. Go hashes the password (bcrypt) and, in one transaction, creates a `families` row (name still empty) and then the `users` row as admin — the family must exist first because `users.family_id` is `NOT NULL`.
+2. **Create family** — POST `/api/families` with family name, co-admin emails, parent's interests, parent's location. Go names the family, creates a `member_profiles` row for the parent, records co-admin emails as pending admin invites, and creates a `homepage_layouts` row with a default Puck data structure that has the two pre-seeded widget blocks plus empty slots. A user whose family has no name yet is routed back to the create-family intro.
 3. **Land on homepage** — GET `/api/me/homepage`. Go returns the user's Puck data + their member profile. React renders the homepage with Puck in view mode.
 4. **Invite family** — POST `/api/families/:id/invites` with the invitee's email. Go creates an `invites` row with a random token, returns the invite URL. (Email sending is out of scope; the link is shown in the sidebar for the admin to copy/share.)
 5. **Each opens theirs** — invitee clicks the link → POST `/api/invites/:token/accept` with their chosen password. Go creates the user, links them to the family, and creates a `member_profiles` row. They land on their own homepage, which fetches the same way as step 3.
 6. **Rearrange** — Puck's drag-and-drop reorders the blocks; on drop, Puck emits a `data` change event. The React app debounces and POSTs the new Puck data to PUT `/api/me/homepage`. Go persists to `homepage_layouts`.
 7. **Describe-a-widget (kernel)** — User clicks "+" in Puck's block library → React opens the prompt modal. User types a sentence and submits. React POSTs to `/api/widgets/from-prompt`. Go:
-   - Calls OpenRouter (via `sashabaranov/go-openai`, base URL pointed at OpenRouter) with a system prompt that constrains the LLM to return JSON: `{source: "news_search" | "events_search" | "web_search", query: string, render: {archetype: "list" | "cards" | "hero" | "key_value" | "table", ...content}}`.
+   - Calls OpenRouter (via `sashabaranov/go-openai`, base URL pointed at OpenRouter) with a strict JSON-schema structured output: `{title: string, source: "news_search" | "events_search" | "web_search", query: string, archetype: "list" | "cards" | "hero" | "key_value" | "table"}`. Go decodes and validates it (retrying once).
    - Calls Brave Search via the chosen source.
-   - Persists a `custom_widgets` row with the render spec + the fetched data (or just the query, for re-fetching).
+   - Calls the LLM a second time to shape the search results into up to 8 items of one fixed shape (`{title, url, snippet, date, label, value, thumbnail}`, all strings) that every archetype renders from — grounded only in the results. If shaping fails, the raw results are mapped directly.
+   - Persists a `custom_widgets` row with the render spec (title, archetype, items) + the `source`/`query` for re-fetching.
    - Returns the new block spec to the React app.
    - React calls `puck.dispatch` to add the block to the page.
 8. **Come back tomorrow** — the layout, custom widgets, interests, and location are all in SQLite. The pre-built Articles and Local Events widgets are recomputed on each page load (LLM + Brave Search) — no caching for v1.
@@ -37,7 +38,7 @@ PRD ref: `prd.md > The Core Journey`. Walking the 8 steps through the architectu
 
 | Layer | Choice | Why |
 |---|---|---|
-| **Backend language** | Go 1.22+ | Stated learning goal; idiomatic for APIs. |
+| **Backend language** | Go 1.22+ (built with `CGO_ENABLED=0`) | Stated learning goal; idiomatic for APIs. On this Mac, go1.22.0 binaries built with cgo crash at launch, so the Makefile builds pure-Go binaries. |
 | **HTTP router** | Stdlib `net/http` (Go 1.22+ ServeMux with patterns) | Zero deps, most idiomatic for learning Go. Supports path params, methods, wildcards. Middleware written as small wrappers. |
 | **Sessions** | `alexedwards/scs/v2` (SQLite-backed) | Server-side sessions, httpOnly cookies, no JWTs. |
 | **SQLite driver** | `modernc.org/sqlite` (pure Go) | No CGO toolchain required; builds anywhere. |
@@ -47,16 +48,18 @@ PRD ref: `prd.md > The Core Journey`. Walking the 8 steps through the architectu
 | **Build tool** | Vite | Fast, well-supported. |
 | **Routing** | TanStack Router (SPA mode) | Learner's preference. **Not** TanStack Start — Start is full-stack and would overlap with the Go API. |
 | **Server state** | TanStack Query | For data fetching, caching, optimistic updates. |
-| **Styling** | Tailwind CSS (CDN) | Speed of iteration for a PoC; learner's preference. Gambarino + Switzer loaded from Fontshare with system fallback. |
-| **Canvas** | Puck (latest 0.x) | Learner's preference; gives drag-and-drop, resize, and the layout data structure. |
+| **Styling** | Tailwind CSS v4 via `@tailwindcss/vite` (theme tokens in CSS `@theme`, no config files) | Speed of iteration for a PoC; learner's preference. Gambarino + Switzer loaded from Fontshare (one `<link>` per family) with system fallback. |
+| **Canvas** | Puck — `@puckeditor/core` 0.23.0, pinned (the old `@measured/puck` package is deprecated) | Learner's preference; gives drag-and-drop reordering and the layout data structure. Resize is not built in — it's custom code on top of Puck. |
 | **Password hashing** | `golang.org/x/crypto/bcrypt` | Stdlib-quality, idiomatic. |
-| **JSON Schema validation** | none for v1 | Trust the LLM's structured output; the system prompt constrains the shape. |
+| **LLM output validation** | Strict JSON-schema structured output generated from Go structs, then decoded and validated in Go | OpenRouter can silently ignore `response_format` for some providers, so Go never trusts the shape blindly. |
 
-**OpenRouter model:** TBD. Free models include NVIDIA Nemotron Ultra and others; the user can pick. Configured in a single `OPENROUTER_MODEL` env var.
+**OpenRouter model:** defaults to `openai/gpt-4.1-mini` (supports structured outputs, inexpensive). Configured in a single `OPENROUTER_MODEL` env var; the server checks the id against OpenRouter's live model list at startup.
+
+**Pinned Go modules (verified together on go1.22.0):** `sashabaranov/go-openai` v1.43.0, `joho/godotenv` v1.5.1, `modernc.org/sqlite` v1.36.1, `alexedwards/scs/v2` v2.8.0 (v2.9.0 needs Go 1.23), `alexedwards/scs/sqlite3store`, `golang.org/x/crypto` v0.33.0.
 
 ## Where It Runs and How Someone Tries It
 
-**Runtime:** local processes. The Go backend listens on `:8080`; the Vite dev server runs on `:5173` and proxies `/api/*` to `:8080`. SQLite is a single file at `backend/porchlight.db`.
+**Runtime:** local processes. The Go backend listens on `127.0.0.1:8080`; the Vite dev server runs on `:5174` (strict — `:5173` is used by another app on this machine) and proxies `/api/*` to `127.0.0.1:8080`. Always open `http://localhost:5174` (cookies are host-scoped). SQLite is a single file at `backend/porchlight.db`.
 
 **Environment requirements:**
 - Go 1.22 or newer (`go version` to check)
@@ -69,7 +72,7 @@ PRD ref: `prd.md > The Core Journey`. Walking the 8 steps through the architectu
 ```
 # Terminal 1
 cd backend
-go run .
+make run          # = CGO_ENABLED=0 GOTOOLCHAIN=local go run .
 
 # Terminal 2
 cd frontend
@@ -77,7 +80,7 @@ npm install
 npm run dev
 ```
 
-**Open in browser:** `http://localhost:5173`. Sign up, create family, land on the homepage.
+**Open in browser:** `http://localhost:5174`. Sign up, create family, land on the homepage.
 
 **Submission:** the demo video is a 60-second screen recording of (1) setup, (2) drag-and-drop rearrange in Puck, (3) typing "show me upcoming SpaceX launches" and watching the new widget appear. Public GitHub repo with all the planning docs in `devpost/`. Deployment is **not** required and is **not** in scope.
 
@@ -96,7 +99,7 @@ Carried forward from `prd.md > Look and Feel` and `scope.md > Inspiration & Iden
 
 ### Backend (Go)
 
-#### `cmd/server` — entrypoint
+#### `main.go` — entrypoint
 Wires the router, sessions, store, and handlers. Reads env, opens SQLite, starts the server.
 PRD ref: implements all behaviors.
 
@@ -146,7 +149,9 @@ PRD ref: implements `prd.md > Data Sources`.
 
 #### `internal/llm` — OpenRouter client + prompts
 - `NewClient(apiKey, model) *Client` — wraps `sashabaranov/go-openai` pointed at `https://openrouter.ai/api/v1`.
-- `PickWidgetSpec(ctx, prompt string, availableSources []string) (*WidgetSpec, error)` — calls the LLM with a system prompt that constrains the output to `{source, query, render: {archetype, ...content}}`. Uses OpenAI's JSON-mode / structured output.
+- `PickWidgetSpec(ctx, prompt string, availableSources []string) (*WidgetSpec, error)` — calls the LLM with a strict structured output `{title, source, query, archetype}`, decoded and validated in Go.
+- `ShapeItems(ctx, prompt, spec, results)` — turns search results into up to 8 fixed-shape items (`{title, url, snippet, date, label, value, thumbnail}`) grounded in those results.
+- Handles OpenRouter's quirks: an HTTP 200 carrying an error with no choices, `finish_reason: "length"`, and 401/402/429/5xx mapped to clear errors.
 - `CurateArticles(ctx, interests string) (*ArticlesSpec, error)` and `CurateEvents(ctx, interests, location string) (*EventsSpec, error)` — for the pre-built widgets. Constrained to a known shape.
 PRD ref: implements the LLM parts of `prd.md > Articles Widget`, `prd.md > Local Events Widget`, and the entire `prd.md > Custom Widgets ("Describe-a-Widget")` flow.
 
@@ -203,14 +208,24 @@ CREATE TABLE families (
 );
 
 -- Pending invites. Token is the URL-safe secret in the invite link.
+-- is_admin marks a co-parent invite (from the create-family intro or the sidebar).
 CREATE TABLE invites (
   id          INTEGER PRIMARY KEY,
   family_id   INTEGER NOT NULL REFERENCES families(id),
   email       TEXT NOT NULL,
   token       TEXT NOT NULL UNIQUE,
+  is_admin    BOOLEAN NOT NULL DEFAULT 0,
   expires_at  DATETIME NOT NULL,
   accepted_at DATETIME
 );
+
+-- Server-side sessions for alexedwards/scs (sqlite3store expects this exact shape).
+CREATE TABLE sessions (
+  token  TEXT PRIMARY KEY,
+  data   BLOB NOT NULL,
+  expiry REAL NOT NULL
+);
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 
 -- Per-user profile data: interests (freeform) and location (freeform).
 CREATE TABLE member_profiles (
@@ -269,6 +284,7 @@ build-w-ai-basics-hackathon/
 │   └── prd.html
 ├── backend/                       # Go API
 │   ├── .env.example
+│   ├── Makefile                   # run/build/vet/test with CGO_ENABLED=0 GOTOOLCHAIN=local
 │   ├── go.mod
 │   ├── go.sum
 │   ├── main.go                    # entrypoint
@@ -284,10 +300,8 @@ build-w-ai-basics-hackathon/
 │       └── 001_init.sql           # the schema above
 ├── frontend/                      # React SPA
 │   ├── package.json
-│   ├── vite.config.ts             # proxies /api to :8080
+│   ├── vite.config.ts             # port 5174 (strict), proxies /api to 127.0.0.1:8080, Tailwind v4 plugin
 │   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
 │   ├── index.html                 # loads Gambarino + Switzer from Fontshare
 │   └── src/
 │       ├── main.tsx
@@ -306,7 +320,8 @@ build-w-ai-basics-hackathon/
 │       │       ├── LocalEvents.tsx
 │       │       └── Custom.tsx
 │       ├── widgets/
-│       │   └── DescribeWidgetPrompt.tsx  # the kernel modal
+│       │   ├── DescribeWidgetPrompt.tsx  # the kernel prompt (inline)
+│       │   └── WidgetCard.tsx            # renders the 5 archetypes; reused by Puck blocks
 │       ├── api/                   # typed API client + TanStack Query hooks
 │       │   ├── client.ts
 │       │   └── hooks.ts
@@ -322,27 +337,27 @@ build-w-ai-basics-hackathon/
 ### OpenRouter (LLM proxy)
 - **Endpoint:** `https://openrouter.ai/api/v1/chat/completions` (OpenAI-compatible)
 - **Auth:** `Authorization: Bearer $OPENROUTER_API_KEY`
-- **Model:** TBD — free options include `nvidia/nemotron-ultra-253b-v1:free` and others; user can change via `OPENROUTER_MODEL` env var.
+- **Model:** `openai/gpt-4.1-mini` by default (cheaper alternative: `openai/gpt-4o-mini`; a free option with structured outputs: `nvidia/nemotron-3-super-120b-a12b:free`). Change via `OPENROUTER_MODEL`; the server verifies the id and its `structured_outputs` support against `GET /api/v1/models` at startup, and validates the key via `GET /api/v1/key`.
 - **Library:** `github.com/sashabaranov/go-openai` pointed at OpenRouter's base URL.
-- **Output format:** JSON-mode for the kernel prompt (constrains LLM to return parseable JSON matching the widget spec shape).
-- **Rate limits / cost:** the user has $25 in credits. Free models have their own rate limits (check OpenRouter's docs during build).
+- **Output format:** strict `json_schema` structured output, always decoded and validated in Go.
+- **Rate limits / cost:** the user has $25 in credits. Free models are limited to 20 requests/minute and 1,000/day for accounts with purchased credits.
 - **Doc:** https://openrouter.ai/docs
 
 ### Brave Search
-- **Endpoint:** `https://api.search.brave.com/res/v1/web/search?q=...`
+- **Endpoints:** `https://api.search.brave.com/res/v1/web/search?q=...` and `https://api.search.brave.com/res/v1/news/search?q=...`
 - **Auth:** `X-Subscription-Token: $BRAVE_API_KEY`
-- **Free tier:** 2,000 queries/month, 1 query/second. Plenty for a local PoC.
+- **Plan:** the Search plan costs $5 per 1,000 requests with $5 of free credit each month (about 1,000 searches), 50 requests/second. A credit card is required. To protect the credit, the frontend doesn't refetch widgets on window focus, and the server doesn't test the Brave key at startup.
 - **Doc:** https://brave.com/search/api/
-- **Usage in v1:** all three sources (`news_search`, `events_search`, `web_search`) call the same endpoint with different `q` and optional `result_filter` parameters. The Brave result shape is adapted to the unified `[]Result` shape by the `BraveSource` adapter.
+- **Usage in v1:** `news_search` uses the news endpoint; `web_search` uses the web endpoint; `events_search` uses the web endpoint with a location- and date-anchored query (Brave has no events feed), and the LLM extracts event name, date, and venue from the results. The Brave result shapes are adapted to the unified `[]Result` shape by the `BraveSource` adapter. Never set `Accept-Encoding` manually from Go (it disables transparent gzip decoding).
 
 ### Environment variables
 ```
 OPENROUTER_API_KEY=...     # required
-OPENROUTER_MODEL=...       # optional, defaults to a sensible free model
+OPENROUTER_MODEL=...       # optional, defaults to openai/gpt-4.1-mini
 BRAVE_API_KEY=...          # required
-SESSION_SECRET=...         # random 32-byte hex; scs signs cookies with it
 PORT=8080                  # optional, defaults to 8080
 ```
+(No `SESSION_SECRET`: scs sessions are random server-side tokens, not signed cookies. `OPENROUTER_BASE_URL` / `BRAVE_BASE_URL` exist only so tests can point at fake servers.)
 
 ## Important Failure Modes
 
@@ -362,9 +377,9 @@ PORT=8080                  # optional, defaults to 8080
 - **No caching of pre-built widget results.** Articles and Events are recomputed on every page load. v1 cares about correctness over efficiency; caching is in `Possible Later Enhancements` of the PRD.
 - **No HTTPS, no production deployment.** Local PoC only. The Go server is plain HTTP on `:8080`.
 - **No multi-tenant or multi-family concerns.** The `families` table exists, but every user belongs to exactly one family in v1. Multi-family is a v2 product concern (per `scope.md`).
-- **"Free-form" render spec is actually constrained free-form.** The LLM picks from 5 archetypes (`list`, `cards`, `hero`, `key_value`, `table`); the *content* within each is free. Truly open JSON would be research-grade. **See Decisions and Open Issues** for the call.
-- **No JSON Schema validation of LLM output.** We trust the system prompt + JSON-mode for v1. Adding a schema validator is one line of work; doing it well is more.
-- **Drag-and-drop is Puck's, not custom.** The PRD's "drag-and-drop layout" is fully delegated to Puck. We don't write any custom DnD code.
+- **"Free-form" render spec is actually constrained free-form.** The LLM picks from 5 archetypes (`list`, `cards`, `hero`, `key_value`, `table`), and the content is a list of items in one fixed shape that every archetype renders from. Strict structured output can't describe truly free-form content, and truly open JSON would be research-grade. **See Decisions and Open Issues** for the call.
+- **Light validation of LLM output.** Structured output plus a decode-and-validate step in Go (known source, known archetype, non-empty fields, item URLs that really came from the search results). No separate schema-validation library.
+- **Reordering is Puck's; resizing is ours.** Puck handles drag-and-drop reordering. It has no resize, so the right-edge resize (snapping to quarters) is a small custom handle that updates the block's width through Puck's API.
 - **No rate limiting.** Local PoC, one family. Add later if it goes public.
 
 ## Decisions and Open Issues
@@ -385,7 +400,7 @@ Decisions made in the spec interview:
 
 **Open issues:**
 
-- **Exact OpenRouter model.** Pick one (or leave the default) at first run. The `OPENROUTER_MODEL` env var makes this trivially swappable.
-- **Puck version pinning.** Latest 0.x; we should pin to a specific version once we know which one works smoothly with React 18 + TanStack Router.
+- **Exact OpenRouter model.** Resolved: default `openai/gpt-4.1-mini`, verified at startup; swappable via `OPENROUTER_MODEL`.
+- **Puck version pinning.** Resolved: `@puckeditor/core` 0.23.0, which supports React 18.
 - **The "+" button placement in Puck.** Puck has a block library UI; we'll use that for adding `Custom` widgets, but we also need an entry point for the kernel prompt. The build will resolve the exact UX in the first pass.
 - **"Switch view" sidebar interaction.** PRD says the parent can switch to any member's view. The simplest implementation is a URL change (`/?as=spouse-id`) and a context switch on the Go side. We'll know quickly if there's a cleaner way during the build.
