@@ -4,11 +4,11 @@ status: approved
 ---
 # Build Checklist
 
-Build mode: [not chosen yet — learn or fast, chosen after the build order is approved]
+Build mode: fast
 
 ## Slices
 
-- [ ] **1. Type a sentence, get a live widget**
+- [x] **1. Type a sentence, get a live widget**
   Becomes usable: Open the app in a browser, type "show me upcoming SpaceX launches" into the new-widget prompt, watch a calm "thinking" state, and a titled widget card appears filled with live results. No login and nothing saved yet.
   Why now: This is the kernel, and it carries the two biggest unknowns: whether the chosen OpenRouter model reliably returns the structured widget spec, and whether Brave Search returns usable data. If either is wrong, we learn it before anything is built around it. Bootstrapping both halves of the app (Go module, Vite app) happens here so every later slice has a home.
   PRD ref: `prd.md > Custom Widgets ("Describe-a-Widget")`, `prd.md > The New-Widget Prompt`, `prd.md > Data Sources`
