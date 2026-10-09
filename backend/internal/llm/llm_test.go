@@ -273,6 +273,8 @@ func TestShapeItems(t *testing.T) {
 		{Title: "Other page", URL: "https://example.com/other"},
 	}
 	spec := llm.WidgetSpec{Title: "SpaceX Launches", Source: "events_search", Query: "q", Archetype: llm.ArchetypeList}
+	yesterday := time.Now().AddDate(0, 0, -1).Format(time.DateOnly)
+	nextWeek := time.Now().AddDate(0, 0, 7).Format(time.DateOnly)
 
 	tests := []struct {
 		name    string
@@ -280,6 +282,31 @@ func TestShapeItems(t *testing.T) {
 		want    []llm.Item
 		wantErr error
 	}{
+		{
+			name: "future_only drops items dated before today",
+			content: `{"future_only":true,"items":[
+				{"title":"Already flew","url":"","snippet":"","date":"yesterday","label":"","value":"","sort_date":"` + yesterday + `"},
+				{"title":"Next week","url":"","snippet":"","date":"next week","label":"","value":"","sort_date":"` + nextWeek + `"},
+				{"title":"Date unknown","url":"","snippet":"","date":"","label":"","value":"","sort_date":""}
+			]}`,
+			want: []llm.Item{{Title: "Next week", Date: "next week"}, {Title: "Date unknown"}},
+		},
+		{
+			name: "past items stay when the request isn't about the future",
+			content: `{"future_only":false,"items":[
+				{"title":"Yesterday's match","url":"","snippet":"","date":"yesterday","label":"","value":"","sort_date":"` + yesterday + `"}
+			]}`,
+			want: []llm.Item{{Title: "Yesterday's match", Date: "yesterday"}},
+		},
+		{
+			// Everything found already happened: an honest empty widget, not
+			// ErrNoItems (which would fall back to the stale raw results).
+			name: "all in the past",
+			content: `{"future_only":true,"items":[
+				{"title":"Already flew","url":"","snippet":"","date":"","label":"","value":"","sort_date":"` + yesterday + `"}
+			]}`,
+			want: []llm.Item{},
+		},
 		{
 			name: "grounds URLs and copies thumbnails",
 			content: `{"items":[
@@ -309,6 +336,9 @@ func TestShapeItems(t *testing.T) {
 			}
 			if !slices.Equal(items, tt.want) {
 				t.Errorf("items =\n%+v\nwant\n%+v", items, tt.want)
+			}
+			if tt.want != nil && items == nil {
+				t.Error("items is nil, want an empty slice (encodes as [] not null)")
 			}
 			if name := fake.reqs[0].ResponseFormat.JSONSchema.Name; name != "widget_items" {
 				t.Errorf("schema name = %q, want widget_items", name)

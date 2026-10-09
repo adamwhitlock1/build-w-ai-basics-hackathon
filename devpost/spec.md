@@ -150,7 +150,7 @@ PRD ref: implements `prd.md > Data Sources`.
 #### `internal/llm` — OpenRouter client + prompts
 - `NewClient(apiKey, model) *Client` — wraps `sashabaranov/go-openai` pointed at `https://openrouter.ai/api/v1`.
 - `PickWidgetSpec(ctx, prompt string, availableSources []string) (*WidgetSpec, error)` — calls the LLM with a strict structured output `{title, source, query, archetype}`, decoded and validated in Go.
-- `ShapeItems(ctx, prompt, spec, results)` — turns search results into up to 8 fixed-shape items (`{title, url, snippet, date, label, value, thumbnail}`) grounded in those results.
+- `ShapeItems(ctx, prompt, spec, results)` — turns search results into up to 8 fixed-shape items (`{title, url, snippet, date, label, value, thumbnail}`) grounded in those results. The model also returns a machine-readable `sort_date` per item and a `future_only` flag; for "upcoming" requests, Go (not the model) drops anything dated before today.
 - Handles OpenRouter's quirks: an HTTP 200 carrying an error with no choices, `finish_reason: "length"`, and 401/402/429/5xx mapped to clear errors.
 - `CurateArticles(ctx, interests string) (*ArticlesSpec, error)` and `CurateEvents(ctx, interests, location string) (*EventsSpec, error)` — for the pre-built widgets. Constrained to a known shape.
 PRD ref: implements the LLM parts of `prd.md > Articles Widget`, `prd.md > Local Events Widget`, and the entire `prd.md > Custom Widgets ("Describe-a-Widget")` flow.
