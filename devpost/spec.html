@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Porchlight — Technical Spec Companion</title>
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1f2937;
+      --ink-soft: #4b5563;
+      --ink-mute: #6b7280;
+      --line: #e5e7eb;
+      --line-soft: #f3f4f6;
+      --primary: #4f46e5;
+      --primary-soft: #eef2ff;
+      --accent: #f59e0b;
+      --accent-soft: #fef3c7;
+      --good: #059669;
+      --good-soft: #d1fae5;
+      --later: #6b7280;
+      --later-soft: #f3f4f6;
+      --warn: #b45309;
+      --warn-soft: #fef3c7;
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #eef2ff 0%, #fef3c7 100%);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 40px 36px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow);
+    }
+    .hero .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 44px;
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .hero .tagline {
+      font-size: 17px;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    section h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+    section h3 {
+      font-size: 22px;
+      margin: 0 0 16px;
+      letter-spacing: -0.01em;
+    }
+    section p { margin: 0 0 12px; color: var(--ink-soft); }
+
+    .diagram-wrap {
+      background: var(--line-soft);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    .diagram-wrap svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    .diagram-caption {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 12px;
+      font-style: italic;
+    }
+
+    /* Architecture: two halves */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .arch-half {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .arch-half h4 {
+      margin: 0 0 6px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .arch-half h4 .pill {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .arch-half.go h4 .pill { background: #cffafe; color: #0e7490; }
+    .arch-half ul { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+    .arch-half li { margin-bottom: 4px; }
+    .arch-bridge {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--ink-mute);
+      font-style: italic;
+    }
+
+    /* Stack table */
+    .stack-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    .stack-table th, .stack-table td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .stack-table th {
+      color: var(--ink-mute);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .stack-table code {
+      background: var(--line-soft);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--primary);
+    }
+    .stack-table .why { color: var(--ink-soft); }
+
+    /* Components */
+    .component {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .component.kernel { background: var(--accent-soft); border-color: var(--accent); }
+    .component h4 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .component h4 .pill {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      background: var(--accent);
+      color: white;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .component .desc {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin: 0 0 6px;
+    }
+    .component .prd-ref {
+      font-size: 11px;
+      color: var(--ink-mute);
+      font-style: italic;
+    }
+    .component .prd-ref code { font-style: normal; }
+
+    /* Data model */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .table-card {
+      background: var(--line-soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .table-card .name {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .table-card .field {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: var(--ink-soft);
+      padding: 2px 0;
+    }
+    .table-card .field .type { color: var(--ink-mute); }
+    .table-card .field.pk::before {
+      content: "🔑 ";
+      font-size: 10px;
+    }
+
+    /* File tree */
+    .file-tree {
+      background: #1f2937;
+      color: #e5e7eb;
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 12px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+    .file-tree .comment { color: #6b7280; }
+    .file-tree .folder { color: #93c5fd; font-weight: 600; }
+    .file-tree .file { color: #d1d5db; }
+
+    /* External services */
+    .ext-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .ext-card {
+      background: var(--primary-soft);
+      border: 1px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .ext-card .name {
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .ext-card .role {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+    .ext-card code {
+      font-size: 11px;
+      background: rgba(255,255,255,0.6);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .ext-card a {
+      color: var(--primary);
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .ext-card a:hover { text-decoration: underline; }
+
+    /* Failure modes */
+    .failures {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .failures li {
+      padding: 10px 14px;
+      background: var(--warn-soft);
+      border-left: 3px solid var(--warn);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .failures li strong { color: #92400e; }
+
+    /* Simplifications */
+    .simplifications {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .simplifications li {
+      padding: 10px 14px;
+      background: var(--line-soft);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .simplifications li strong { color: var(--ink); }
+
+    /* Open issues */
+    .issues {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .issues li {
+      padding: 10px 14px;
+      background: var(--good-soft);
+      border-left: 3px solid var(--good);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .issues li strong { color: #065f46; }
+
+    .start-block {
+      background: #1f2937;
+      color: #e5e7eb;
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 12px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .start-block .comment { color: #6b7280; }
+    .start-block .cmd { color: #93c5fd; }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      background: var(--accent-soft);
+      color: #92400e;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-left: 6px;
+    }
+
+    @media (max-width: 700px) {
+      .arch-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="eyebrow">Devpost Learn — Technical Spec</div>
+      <h1>Porchlight</h1>
+      <p class="tagline">A Go API + React SPA, with Puck for the canvas and OpenRouter as the LLM proxy. Server-mediated LLM calls, SQLite for storage, and a constrained free-form render spec from the LLM as the kernel.</p>
+    </header>
+
+    <!-- HOW THIS WORKS -->
+    <section>
+      <h2>How This Works, In Plain Language</h2>
+      <h3>Two halves that talk JSON over HTTP</h3>
+      <p><strong>The Go backend</strong> is a single program on your computer. It owns the database (a small SQLite file), handles logins, and is the only thing that talks to the LLM (via OpenRouter) and to Brave Search. It speaks JSON over a REST API.</p>
+      <p><strong>The React frontend</strong> is a single-page app in a browser. It uses Puck to render and edit the homepage canvas, and TanStack Query to fetch data from the Go API. The user logs in, the React app asks the Go API for the family's data, and Puck renders the homepage using the user's saved layout.</p>
+      <p><strong>The kernel — "describe a widget" —</strong> the user clicks "+" in Puck, types a sentence, the React app POSTs that sentence to the Go API, the Go API calls OpenRouter with a structured-output prompt, the LLM returns a small JSON spec (which data source, what to search for, and how to render the result), the Go API calls Brave Search to fetch the data, persists the new widget, and returns the rendered spec. Puck adds the new widget to the page. The OpenRouter key stays on the server.</p>
+
+      <div class="arch-grid">
+        <div class="arch-half go">
+          <h4>Go backend <span class="pill">:8080</span></h4>
+          <ul>
+            <li>net/http ServeMux (Go 1.22+ patterns)</li>
+            <li>alexedwards/scs/v2 sessions (SQLite-backed, httpOnly cookies)</li>
+            <li>modernc.org/sqlite (pure Go, no CGO)</li>
+            <li>sashabaranov/go-openai → OpenRouter</li>
+            <li>Brave Search HTTP adapter</li>
+            <li>Source registry (interface-driven; v2 can add sources)</li>
+          </ul>
+        </div>
+        <div class="arch-half">
+          <h4>React SPA <span class="pill">:5173</span></h4>
+          <ul>
+            <li>React 18 + TypeScript + Vite</li>
+            <li>TanStack Router (SPA mode, not Start)</li>
+            <li>TanStack Query for server state</li>
+            <li>Tailwind CSS + Gambarino/Switzer from Fontshare</li>
+            <li>Puck for the canvas (drag, drop, resize, layout JSON)</li>
+            <li>Custom "describe-a-widget" modal → POST to Go</li>
+          </ul>
+        </div>
+      </div>
+      <p class="arch-bridge">↕ JSON over HTTP — Vite dev server proxies /api/* to :8080</p>
+    </section>
+
+    <!-- THE KERNEL FLOW -->
+    <section>
+      <h2>The Kernel Flow</h2>
+      <h3>"Describe a widget" — what actually happens</h3>
+      <p>The most consequential flow in the system. Every other thing supports this one.</p>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 920 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Step-by-step flow of the describe-a-widget kernel from the user clicking the plus button to the new widget appearing on the page.">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+            </marker>
+            <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+            </marker>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="1"/>
+              <feComponentTransfer><feFuncA type="linear" slope="0.15"/></feComponentTransfer>
+              <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Step 1: User clicks + -->
+          <g filter="url(#shadow)">
+            <rect x="20" y="20" width="200" height="60" rx="10" fill="#4f46e5"/>
+            <text x="120" y="46" text-anchor="middle" fill="white" font-size="14" font-weight="600">User clicks "+"</text>
+            <text x="120" y="66" text-anchor="middle" fill="#c7d2fe" font-size="11">in Puck's block library</text>
+          </g>
+
+          <!-- Step 2: Prompt modal opens -->
+          <g filter="url(#shadow)">
+            <rect x="260" y="20" width="200" height="60" rx="10" fill="#4f46e5"/>
+            <text x="360" y="46" text-anchor="middle" fill="white" font-size="14" font-weight="600">Prompt modal opens</text>
+            <text x="360" y="66" text-anchor="middle" fill="#c7d2fe" font-size="11">single text field + examples</text>
+          </g>
+
+          <!-- Step 3: User types and submits -->
+          <g filter="url(#shadow)">
+            <rect x="500" y="20" width="200" height="60" rx="10" fill="#4f46e5"/>
+            <text x="600" y="46" text-anchor="middle" fill="white" font-size="14" font-weight="600">User types + submits</text>
+            <text x="600" y="66" text-anchor="middle" fill="#c7d2fe" font-size="11">"show me SpaceX launches"</text>
+          </g>
+
+          <!-- Step 4: POST to Go -->
+          <g filter="url(#shadow)">
+            <rect x="20" y="130" width="200" height="60" rx="10" fill="#0e7490"/>
+            <text x="120" y="156" text-anchor="middle" fill="white" font-size="14" font-weight="600">POST /api/widgets/from-prompt</text>
+            <text x="120" y="176" text-anchor="middle" fill="#cffafe" font-size="11">React → Go API</text>
+          </g>
+
+          <!-- Step 5: Go calls OpenRouter -->
+          <g filter="url(#shadow)">
+            <rect x="260" y="130" width="200" height="60" rx="10" fill="#0e7490"/>
+            <text x="360" y="156" text-anchor="middle" fill="white" font-size="14" font-weight="600">Go → OpenRouter</text>
+            <text x="360" y="176" text-anchor="middle" fill="#cffafe" font-size="11">JSON-mode system prompt</text>
+          </g>
+
+          <!-- Step 6: LLM returns spec -->
+          <g filter="url(#shadow)">
+            <rect x="500" y="130" width="200" height="60" rx="10" fill="#f59e0b"/>
+            <text x="600" y="156" text-anchor="middle" fill="white" font-size="13" font-weight="600">LLM returns JSON spec</text>
+            <text x="600" y="176" text-anchor="middle" fill="#fef3c7" font-size="11">{source, query, render}</text>
+          </g>
+
+          <!-- Step 7: Go calls Brave -->
+          <g filter="url(#shadow)">
+            <rect x="20" y="240" width="200" height="60" rx="10" fill="#0e7490"/>
+            <text x="120" y="266" text-anchor="middle" fill="white" font-size="14" font-weight="600">Go → Brave Search</text>
+            <text x="120" y="286" text-anchor="middle" fill="#cffafe" font-size="11">fetch with chosen source</text>
+          </g>
+
+          <!-- Step 8: Go persists -->
+          <g filter="url(#shadow)">
+            <rect x="260" y="240" width="200" height="60" rx="10" fill="#0e7490"/>
+            <text x="360" y="266" text-anchor="middle" fill="white" font-size="14" font-weight="600">Go persists to SQLite</text>
+            <text x="360" y="286" text-anchor="middle" fill="#cffafe" font-size="11">custom_widgets row</text>
+          </g>
+
+          <!-- Step 9: Go returns block -->
+          <g filter="url(#shadow)">
+            <rect x="500" y="240" width="200" height="60" rx="10" fill="#0e7490"/>
+            <text x="600" y="266" text-anchor="middle" fill="white" font-size="14" font-weight="600">Go returns block spec</text>
+            <text x="600" y="286" text-anchor="middle" fill="#cffafe" font-size="11">to React</text>
+          </g>
+
+          <!-- Step 10: React dispatches -->
+          <g filter="url(#shadow)">
+            <rect x="20" y="350" width="200" height="60" rx="10" fill="#4f46e5"/>
+            <text x="120" y="376" text-anchor="middle" fill="white" font-size="14" font-weight="600">puck.dispatch</text>
+            <text x="120" y="396" text-anchor="middle" fill="#c7d2fe" font-size="11">adds block to canvas</text>
+          </g>
+
+          <!-- Step 11: Widget renders -->
+          <g filter="url(#shadow)">
+            <rect x="260" y="350" width="200" height="60" rx="10" fill="#f59e0b"/>
+            <text x="360" y="376" text-anchor="middle" fill="white" font-size="14" font-weight="600">Widget renders</text>
+            <text x="360" y="396" text-anchor="middle" fill="#fef3c7" font-size="11">fades + slides in ★</text>
+          </g>
+
+          <!-- Step 12: Layout persists -->
+          <g filter="url(#shadow)">
+            <rect x="500" y="350" width="200" height="60" rx="10" fill="#4f46e5"/>
+            <text x="600" y="376" text-anchor="middle" fill="white" font-size="14" font-weight="600">Layout saved</text>
+            <text x="600" y="396" text-anchor="middle" fill="#c7d2fe" font-size="11">debounced PUT /api/me/homepage</text>
+          </g>
+
+          <!-- Side actors -->
+          <g>
+            <rect x="740" y="20" width="160" height="60" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+            <text x="820" y="46" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="600">OpenRouter</text>
+            <text x="820" y="66" text-anchor="middle" fill="#6b7280" font-size="11">LLM proxy (free model)</text>
+          </g>
+          <g>
+            <rect x="740" y="130" width="160" height="60" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+            <text x="820" y="156" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="600">JSON-mode</text>
+            <text x="820" y="176" text-anchor="middle" fill="#6b7280" font-size="11">structured output</text>
+          </g>
+          <g>
+            <rect x="740" y="240" width="160" height="60" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+            <text x="820" y="266" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="600">Brave Search</text>
+            <text x="820" y="286" text-anchor="middle" fill="#6b7280" font-size="11">3 sources, 1 endpoint</text>
+          </g>
+
+          <!-- Arrows (main flow) -->
+          <line x1="220" y1="50" x2="260" y2="50" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+          <line x1="460" y1="50" x2="500" y2="50" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <line x1="600" y1="80" x2="600" y2="130" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+          <text x="610" y="110" fill="#6b7280" font-size="10">submit</text>
+
+          <line x1="120" y1="190" x2="120" y2="240" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <line x1="360" y1="190" x2="360" y2="240" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+          <text x="370" y="220" fill="#6b7280" font-size="10">validate</text>
+
+          <line x1="600" y1="190" x2="600" y2="240" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <line x1="220" y1="270" x2="260" y2="270" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+          <line x1="460" y1="270" x2="500" y2="270" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <line x1="600" y1="300" x2="600" y2="350" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <line x1="120" y1="380" x2="120" y2="410" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <line x1="220" y1="380" x2="260" y2="380" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr-amber)"/>
+          <line x1="460" y1="380" x2="500" y2="380" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <!-- Side actor arrows -->
+          <line x1="460" y1="160" x2="740" y2="50" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="220" y1="270" x2="740" y2="270" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="460" y1="160" x2="740" y2="160" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3 3"/>
+
+          <!-- Failure path -->
+          <g>
+            <rect x="20" y="480" width="880" height="80" rx="10" fill="#fee2e2" stroke="#b91c1c" stroke-dasharray="4 4"/>
+            <text x="40" y="508" fill="#7f1d1d" font-size="13" font-weight="700">⚠ Failure path</text>
+            <text x="40" y="528" fill="#7f1d1d" font-size="12">If OpenRouter returns malformed JSON, Go retries the parse once.</text>
+            <text x="40" y="546" fill="#7f1d1d" font-size="12">If Brave returns no results, widget shows "Nothing new today" instead of empty space.</text>
+          </g>
+
+          <!-- Render spec archetypes note -->
+          <g>
+            <rect x="20" y="590" width="880" height="80" rx="10" fill="#fef3c7" stroke="#f59e0b"/>
+            <text x="40" y="618" fill="#92400e" font-size="13" font-weight="700">★ The render spec is constrained free-form</text>
+            <text x="40" y="638" fill="#92400e" font-size="12">The LLM picks an archetype from: list · cards · hero · key_value · table. The content within each is free.</text>
+            <text x="40" y="656" fill="#92400e" font-size="12">This is where the visual variety in the demo comes from. Truly free JSON is a v2 problem.</text>
+          </g>
+        </svg>
+      </div>
+      <p class="diagram-caption">Amber = the kernel highlight. Cyan = Go API work. Indigo = React work. Red dashed = failure paths.</p>
+    </section>
+
+    <!-- STACK -->
+    <section>
+      <h2>Stack</h2>
+      <h3>Locked choices for v1</h3>
+      <table class="stack-table">
+        <thead>
+          <tr><th>Layer</th><th>Choice</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Backend language</td><td><code>Go 1.22+</code></td><td class="why">Stated learning goal; idiomatic for APIs.</td></tr>
+          <tr><td>HTTP router</td><td><code>net/http</code> ServeMux</td><td class="why">Zero deps, most idiomatic. Middleware as small wrappers.</td></tr>
+          <tr><td>Sessions</td><td><code>alexedwards/scs/v2</code></td><td class="why">Server-side, SQLite-backed, httpOnly cookies.</td></tr>
+          <tr><td>SQLite driver</td><td><code>modernc.org/sqlite</code></td><td class="why">Pure Go, no CGO required.</td></tr>
+          <tr><td>LLM client</td><td><code>sashabaranov/go-openai</code></td><td class="why">Most-used Go OpenAI client; OpenRouter is OpenAI-compatible.</td></tr>
+          <tr><td>External search</td><td>Brave Search API (direct HTTP)</td><td class="why">One endpoint backs all three sources via an adapter.</td></tr>
+          <tr><td>Frontend</td><td>React 18 + TypeScript + Vite</td><td class="why">Learner preference.</td></tr>
+          <tr><td>Routing</td><td>TanStack Router (SPA mode)</td><td class="why">Not TanStack Start — Start would overlap with the Go API.</td></tr>
+          <tr><td>Server state</td><td>TanStack Query</td><td class="why">For data fetching, caching, optimistic updates.</td></tr>
+          <tr><td>Styling</td><td>Tailwind + Gambarino/Switzer</td><td class="why">Tailwind for speed; Gambarino display / Switzer body from Fontshare with system fallback.</td></tr>
+          <tr><td>Canvas</td><td>Puck (latest 0.x)</td><td class="why">Drag, drop, resize, layout JSON, custom blocks.</td></tr>
+          <tr><td>Password hashing</td><td><code>golang.org/x/crypto/bcrypt</code></td><td class="why">Stdlib-quality, idiomatic.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- WHERE IT RUNS -->
+    <section>
+      <h2>Where It Runs and How Someone Tries It</h2>
+      <h3>Two terminals, one browser</h3>
+      <p>The Go backend listens on <code>:8080</code>; the Vite dev server runs on <code>:5173</code> and proxies <code>/api/*</code> to the Go server. SQLite is a single file at <code>backend/porchlight.db</code>.</p>
+      <p><strong>Environment:</strong> Go 1.22+, Node 20+, an OpenRouter key, a Brave Search key, in <code>backend/.env</code>. A <code>.env.example</code> is committed; <code>.env</code> is gitignored.</p>
+
+      <div class="start-block">
+<span class="comment"># Terminal 1 — backend</span>
+<span class="cmd">cd backend</span>
+<span class="cmd">go run .</span>
+
+<span class="comment"># Terminal 2 — frontend</span>
+<span class="cmd">cd frontend</span>
+<span class="cmd">npm install</span>
+<span class="cmd">npm run dev</span>
+
+<span class="comment"># Then open http://localhost:5173</span>
+      </div>
+
+      <p style="margin-top: 16px;"><strong>Submission:</strong> demo video (60-second screen recording of setup → drag-and-drop → describe-a-widget) and a public GitHub repo. Deployment is not required and not in scope.</p>
+    </section>
+
+    <!-- COMPONENTS -->
+    <section>
+      <h2>Components</h2>
+      <h3>One per PRD behavior, traceable to a heading</h3>
+
+      <div class="component">
+        <h4>cmd/server <span style="font-size: 12px; color: var(--ink-mute); font-weight: normal;">— entrypoint</span></h4>
+        <p class="desc">Wires the router, sessions, store, and handlers. Reads env, opens SQLite, starts the server.</p>
+      </div>
+
+      <div class="component">
+        <h4>internal/store</h4>
+        <p class="desc">SQLite access. Typed methods per table (GetUser, CreateUser, etc.).</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Data Model</code></p>
+      </div>
+
+      <div class="component">
+        <h4>internal/auth</h4>
+        <p class="desc">Password hashing (bcrypt), session middleware, RequireAuth/RequireAdmin.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Authentication and Account</code></p>
+      </div>
+
+      <div class="component">
+        <h4>internal/family</h4>
+        <p class="desc">Family + member handlers: create family, issue invite, accept invite, list members.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Family Management</code></p>
+      </div>
+
+      <div class="component">
+        <h4>internal/layout</h4>
+        <p class="desc">Puck layout persistence: GET/PUT <code>/api/me/homepage</code>, profile updates.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Drag-and-Drop Layout</code></p>
+      </div>
+
+      <div class="component">
+        <h4>internal/widgets</h4>
+        <p class="desc">Articles, events, and the <strong>kernel</strong> — <code>POST /api/widgets/from-prompt</code>.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Articles Widget</code>, <code>Local Events Widget</code></p>
+      </div>
+
+      <div class="component kernel">
+        <h4>internal/sources <span class="pill">registry</span></h4>
+        <p class="desc">Interface-driven source registry. v1 ships one implementation: <code>BraveSource</code>. v2 can add PredictHQ / Google Events with a config change.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Data Sources</code></p>
+      </div>
+
+      <div class="component kernel">
+        <h4>internal/llm <span class="pill">kernel</span></h4>
+        <p class="desc">OpenRouter client + prompt templates. <code>PickWidgetSpec</code> returns the constrained free-form render spec. <code>CurateArticles</code> / <code>CurateEvents</code> for pre-built widgets.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Custom Widgets ("Describe-a-Widget")</code></p>
+      </div>
+
+      <div class="component">
+        <h4>frontend/src/puck</h4>
+        <p class="desc">Puck config + custom block types: Articles, LocalEvents, Custom. Block library for "+".</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Drag-and-Drop Layout</code>, canvas part of <code>Custom Widgets</code></p>
+      </div>
+
+      <div class="component kernel">
+        <h4>frontend/src/widgets/DescribeWidgetPrompt <span class="pill">kernel UI</span></h4>
+        <p class="desc">The modal: single text field, thinking state, success → puck.dispatch, failure → try again.</p>
+        <p class="prd-ref">PRD ref: <code>prd.md &gt; Custom Widgets ("Describe-a-Widget")</code></p>
+      </div>
+    </section>
+
+    <!-- DATA MODEL -->
+    <section>
+      <h2>Data Model</h2>
+      <h3>SQLite, six tables, file-based</h3>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 920 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Entity-relationship diagram of Porchlight's six SQLite tables and their relationships.">
+          <defs>
+            <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+            </marker>
+          </defs>
+
+          <!-- families -->
+          <g>
+            <rect x="20" y="20" width="220" height="140" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="130" y="46" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="700">families</text>
+            <text x="36" y="76" font-family="ui-monospace" font-size="11" fill="#4b5563">id PK</text>
+            <text x="36" y="94" font-family="ui-monospace" font-size="11" fill="#4b5563">name</text>
+            <text x="36" y="112" font-family="ui-monospace" font-size="11" fill="#4b5563">created_at</text>
+          </g>
+
+          <!-- users -->
+          <g>
+            <rect x="350" y="20" width="220" height="170" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="460" y="46" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="700">users</text>
+            <text x="366" y="76" font-family="ui-monospace" font-size="11" fill="#4b5563">id PK</text>
+            <text x="366" y="94" font-family="ui-monospace" font-size="11" fill="#4b5563">email UNIQUE</text>
+            <text x="366" y="112" font-family="ui-monospace" font-size="11" fill="#4b5563">password_hash</text>
+            <text x="366" y="130" font-family="ui-monospace" font-size="11" fill="#4b5563">family_id FK → families</text>
+            <text x="366" y="148" font-family="ui-monospace" font-size="11" fill="#4b5563">is_admin</text>
+            <text x="366" y="166" font-family="ui-monospace" font-size="11" fill="#4b5563">created_at</text>
+          </g>
+
+          <!-- invites -->
+          <g>
+            <rect x="680" y="20" width="220" height="170" rx="10" fill="#fef3c7" stroke="#f59e0b"/>
+            <text x="790" y="46" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="700">invites</text>
+            <text x="696" y="76" font-family="ui-monospace" font-size="11" fill="#4b5563">id PK</text>
+            <text x="696" y="94" font-family="ui-monospace" font-size="11" fill="#4b5563">family_id FK → families</text>
+            <text x="696" y="112" font-family="ui-monospace" font-size="11" fill="#4b5563">email</text>
+            <text x="696" y="130" font-family="ui-monospace" font-size="11" fill="#4b5563">token UNIQUE</text>
+            <text x="696" y="148" font-family="ui-monospace" font-size="11" fill="#4b5563">expires_at</text>
+            <text x="696" y="166" font-family="ui-monospace" font-size="11" fill="#4b5563">accepted_at</text>
+          </g>
+
+          <!-- member_profiles -->
+          <g>
+            <rect x="20" y="220" width="220" height="120" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="130" y="246" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="700">member_profiles</text>
+            <text x="36" y="276" font-family="ui-monospace" font-size="11" fill="#4b5563">user_id PK, FK → users</text>
+            <text x="36" y="294" font-family="ui-monospace" font-size="11" fill="#4b5563">interests</text>
+            <text x="36" y="312" font-family="ui-monospace" font-size="11" fill="#4b5563">location</text>
+            <text x="36" y="330" font-family="ui-monospace" font-size="11" fill="#4b5563">updated_at</text>
+          </g>
+
+          <!-- homepage_layouts -->
+          <g>
+            <rect x="350" y="220" width="220" height="120" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="460" y="246" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="700">homepage_layouts</text>
+            <text x="366" y="276" font-family="ui-monospace" font-size="11" fill="#4b5563">user_id PK, FK → users</text>
+            <text x="366" y="294" font-family="ui-monospace" font-size="11" fill="#4b5563">puck_data (JSON)</text>
+            <text x="366" y="330" font-family="ui-monospace" font-size="11" fill="#4b5563">updated_at</text>
+          </g>
+
+          <!-- custom_widgets -->
+          <g>
+            <rect x="680" y="220" width="220" height="140" rx="10" fill="#fef3c7" stroke="#f59e0b"/>
+            <text x="790" y="246" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="700">custom_widgets</text>
+            <text x="696" y="276" font-family="ui-monospace" font-size="11" fill="#4b5563">id PK</text>
+            <text x="696" y="294" font-family="ui-monospace" font-size="11" fill="#4b5563">user_id FK → users</text>
+            <text x="696" y="312" font-family="ui-monospace" font-size="11" fill="#4b5563">name, source, query</text>
+            <text x="696" y="330" font-family="ui-monospace" font-size="11" fill="#4b5563">render_spec (JSON)</text>
+            <text x="696" y="348" font-family="ui-monospace" font-size="11" fill="#4b5563">created_at</text>
+          </g>
+
+          <!-- Relationships -->
+          <line x1="240" y1="80" x2="350" y2="80" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="295" y="74" text-anchor="middle" fill="#6b7280" font-size="10">1 → N</text>
+
+          <line x1="460" y1="190" x2="460" y2="220" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <line x1="460" y1="190" x2="130" y2="220" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <line x1="460" y1="190" x2="790" y2="220" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="170" y="210" fill="#6b7280" font-size="10">1 → 1</text>
+          <text x="475" y="210" fill="#6b7280" font-size="10">1 → 1</text>
+          <text x="630" y="210" fill="#6b7280" font-size="10">1 → N</text>
+
+          <line x1="130" y1="160" x2="130" y2="220" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+          <line x1="240" y1="80" x2="680" y2="80" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arr2)"/>
+        </svg>
+      </div>
+      <p class="diagram-caption">Amber = the kernel's tables. The custom_widgets row is what makes a described widget survive a page reload.</p>
+    </section>
+
+    <!-- FILE STRUCTURE -->
+    <section>
+      <h2>File Structure</h2>
+      <h3>Annotated tree</h3>
+      <div class="file-tree">
+<span class="folder">build-w-ai-basics-hackathon/</span>
+├── <span class="folder">devpost/</span>                       <span class="comment"># planning docs (already exists)</span>
+│   ├── learner-profile.md
+│   ├── scope.md / scope.html
+│   └── prd.md / prd.html
+├── <span class="folder">backend/</span>                        <span class="comment"># Go API</span>
+│   ├── .env.example
+│   ├── go.mod / go.sum
+│   ├── main.go                         <span class="comment"># entrypoint</span>
+│   ├── <span class="folder">internal/</span>
+│   │   ├── <span class="folder">auth/</span>                   <span class="comment"># sessions, bcrypt, middleware</span>
+│   │   ├── <span class="folder">family/</span>                 <span class="comment"># family + invite handlers</span>
+│   │   ├── <span class="folder">layout/</span>                 <span class="comment"># Puck layout persistence</span>
+│   │   ├── <span class="folder">widgets/</span>                <span class="comment"># articles / events / from-prompt (kernel)</span>
+│   │   ├── <span class="folder">sources/</span>                <span class="comment"># Source interface + BraveSource + Registry</span>
+│   │   ├── <span class="folder">llm/</span>                    <span class="comment"># OpenRouter client + prompt templates</span>
+│   │   └── <span class="folder">store/</span>                  <span class="comment"># SQLite access</span>
+│   └── <span class="folder">migrations/</span>
+│       └── 001_init.sql                <span class="comment"># schema</span>
+├── <span class="folder">frontend/</span>                       <span class="comment"># React SPA</span>
+│   ├── package.json / vite.config.ts
+│   ├── tsconfig.json / tailwind.config.js
+│   ├── index.html                      <span class="comment"># loads Gambarino + Switzer from Fontshare</span>
+│   └── <span class="folder">src/</span>
+│       ├── main.tsx
+│       ├── <span class="folder">routes/</span>                  <span class="comment"># TanStack Router file-based</span>
+│       │   ├── __root.tsx
+│       │   ├── login.tsx / signup.tsx
+│       │   ├── invite.$token.tsx
+│       │   ├── create-family.tsx
+│       │   └── index.tsx               <span class="comment"># the homepage</span>
+│       ├── <span class="folder">components/</span>               <span class="comment"># shared UI</span>
+│       ├── <span class="folder">puck/</span>
+│       │   ├── config.tsx              <span class="comment"># Puck block types</span>
+│       │   └── <span class="folder">blocks/</span>
+│       │       ├── Articles.tsx
+│       │       ├── LocalEvents.tsx
+│       │       └── Custom.tsx
+│       ├── <span class="folder">widgets/</span>
+│       │   └── DescribeWidgetPrompt.tsx   <span class="comment"># kernel modal</span>
+│       ├── <span class="folder">api/</span>                     <span class="comment"># TanStack Query hooks</span>
+│       └── <span class="folder">styles/</span>                  <span class="comment"># tailwind + utilities</span>
+├── README.md
+└── .gitignore
+      </div>
+    </section>
+
+    <!-- EXTERNAL SERVICES -->
+    <section>
+      <h2>External Services and Dependencies</h2>
+
+      <div class="ext-grid">
+        <div class="ext-card">
+          <div class="name">OpenRouter</div>
+          <div class="role">LLM proxy. <code>sashabaranov/go-openai</code> pointed at <code>https://openrouter.ai/api/v1</code>. JSON-mode for the kernel prompt.</div>
+          <a href="https://openrouter.ai/docs" target="_blank" rel="noopener">openrouter.ai/docs</a>
+        </div>
+        <div class="ext-card">
+          <div class="name">Brave Search</div>
+          <div class="role">All three data sources. <code>https://api.search.brave.com/res/v1/web/search</code>. 2,000 free queries/month.</div>
+          <a href="https://brave.com/search/api/" target="_blank" rel="noopener">brave.com/search/api</a>
+        </div>
+        <div class="ext-card">
+          <div class="name">Fontshare (optional)</div>
+          <div class="role">Gambarino + Switzer via <code>&lt;link&gt;</code>. System fallback if offline.</div>
+          <a href="https://www.fontshare.com" target="_blank" rel="noopener">fontshare.com</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section>
+      <h2>Important Failure Modes</h2>
+      <h3>The two or three places this will actually break</h3>
+      <ul class="failures">
+        <li><strong>OpenRouter fails or returns malformed JSON</strong> → kernel prompt shows inline "Try again"; no widget created. Go retries the parse once.</li>
+        <li><strong>Brave Search returns no results</strong> → widget shows "Nothing new today — try refreshing later" instead of empty space.</li>
+        <li><strong>Brave Search rate-limited (HTTP 429)</strong> → exponential backoff once, then surface the same "try again" treatment.</li>
+        <li><strong>Session expired</strong> → any 401 triggers redirect to <code>/login</code>. The React fetch wrapper handles this.</li>
+        <li><strong>LLM picks a data source we don't have</strong> → Go validates against the Registry; returns 422 and the prompt shows "Try again" with a hint.</li>
+        <li><strong>LLM returns an unknown render archetype</strong> → frontend falls back to a generic card renderer.</li>
+        <li><strong>API key missing at startup</strong> → Go fails fast with a clear console error.</li>
+      </ul>
+    </section>
+
+    <!-- SIMPLIFICATIONS -->
+    <section>
+      <h2>What Was Simplified and Why</h2>
+      <ul class="simplifications">
+        <li><strong>One OpenRouter model at a time, env-configurable.</strong> No per-widget model selection, no fallback chain. v1 ships one model; swap via env var.</li>
+        <li><strong>No email sending for invites.</strong> Admin sees the invite link in the sidebar and copies it manually. Email is a real cost; out of scope for the PoC.</li>
+        <li><strong>No password reset.</strong> Out of scope; re-invite if needed.</li>
+        <li><strong>No caching of pre-built widget results.</strong> Articles and Events recomputed on every page load. v1 cares about correctness over efficiency.</li>
+        <li><strong>No HTTPS, no production deployment.</strong> Local PoC, plain HTTP on :8080.</li>
+        <li><strong>No multi-tenant concerns.</strong> Every user belongs to one family in v1.</li>
+        <li><strong>"Free-form" render spec is constrained free-form.</strong> LLM picks from 5 archetypes (<code>list</code>, <code>cards</code>, <code>hero</code>, <code>key_value</code>, <code>table</code>); content is free. Truly open JSON is research-grade.</li>
+        <li><strong>No JSON Schema validation of LLM output.</strong> We trust the system prompt + JSON-mode. Adding a schema validator is one line; doing it well is more.</li>
+        <li><strong>Drag-and-drop is Puck's, not custom.</strong> Fully delegated to Puck. No custom DnD code.</li>
+        <li><strong>No rate limiting.</strong> Local PoC, one family.</li>
+      </ul>
+    </section>
+
+    <!-- DECISIONS AND OPEN ISSUES -->
+    <section>
+      <h2>Decisions and Open Issues</h2>
+
+      <ul class="issues">
+        <li><strong>Single-binary split architecture: Go API + React SPA.</strong> Learner preference; matches the React/TanStack/Puck stack they want to use.</li>
+        <li><strong>OpenRouter via <code>sashabaranov/go-openai</code>.</strong> Most-used Go OpenAI client; OpenRouter is OpenAI-compatible. (Original suggestion: <code>gollm</code>; not chosen because of maintenance/API parity uncertainty.)</li>
+        <li><strong>Stdlib <code>net/http</code> for routing.</strong> Most idiomatic for learning Go; zero deps.</li>
+        <li><strong><code>alexedwards/scs/v2</code> for sessions.</strong> Server-side, SQLite-backed, httpOnly cookies.</li>
+        <li><strong><code>modernc.org/sqlite</code> for the driver.</strong> Pure Go, no CGO.</li>
+        <li><strong>Puck for the canvas.</strong> Learner preference; drag, drop, resize, layout JSON all in.</li>
+        <li><strong>TanStack Router in SPA mode, not TanStack Start.</strong> Start would overlap with the Go API.</li>
+        <li><strong>Constrained free-form render spec.</strong> LLM picks from 5 archetypes; content is free. See Simplifications for the call against truly open.</li>
+        <li><strong>OpenRouter model is configurable via <code>OPENROUTER_MODEL</code> env var.</strong> Default TBD; user picks.</li>
+        <li><strong>One genuine learner uncertainty surfaced: the Go LLM integration path.</strong> Resolved: <code>sashabaranov/go-openai</code> pointed at OpenRouter. <strong>To verify during build:</strong> the chosen OpenRouter model supports JSON-mode for the kernel prompt. Most free models do; sanity-check on first kernel run.</li>
+      </ul>
+
+      <p style="margin-top: 16px;"><strong>Open issues to resolve during the build:</strong></p>
+      <ul class="failures" style="background: transparent; padding: 0;">
+        <li>Exact OpenRouter model — pick at first run.</li>
+        <li>Puck version pin (latest 0.x).</li>
+        <li>The "+" button placement in Puck (block library vs. an external button calling <code>puck.dispatch</code>).</li>
+        <li>The "switch view" sidebar interaction (URL-based vs. context-based).</li>
+      </ul>
+    </section>
+
+    <div class="footer">
+      <a href="spec.md">Canonical Markdown version</a>
+      <span class="status-pill" style="background: #d1fae5; color: #065f46;">Approved</span>
+      <div style="margin-top:8px;">Spec is approved. Next is <code>5-build</code>, which turns the blueprint into ordered working steps.</div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Devpost Learn — keep personal learning context out of commits by default.
+# Note: this only affects what gets committed. Your AI provider still sees
+# the file through the conversation; this is about what becomes public.
+/devpost/learner-profile.md
+
+# Local credentials — API keys live in backend/.env (never committed).
+.env
+.env.*
+!.env.example
+
+# Local data and build output
+backend/porchlight.db*
+backend/bin/
+node_modules/
+frontend/dist/
+
+# OS clutter
+.DS_Store

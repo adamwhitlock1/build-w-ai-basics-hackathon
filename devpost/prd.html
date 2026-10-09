@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Porchlight — PRD Companion</title>
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1f2937;
+      --ink-soft: #4b5563;
+      --ink-mute: #6b7280;
+      --line: #e5e7eb;
+      --line-soft: #f3f4f6;
+      --primary: #4f46e5;
+      --primary-soft: #eef2ff;
+      --primary-deep: #3730a3;
+      --accent: #f59e0b;
+      --accent-soft: #fef3c7;
+      --good: #059669;
+      --good-soft: #d1fae5;
+      --later: #6b7280;
+      --later-soft: #f3f4f6;
+      --cut: #b91c1c;
+      --cut-soft: #fee2e2;
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #eef2ff 0%, #fef3c7 100%);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 40px 36px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow);
+    }
+    .hero .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 44px;
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .hero .tagline {
+      font-size: 17px;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
+    /* Sections */
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    section h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+    section h3 {
+      font-size: 22px;
+      margin: 0 0 16px;
+      letter-spacing: -0.01em;
+    }
+    section p { margin: 0 0 12px; color: var(--ink-soft); }
+    section p:last-child { margin-bottom: 0; }
+
+    /* Journey */
+    .journey {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+      position: relative;
+    }
+    .step .num {
+      position: absolute;
+      top: -10px; left: 12px;
+      width: 22px; height: 22px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+    }
+    .step .label {
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 2px;
+      margin-top: 6px;
+    }
+    .step .note {
+      color: var(--ink-mute);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .step.kernel {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+    .step.kernel .num { background: var(--accent); }
+    .step.kernel .label { color: #92400e; }
+    .step.kernel::after {
+      content: "★ KERNEL";
+      position: absolute;
+      top: -10px; right: 8px;
+      background: var(--accent);
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Journey diagram */
+    .diagram-wrap {
+      background: var(--line-soft);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    .diagram-wrap svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    .diagram-caption {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 12px;
+      font-style: italic;
+    }
+
+    /* Screens grid */
+    .screens-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .screen-card {
+      background: var(--primary-soft);
+      border: 1px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .screen-card .name {
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .screen-card .desc {
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* Look and feel */
+    .look-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .look-item {
+      padding: 12px 14px;
+      background: var(--line-soft);
+      border-radius: 10px;
+      border-left: 3px solid var(--accent);
+    }
+    .look-item .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-mute);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .look-item .value {
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .font-sample-display {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-sample-body {
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    /* Features */
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+    .feature.kernel-feature {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+    .feature h4 {
+      font-size: 16px;
+      margin: 0 0 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature h4 .pill {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      background: var(--accent);
+      color: white;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .feature .desc {
+      color: var(--ink-soft);
+      font-size: 14px;
+      margin: 0 0 12px;
+    }
+    .feature ul.ac {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .feature ul.ac li {
+      padding: 8px 0 8px 28px;
+      position: relative;
+      font-size: 14px;
+      color: var(--ink-soft);
+      border-bottom: 1px solid var(--line);
+    }
+    .feature ul.ac li:last-child { border-bottom: 0; }
+    .feature ul.ac li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--good);
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      background: var(--good-soft);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .feature.kernel-feature ul.ac li::before { background: #fde68a; color: #92400e; }
+
+    /* States */
+    .states-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .state-card {
+      background: var(--line-soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .state-card .state-name {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .state-card .state-desc {
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    /* Now/Later/Cut pills */
+    .boundary-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0 12px;
+    }
+    .boundary-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-soft);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .boundary-btn:hover { background: var(--line-soft); }
+    .boundary-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .boundary-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .boundary-list li {
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .boundary-list .icon { flex-shrink: 0; font-weight: 700; }
+    .boundary-list.now li { background: var(--good-soft); }
+    .boundary-list.now .icon { color: var(--good); }
+    .boundary-list.later li { background: var(--later-soft); }
+    .boundary-list.later .icon { color: var(--later); }
+    .boundary-list.cut li { background: var(--cut-soft); }
+    .boundary-list.cut .icon { color: var(--cut); }
+    .boundary-list .reason {
+      display: block;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 2px;
+    }
+    .hidden { display: none; }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      background: var(--accent-soft);
+      color: #92400e;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-left: 6px;
+    }
+
+    @media (max-width: 700px) {
+      .journey { grid-template-columns: 1fr 1fr; }
+      .look-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="eyebrow">Devpost Learn — PRD</div>
+      <h1>Porchlight</h1>
+      <p class="tagline">A per-family-member homepage where every widget is AI-driven — pre-built ones are auto-curated from each member's interests, and any member can describe a new widget in plain language and have it built and rendered. Built for the learner's own household first; market is later.</p>
+    </header>
+
+    <!-- CORE JOURNEY -->
+    <section>
+      <h2>The Core Journey</h2>
+      <h3>Eight steps from sign-up to "oh, that's cool"</h3>
+      <p>The end-to-end path. Step 7 is the kernel — the one the demo video is built around.</p>
+
+      <div class="journey">
+        <div class="step"><div class="num">1</div><div class="label">Sign up</div><div class="note">Parent creates an account with email + password</div></div>
+        <div class="step"><div class="num">2</div><div class="label">Create family</div><div class="note">Family name, co-admin emails, interests, location</div></div>
+        <div class="step"><div class="num">3</div><div class="label">Land on homepage</div><div class="note">Two pre-seeded widgets + empty slots + "+" icon</div></div>
+        <div class="step"><div class="num">4</div><div class="label">Invite family</div><div class="note">Sidebar sends invite links to spouse + kids</div></div>
+        <div class="step"><div class="num">5</div><div class="label">Each opens theirs</div><div class="note">Every member sees their own interests + location + layout</div></div>
+        <div class="step"><div class="num">6</div><div class="label">Rearrange</div><div class="note">Drag widgets, resize from 1/4 to 4/4, persists per member</div></div>
+        <div class="step kernel"><div class="num">7</div><div class="label">Describe a widget</div><div class="note">"+" → sentence → thinking → widget appears, draggable</div></div>
+        <div class="step"><div class="num">8</div><div class="label">Come back</div><div class="note">Layout, custom widgets, interests, location all persist</div></div>
+      </div>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 920 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="End-to-end journey of Porchlight from sign-up to a working custom widget, with the kernel step highlighted.">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+            </marker>
+            <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+            </marker>
+          </defs>
+
+          <!-- 5 phases -->
+          <g>
+            <rect x="20" y="20" width="160" height="100" rx="14" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="100" y="48" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2937">Onboarding</text>
+            <text x="100" y="68" text-anchor="middle" font-size="11" fill="#6b7280">sign up</text>
+            <text x="100" y="84" text-anchor="middle" font-size="11" fill="#6b7280">create family</text>
+            <text x="100" y="100" text-anchor="middle" font-size="11" fill="#6b7280">invite members</text>
+          </g>
+
+          <g>
+            <rect x="220" y="20" width="160" height="100" rx="14" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="300" y="48" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2937">Homepage</text>
+            <text x="300" y="68" text-anchor="middle" font-size="11" fill="#6b7280">seeded widgets</text>
+            <text x="300" y="84" text-anchor="middle" font-size="11" fill="#6b7280">sidebar views</text>
+            <text x="300" y="100" text-anchor="middle" font-size="11" fill="#6b7280">drag + resize</text>
+          </g>
+
+          <g filter="url(#shadow)">
+            <rect x="420" y="10" width="200" height="120" rx="14" fill="#f59e0b" stroke="#d97706" stroke-width="2"/>
+            <text x="520" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="white">KERNEL</text>
+            <text x="520" y="60" text-anchor="middle" font-size="11" fill="white">"+" → sentence</text>
+            <text x="520" y="78" text-anchor="middle" font-size="11" fill="white">→ thinking</text>
+            <text x="520" y="96" text-anchor="middle" font-size="11" fill="white">→ widget appears</text>
+            <text x="520" y="116" text-anchor="middle" font-size="11" font-weight="700" fill="#fef3c7">★ the "oh, that's cool" beat</text>
+          </g>
+
+          <g>
+            <rect x="660" y="20" width="160" height="100" rx="14" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="740" y="48" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2937">Persist</text>
+            <text x="740" y="68" text-anchor="middle" font-size="11" fill="#6b7280">layout</text>
+            <text x="740" y="84" text-anchor="middle" font-size="11" fill="#6b7280">custom widgets</text>
+            <text x="740" y="100" text-anchor="middle" font-size="11" fill="#6b7280">interests + location</text>
+          </g>
+
+          <!-- Arrows -->
+          <line x1="180" y1="70" x2="220" y2="70" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+          <line x1="380" y1="70" x2="420" y2="70" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr-amber)"/>
+          <line x1="620" y1="70" x2="660" y2="70" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)"/>
+
+          <!-- Below: the per-member homepage mock -->
+          <g>
+            <rect x="220" y="160" width="600" height="100" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+            <rect x="234" y="174" width="40" height="72" rx="6" fill="#f3f4f6" stroke="#e5e7eb"/>
+            <text x="254" y="216" text-anchor="middle" font-size="9" fill="#9ca3af">side</text>
+
+            <rect x="290" y="174" width="100" height="72" rx="6" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="340" y="200" text-anchor="middle" font-size="10" font-weight="600" fill="#1f2937">Articles</text>
+            <text x="340" y="216" text-anchor="middle" font-size="9" fill="#6b7280">curated by AI</text>
+            <text x="340" y="230" text-anchor="middle" font-size="9" fill="#6b7280">3–5 items</text>
+
+            <rect x="400" y="174" width="100" height="72" rx="6" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="450" y="200" text-anchor="middle" font-size="10" font-weight="600" fill="#1f2937">Local Events</text>
+            <text x="450" y="216" text-anchor="middle" font-size="9" fill="#6b7280">curated by AI</text>
+            <text x="450" y="230" text-anchor="middle" font-size="9" fill="#6b7280">3–5 items</text>
+
+            <rect x="510" y="174" width="100" height="72" rx="6" fill="none" stroke="#d1d5db" stroke-dasharray="3 3"/>
+            <text x="560" y="216" text-anchor="middle" font-size="9" fill="#9ca3af">empty slot</text>
+
+            <rect x="620" y="174" width="60" height="72" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-dasharray="3 3"/>
+            <text x="650" y="216" text-anchor="middle" font-size="20" font-weight="700" fill="#f59e0b">+</text>
+
+            <rect x="690" y="174" width="115" height="72" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+            <text x="747" y="198" text-anchor="middle" font-size="10" font-weight="600" fill="#1f2937">SpaceX Launches</text>
+            <text x="747" y="214" text-anchor="middle" font-size="9" fill="#6b7280">★ just appeared</text>
+            <text x="747" y="230" text-anchor="middle" font-size="9" fill="#92400e" font-weight="600">user-described</text>
+          </g>
+          <text x="520" y="280" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">a member's homepage — seeded widgets, empty slots, the "+" prompt, and a freshly-built user-described widget</text>
+        </svg>
+      </div>
+      <p class="diagram-caption">Amber = the kernel. The mocked grid at the bottom is what a family member sees after step 7.</p>
+    </section>
+
+    <!-- SCREENS AND LAYOUT -->
+    <section>
+      <h2>Screens and Layout</h2>
+      <h3>One main surface, a few small ones around it</h3>
+      <p>Porchlight is mostly one screen — the homepage. The rest are entry/exit ramps and an inline prompt.</p>
+
+      <div class="screens-grid">
+        <div class="screen-card">
+          <div class="name">Login / Sign-up</div>
+          <div class="desc">Email + password, a "create account" toggle. Invite links go to "set your password" then straight to the homepage.</div>
+        </div>
+        <div class="screen-card">
+          <div class="name">Create-Family Intro</div>
+          <div class="desc">Form fields: family name, co-admin emails, the parent's interests (freeform), the parent's location (freeform). One "Create family" button.</div>
+        </div>
+        <div class="screen-card" style="background: var(--accent-soft); border-color: var(--accent);">
+          <div class="name">The Homepage ★</div>
+          <div class="desc">Sidebar (member list, invite) + main 4-column grid (seeded widgets, empty slots, "+" icon). Switch view from sidebar swaps the data behind it.</div>
+        </div>
+        <div class="screen-card">
+          <div class="name">The New-Widget Prompt</div>
+          <div class="desc">Inline expansion at the top of the grid. Single text field with example placeholders, "thinking" state, success → widget animates in.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOOK AND FEEL -->
+    <section>
+      <h2>Look and Feel</h2>
+      <h3>Warm, soft, with a small magic accent</h3>
+
+      <div class="look-grid">
+        <div class="look-item">
+          <div class="label">Character</div>
+          <div class="value">Warm, welcoming, soft. A room with a light left on, not a corporate dashboard.</div>
+        </div>
+        <div class="look-item">
+          <div class="label">Density</div>
+          <div class="value">Generous whitespace, large widget card padding, soft shadows.</div>
+        </div>
+        <div class="look-item">
+          <div class="label">Display font (sample)</div>
+          <div class="value font-sample-display">Gambarino — Porchlight</div>
+        </div>
+        <div class="look-item">
+          <div class="label">Body font (sample)</div>
+          <div class="value font-sample-body">Switzer — articles, controls, widget content, with system fallback if Fontshare is offline.</div>
+        </div>
+        <div class="look-item">
+          <div class="label">Accent color</div>
+          <div class="value">Indigo primary, with a warm amber for the kernel moments (the "+" icon, the thinking state, the freshly-arrived widget's border).</div>
+        </div>
+        <div class="look-item">
+          <div class="label">Motion</div>
+          <div class="value">Drag-and-drop has a satisfying lift-and-settle. The new widget fades + slides in, not a hard pop.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section>
+      <h2>Features and Behavior</h2>
+      <h3>What each piece does, with checkable acceptance criteria</h3>
+
+      <div class="feature">
+        <h4>Authentication and Account</h4>
+        <p class="desc">Email + password for everyone. New accounts via sign-up or invite link. Each account belongs to one family.</p>
+        <ul class="ac">
+          <li>A new sign-up lands on the create-family intro.</li>
+          <li>An invitee clicking the invite link lands on "set your password," then on their own homepage.</li>
+          <li>Logging in with valid credentials takes the user to their own homepage; invalid credentials show an inline error and the form stays put.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h4>Family Management</h4>
+        <p class="desc">The family is the unit. Admins can invite members and switch to any member's view. Non-admins can only see their own.</p>
+        <ul class="ac">
+          <li>The create-family form saves and the family is queryable.</li>
+          <li>The sidebar lists all family members; clicking a member's name swaps the homepage contents to that member's data.</li>
+          <li>An admin can invite a new member from the sidebar; the invitee receives a working link.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h4>Articles Widget (pre-built, AI-curated)</h4>
+        <p class="desc">A card listing 3–5 article summaries — title, one-line summary, source. LLM crafts search queries from the member's interests, fetches via Brave Search.</p>
+        <ul class="ac">
+          <li>The widget shows 3–5 items, each with a title and a one-line summary.</li>
+          <li>Items are relevant to the member's interests (a member whose interests are "space exploration, soccer" sees articles about space and soccer, not random topics).</li>
+          <li>A "refresh" control on the card re-fetches and updates the list.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h4>Local Events Widget (pre-built, AI-curated)</h4>
+        <p class="desc">A card listing 3–5 upcoming local events — name, date, venue, one-line description. LLM uses interests + the member's location.</p>
+        <ul class="ac">
+          <li>The widget shows 3–5 events, each with a name, date, and venue.</li>
+          <li>Events are local (anchored to the member's location) and relevant to their interests.</li>
+          <li>A "refresh" control re-fetches and updates the list.</li>
+        </ul>
+      </div>
+
+      <div class="feature kernel-feature">
+        <h4>Custom Widgets ("Describe-a-Widget") <span class="pill">The Kernel</span></h4>
+        <p class="desc">Anyone clicks "+", types a sentence, sees a thinking state, and a new widget appears, populated with live data.</p>
+        <ul class="ac">
+          <li>Clicking "+" opens the prompt.</li>
+          <li>Typing "show me upcoming SpaceX launches" and submitting produces a widget titled roughly "SpaceX Launches" containing a list of upcoming launches.</li>
+          <li>During the LLM/API call, the prompt shows a "thinking" state (no submit, no escape).</li>
+          <li>On success, the new widget is in the grid, draggable, and persists across page reloads.</li>
+          <li>On failure, an inline "Try again" button appears; clicking it resubmits the same prompt.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h4>Drag-and-Drop Layout</h4>
+        <p class="desc">Reorder and resize (1/4 → 4/4). Auto-saves on drop. Each member's layout is independent.</p>
+        <ul class="ac">
+          <li>Dragging a widget into a new position moves it; releasing the mouse drops it there.</li>
+          <li>Resizing snaps to 1/4 increments and persists.</li>
+          <li>Logging out and back in preserves the layout.</li>
+          <li>Switching to a different family member's view shows that member's layout, not the admin's.</li>
+        </ul>
+      </div>
+
+      <div class="feature">
+        <h4>Data Sources</h4>
+        <p class="desc">A small, named menu: <code>news_search</code>, <code>events_search</code>, <code>web_search</code>. v1 ships one backing service: Brave Search. The LLM picks one by name; a registry maps names to handlers.</p>
+        <ul class="ac">
+          <li>The LLM's output for a custom widget specifies one of <code>news_search</code>, <code>events_search</code>, or <code>web_search</code>.</li>
+          <li>The system successfully calls Brave Search for the chosen source and renders the result.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- STATES AND BOUNDARIES -->
+    <section>
+      <h2>States and Boundaries</h2>
+      <h3>What the user sees in each situation</h3>
+
+      <div class="states-grid">
+        <div class="state-card">
+          <div class="state-name">First use</div>
+          <div class="state-desc">Two pre-seeded widgets + 1–2 empty placeholder cards. "+" always available.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Logged out</div>
+          <div class="state-desc">Any page except /login redirects to /login. Invite links work for logged-out users.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">LLM / API failure</div>
+          <div class="state-desc">Inline "Try again" button on the prompt; clicking resubmits. No widget is added.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">No matching content</div>
+          <div class="state-desc">"Nothing new today — try refreshing later" instead of empty space.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Duplicate invite</div>
+          <div class="state-desc">Sidebar surfaces "Already a member" and does not send a duplicate.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Persists</div>
+          <div class="state-desc">Interests, location, layout, custom-widget definitions, last refresh of pre-built widgets.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Permissions</div>
+          <div class="state-desc">Admins edit any member; non-admins edit only their own. Everyone can rearrange and create on their own page.</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Does not persist</div>
+          <div class="state-desc">Pre-built widget results — re-fetched (and re-LLM'd) on every page load or refresh.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOUNDARY: NOW / LATER / NON-GOALS -->
+    <section>
+      <h2>The POC Boundary</h2>
+      <h3>What ships in v1, what doesn't, what we won't build</h3>
+
+      <div class="boundary-controls" role="tablist" aria-label="POC boundary filter">
+        <button class="boundary-btn active" data-filter="now">What we're building</button>
+        <button class="boundary-btn" data-filter="later">Deferred</button>
+        <button class="boundary-btn" data-filter="cut">Non-goals</button>
+        <button class="boundary-btn" data-filter="all">Show all</button>
+      </div>
+
+      <ul class="boundary-list now" data-set="now">
+        <li><span class="icon">✓</span><span>Email + password authentication (sign up, log in, log out, invite-link account creation)</span></li>
+        <li><span class="icon">✓</span><span>Create-family intro: family name, co-admin emails, parent's interests, parent's location</span></li>
+        <li><span class="icon">✓</span><span>Sidebar with family member list and "invite member" action</span></li>
+        <li><span class="icon">✓</span><span>Per-member homepage with a 4-column grid, reorder and resize 1/4 → 4/4, persistence</span></li>
+        <li><span class="icon">✓</span><span>Articles widget, LLM-curated via Brave Search from the member's interests</span></li>
+        <li><span class="icon">✓</span><span>Local Events widget, LLM-curated via Brave Search from interests + location</span></li>
+        <li><span class="icon">✓</span><span>"+" icon → single text field prompt with example placeholders</span></li>
+        <li><span class="icon">✓</span><span>Custom-widget creation flow: prompt → thinking state → widget in the grid → draggable</span></li>
+        <li><span class="icon">✓</span><span>Inline "Try again" error state for custom-widget failures</span></li>
+        <li><span class="icon">✓</span><span>Go API backend, simple frontend, runs locally. No production deployment.</span></li>
+      </ul>
+
+      <ul class="boundary-list later hidden" data-set="later">
+        <li><span class="icon">→</span><span>Real LLM cache for pre-built widgets (1-hour TTL)</span></li>
+        <li><span class="icon">→</span><span>PredictHQ integration for richer local events<span class="reason">Drop-in for `events_search`; richer metadata in supported areas.</span></span></li>
+        <li><span class="icon">→</span><span>Google Events via hasdata, Real-Time Events Search via openwebninja<span class="reason">Same drop-in model. Per scope's Data Sources Explored.</span></span></li>
+        <li><span class="icon">→</span><span>"Share this widget with the family" — publish a custom widget to all members</span></li>
+        <li><span class="icon">→</span><span>Member-to-member notes on widgets</span></li>
+        <li><span class="icon">→</span><span>Per-widget refresh schedules (daily, hourly, on-demand)</span></li>
+        <li><span class="icon">→</span><span>Weather widget (real weather source)</span></li>
+        <li><span class="icon">→</span><span>Onboarding tour / first-visit polish</span></li>
+      </ul>
+
+      <ul class="boundary-list cut hidden" data-set="cut">
+        <li><span class="icon">✕</span><span>Homework photo upload + admin review<span class="reason">Separate product surface; v2.</span></span></li>
+        <li><span class="icon">✕</span><span>Gamification (points, rewards)<span class="reason">Points-ledger + history; v2.</span></span></li>
+        <li><span class="icon">✕</span><span>Unified family calendar view<span class="reason">Big UI surface; not the kernel.</span></span></li>
+        <li><span class="icon">✕</span><span>Per-member schedule widget<span class="reason">Calendar problem; not load-bearing for v1.</span></span></li>
+        <li><span class="icon">✕</span><span>Daily fun / meme widget<span class="reason">Cut during scope to make room for the kernel feature.</span></span></li>
+        <li><span class="icon">✕</span><span>Truly open agentic UI generation (OpenUI-style general "describe any UI")<span class="reason">Research-grade. v1 has a constrained 3-source menu.</span></span></li>
+        <li><span class="icon">✕</span><span>Multi-tenant / multi-family market features<span class="reason">Explicitly v2 per learner's plan.</span></span></li>
+        <li><span class="icon">✕</span><span>External auth providers (OAuth, SSO)<span class="reason">Email + password only in v1.</span></span></li>
+        <li><span class="icon">✕</span><span>Production deployment<span class="reason">Local PoC only.</span></span></li>
+        <li><span class="icon">✕</span><span>Mobile app<span class="reason">Desktop browser only.</span></span></li>
+        <li><span class="icon">✕</span><span>Real-time collaboration, notifications, family chat, per-widget privacy, adversarial-prompt defense, offline mode<span class="reason">Out of scope for the kernel and the hackathon shape.</span></span></li>
+      </ul>
+    </section>
+
+    <div class="footer">
+      <a href="prd.md">Canonical Markdown version</a>
+      <span class="status-pill" style="background: #d1fae5; color: #065f46;">Approved</span>
+      <div style="margin-top:8px;">PRD is approved. Next is <code>4-spec</code>, where we decide <em>how</em> it's built.</div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      const buttons = document.querySelectorAll('.boundary-btn');
+      const lists = document.querySelectorAll('.boundary-list');
+
+      function setFilter(filter) {
+        buttons.forEach(b => {
+          b.classList.toggle('active', b.dataset.filter === filter);
+        });
+        lists.forEach(list => {
+          if (filter === 'all') {
+            list.classList.remove('hidden');
+          } else {
+            list.classList.toggle('hidden', list.dataset.set !== filter);
+          }
+        });
+      }
+
+      buttons.forEach(b => {
+        b.addEventListener('click', () => setFilter(b.dataset.filter));
+      });
+    })();
+  </script>
+</body>
+</html>

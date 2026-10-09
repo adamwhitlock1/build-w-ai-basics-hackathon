@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Porchlight — Scope Companion</title>
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1f2937;
+      --ink-soft: #4b5563;
+      --ink-mute: #6b7280;
+      --line: #e5e7eb;
+      --line-soft: #f3f4f6;
+      --primary: #4f46e5;
+      --primary-soft: #eef2ff;
+      --accent: #f59e0b;
+      --accent-soft: #fef3c7;
+      --good: #059669;
+      --good-soft: #d1fae5;
+      --later: #6b7280;
+      --later-soft: #f3f4f6;
+      --cut: #b91c1c;
+      --cut-soft: #fee2e2;
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #eef2ff 0%, #fef3c7 100%);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 40px 36px;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow);
+    }
+    .hero .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-size: 36px;
+      line-height: 1.15;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .hero .tagline {
+      font-size: 18px;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+    .hero .name-flag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.7);
+      border: 1px dashed var(--ink-mute);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+
+    /* Sections */
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    section h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin: 0 0 6px;
+      font-weight: 700;
+    }
+    section h3 {
+      font-size: 22px;
+      margin: 0 0 16px;
+      letter-spacing: -0.01em;
+    }
+    section p { margin: 0 0 12px; color: var(--ink-soft); }
+    section p:last-child { margin-bottom: 0; }
+
+    /* Kernel diagram */
+    .diagram-wrap {
+      background: var(--line-soft);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    .diagram-wrap svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    .diagram-caption {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 12px;
+      font-style: italic;
+    }
+
+    /* Family grid */
+    .family-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .family-card {
+      background: var(--primary-soft);
+      border: 1px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .family-card .avatar {
+      width: 44px; height: 44px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      margin: 0 auto 8px;
+    }
+    .family-card .name {
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+    .family-card .role {
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+
+    /* Inspiration */
+    .inspire-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .inspire-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .inspire-list li:last-child { border-bottom: 0; }
+    .inspire-list a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .inspire-list a:hover { text-decoration: underline; }
+    .inspire-list .note {
+      color: var(--ink-soft);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* Demo timeline */
+    .demo {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      margin-top: 16px;
+    }
+    .beat {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .beat:last-child { border-bottom: 0; }
+    .beat .num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+    .beat.beat-magic .num { background: var(--accent); }
+    .beat .body h4 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .beat .body p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+    .beat .body .tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      background: var(--accent-soft);
+      color: #92400e;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* POC boundary */
+    .poc-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0 12px;
+    }
+    .poc-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-soft);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .poc-btn:hover { background: var(--line-soft); }
+    .poc-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .poc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .poc-list li {
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .poc-list .icon { flex-shrink: 0; font-weight: 700; }
+    .poc-list.now li { background: var(--good-soft); }
+    .poc-list.now .icon { color: var(--good); }
+    .poc-list.later li { background: var(--later-soft); }
+    .poc-list.later .icon { color: var(--later); }
+    .poc-list.cut li { background: var(--cut-soft); }
+    .poc-list.cut .icon { color: var(--cut); }
+    .poc-list .reason {
+      display: block;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 2px;
+    }
+
+    .hidden { display: none; }
+
+    /* Quote */
+    blockquote {
+      margin: 0;
+      padding: 16px 20px;
+      background: var(--primary-soft);
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      color: var(--ink);
+      font-style: italic;
+    }
+    blockquote .cite {
+      display: block;
+      margin-top: 8px;
+      font-style: normal;
+      font-size: 13px;
+      color: var(--ink-mute);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-mute);
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      background: var(--accent-soft);
+      color: #92400e;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="eyebrow">Devpost Learn — Scope</div>
+      <h1>Porchlight</h1>
+      <p class="tagline">A per-family-member homepage where every widget is AI-driven — pre-built ones are auto-curated from each member's interests, and any member can describe a new widget in plain language and have it built and rendered.</p>
+    </header>
+
+    <!-- THE KERNEL -->
+    <section>
+      <h2>The Unique Kernel</h2>
+      <h3>Widgets that are alive, not hardcoded</h3>
+      <p>The widgets on the page are not static UI components. They are <strong>AI-driven artifacts</strong>: the pre-built ones (articles, local events) are curated per-user by an LLM against that member's interests, and the user can create a new widget just by typing a sentence — the LLM picks from a small known menu of data sources, persists the spec, and the widget appears, populated. The "describe it in plain language and watch it appear" beat is what makes this not just a feed reader.</p>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the kernel: family member types a prompt, the AI layer queries a data source, a widget appears on the homepage alongside pre-built AI-curated widgets.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+            </marker>
+            <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+            </marker>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+              <feOffset dx="0" dy="1"/>
+              <feComponentTransfer><feFuncA type="linear" slope="0.15"/></feComponentTransfer>
+              <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- User -->
+          <g filter="url(#shadow)">
+            <rect x="20" y="30" width="140" height="60" rx="10" fill="#4f46e5"/>
+            <text x="90" y="58" text-anchor="middle" fill="white" font-size="14" font-weight="600">Family Member</text>
+            <text x="90" y="76" text-anchor="middle" fill="#c7d2fe" font-size="11">interests + actions</text>
+          </g>
+
+          <!-- Prompt box (amber - the magic) -->
+          <g filter="url(#shadow)">
+            <rect x="220" y="30" width="160" height="60" rx="10" fill="#f59e0b"/>
+            <text x="300" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="600">"Show me SpaceX</text>
+            <text x="300" y="73" text-anchor="middle" fill="white" font-size="13" font-weight="600">launches"</text>
+          </g>
+
+          <!-- AI Layer -->
+          <g filter="url(#shadow)">
+            <rect x="440" y="30" width="160" height="60" rx="10" fill="#4f46e5"/>
+            <text x="520" y="58" text-anchor="middle" fill="white" font-size="14" font-weight="600">AI Layer</text>
+            <text x="520" y="76" text-anchor="middle" fill="#c7d2fe" font-size="11">picks source + shape</text>
+          </g>
+
+          <!-- Data Sources -->
+          <g filter="url(#shadow)">
+            <rect x="600" y="150" width="140" height="80" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+            <text x="670" y="172" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="600">Data Sources</text>
+            <text x="670" y="190" text-anchor="middle" fill="#6b7280" font-size="11">news · events</text>
+            <text x="670" y="206" text-anchor="middle" fill="#6b7280" font-size="11">weather · web</text>
+          </g>
+
+          <!-- Widget (newly built) -->
+          <g filter="url(#shadow)">
+            <rect x="380" y="150" width="160" height="80" rx="10" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
+            <text x="460" y="172" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="600">New Widget</text>
+            <text x="460" y="190" text-anchor="middle" fill="#6b7280" font-size="11">SpaceX Launches</text>
+            <text x="460" y="206" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">— just appeared —</text>
+          </g>
+
+          <!-- Pre-built widgets (curated) -->
+          <g filter="url(#shadow)">
+            <rect x="160" y="150" width="160" height="80" rx="10" fill="#eef2ff" stroke="#c7d2fe"/>
+            <text x="240" y="172" text-anchor="middle" fill="#1f2937" font-size="13" font-weight="600">Articles Widget</text>
+            <text x="240" y="190" text-anchor="middle" fill="#6b7280" font-size="11">AI-curated from</text>
+            <text x="240" y="206" text-anchor="middle" fill="#6b7280" font-size="11">member's interests</text>
+          </g>
+
+          <!-- Homepage (the page) -->
+          <g filter="url(#shadow)">
+            <rect x="220" y="270" width="380" height="70" rx="12" fill="#ffffff" stroke="#4f46e5" stroke-width="2"/>
+            <text x="410" y="293" text-anchor="middle" fill="#1f2937" font-size="14" font-weight="600">Member's Homepage</text>
+            <text x="410" y="312" text-anchor="middle" fill="#6b7280" font-size="11">drag-and-drop · persisted per member</text>
+            <text x="410" y="328" text-anchor="middle" fill="#4f46e5" font-size="11" font-weight="600">📰  🎵  🚀  🎉  →  (rearrangeable)</text>
+          </g>
+
+          <!-- Arrows -->
+          <line x1="160" y1="60" x2="220" y2="60" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="190" y="52" text-anchor="middle" fill="#6b7280" font-size="10">types</text>
+
+          <line x1="380" y1="60" x2="440" y2="60" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow-amber)"/>
+
+          <line x1="520" y1="90" x2="520" y2="150" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="555" y="125" fill="#6b7280" font-size="10">builds spec</text>
+
+          <line x1="600" y1="170" x2="540" y2="170" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="568" y="163" text-anchor="middle" fill="#6b7280" font-size="10">queries</text>
+
+          <line x1="380" y1="190" x2="240" y2="190" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="310" y="183" text-anchor="middle" fill="#6b7280" font-size="10">curated by AI</text>
+
+          <line x1="460" y1="230" x2="380" y2="285" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow-amber)"/>
+          <text x="430" y="262" fill="#f59e0b" font-size="10" font-weight="600">renders here</text>
+
+          <line x1="240" y1="230" x2="280" y2="270" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+        </svg>
+      </div>
+      <p class="diagram-caption">Amber path = the kernel: a sentence in, a working widget out. The pre-built widgets are the same AI Layer at work, just with a fixed shape.</p>
+    </section>
+
+    <!-- WHO IT'S FOR -->
+    <section>
+      <h2>Who It's For</h2>
+      <h3>One household, four people, four homepages</h3>
+      <p>The learner's own family — dogfood first, market later. Each person gets their own page; the parents also act as admins.</p>
+
+      <div class="family-grid">
+        <div class="family-card">
+          <div class="avatar">👤</div>
+          <div class="name">The learner</div>
+          <div class="role">Admin · builds + uses</div>
+        </div>
+        <div class="family-card">
+          <div class="avatar">👤</div>
+          <div class="name">Spouse</div>
+          <div class="role">Co-admin · uses daily</div>
+        </div>
+        <div class="family-card">
+          <div class="avatar">👧</div>
+          <div class="name">Daughter (~15)</div>
+          <div class="role">Member · personal page</div>
+        </div>
+        <div class="family-card">
+          <div class="avatar">👦</div>
+          <div class="name">Son (~12)</div>
+          <div class="role">Member · personal page</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSPIRATION -->
+    <section>
+      <h2>Inspiration &amp; Identity</h2>
+      <h3>The "every widget is alive" energy</h3>
+      <p>Friendly, personal, modern. Not corporate. Drag-and-drop should feel satisfying; natural-language widget creation should feel like a small magic trick. The page grows with the user.</p>
+
+      <ul class="inspire-list">
+        <li>
+          <a href="https://www.openui.com" target="_blank" rel="noopener">openui.com</a>
+          <div class="note">The vibe of AI-generated UI — describe what you want, the interface builds it.</div>
+        </li>
+        <li>
+          <a href="https://github.com/CopilotKit/OpenIntelligentUI" target="_blank" rel="noopener">github.com/CopilotKit/OpenIntelligentUI</a>
+          <div class="note">The open-intelligent-UI thread of research the learner wants to explore.</div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- WHAT WORKING LOOKS LIKE -->
+    <section>
+      <h2>What "Working" Looks Like</h2>
+      <h3>Three beats in 60 seconds</h3>
+      <p>The demo video proves the kernel in under a minute:</p>
+
+      <div class="demo">
+        <div class="beat">
+          <div class="num">1</div>
+          <div class="body">
+            <h4>Setup</h4>
+            <p>A parent signs in, creates the family, adds the spouse and two kids, and sets interests for one of them (e.g., "space exploration, soccer, indie music").</p>
+          </div>
+        </div>
+        <div class="beat">
+          <div class="num">2</div>
+          <div class="body">
+            <h4>Customize</h4>
+            <p>That family member opens their homepage, sees the curated articles and local events widgets, and drags them into a new order. The layout persists.</p>
+          </div>
+        </div>
+        <div class="beat beat-magic">
+          <div class="num">3</div>
+          <div class="body">
+            <h4>Describe-a-widget</h4>
+            <p>They type a sentence — "show me upcoming SpaceX launches" — and a new widget appears on the page, populated with live data.</p>
+            <span class="tag">The "oh, that's cool" beat</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- POC BOUNDARY -->
+    <section>
+      <h2>The POC Boundary</h2>
+      <h3>What's in, what's later, what's cut</h3>
+
+      <div class="poc-controls" role="tablist" aria-label="POC boundary filter">
+        <button class="poc-btn active" data-filter="now">Now (v1)</button>
+        <button class="poc-btn" data-filter="later">Later (v2+)</button>
+        <button class="poc-btn" data-filter="cut">Explicitly cut</button>
+        <button class="poc-btn" data-filter="all">Show all</button>
+      </div>
+
+      <ul class="poc-list now" data-set="now">
+        <li><span class="icon">✓</span><span>Per-family-member homepages, with 1–2 admin(s)<span class="reason">Multi-user is the test bed for "v1 = own family."</span></span></li>
+        <li><span class="icon">✓</span><span>Admin can create the family, invite members, and set each member's interests<span class="reason">Required to seed personalization.</span></span></li>
+        <li><span class="icon">✓</span><span>Pre-built widget types: <strong>articles</strong> (LLM-curated from interests) and <strong>local events</strong> (LLM-curated from interests + location)<span class="reason">These are the two fixed widget shapes that prove the AI-curation half of the kernel.</span></span></li>
+        <li><span class="icon">✓</span><span>Drag-and-drop layout, persisted per member<span class="reason">Customization is half the kernel.</span></span></li>
+        <li><span class="icon">✓</span><span>"Describe a widget" prompt: produces a new widget from a small known menu of data sources (news search, events search, generic web fetch, weather)<span class="reason">The constrained version of the OpenUI idea — proves the kernel in an afternoon. The general version is v2.</span></span></li>
+        <li><span class="icon">✓</span><span>Go API backend, simple frontend, runs locally. No production deployment<span class="reason">Aligns with the hackathon's "2–4 hours, runs on a screen" shape and the learner's stated goal of learning Go for backends.</span></span></li>
+      </ul>
+
+      <ul class="poc-list later hidden" data-set="later">
+        <li><span class="icon">→</span><span>Homework photo upload + admin review/check-off</span></li>
+        <li><span class="icon">→</span><span>Gamification (points for chores, homework, admin-assigned tasks)</span></li>
+        <li><span class="icon">→</span><span>Unified family calendar view</span></li>
+        <li><span class="icon">→</span><span>Per-member schedule widget</span></li>
+        <li><span class="icon">→</span><span>Daily fun / meme widget</span></li>
+        <li><span class="icon">→</span><span>Truly open agentic UI generation (general "describe any UI" — research-grade, weeks of work)</span></li>
+        <li><span class="icon">→</span><span>Multi-tenant / multi-family market features</span></li>
+        <li><span class="icon">→</span><span>External auth providers (OAuth, SSO)</span></li>
+        <li><span class="icon">→</span><span>Production deployment</span></li>
+        <li><span class="icon">→</span><span>Mobile app</span></li>
+      </ul>
+
+      <ul class="poc-list cut hidden" data-set="cut">
+        <li><span class="icon">✕</span><span>Daily fun / meme widget<span class="reason">Cut during scope to make room for the natural-language widget feature. Funny content is nice-to-have, not part of the kernel.</span></span></li>
+        <li><span class="icon">✕</span><span>Per-member schedule widget<span class="reason">Schedule is a calendar problem in disguise; not load-bearing for v1's kernel.</span></span></li>
+        <li><span class="icon">✕</span><span>Homework review<span class="reason">Separate product surface (photo storage, review queue, notifications). Explicitly v2.</span></span></li>
+        <li><span class="icon">✕</span><span>Gamification<span class="reason">Requires a points ledger, history, and reward logic. Explicitly v2.</span></span></li>
+        <li><span class="icon">✕</span><span>Unified family calendar view<span class="reason">Large UI surface; not part of the personalized-homepage kernel. v2.</span></span></li>
+        <li><span class="icon">✕</span><span>General agentic UI generation (OpenUI-style full open generation)<span class="reason">Research-grade. v1 implements a <em>constrained</em> version with a small menu of data sources, which still proves the kernel.</span></span></li>
+        <li><span class="icon">✕</span><span>Multi-family / market features<span class="reason">Explicitly deferred per the learner's stated plan (v1 = own household; v2 = market).</span></span></li>
+        <li><span class="icon">✕</span><span>External auth providers<span class="reason">v1 uses simple local auth only; OAuth and SSO are v2.</span></span></li>
+        <li><span class="icon">✕</span><span>Production deployment<span class="reason">PoC runs locally for the afternoon; deployment is out of scope.</span></span></li>
+      </ul>
+    </section>
+
+    <!-- WHY THIS MATTERS -->
+    <section>
+      <h2>Why This Matters to the Learner</h2>
+      <h3>The personal stake</h3>
+      <blockquote>
+        "I would like to build out a market-based concept, but also use it in my own family to refine the features and try and use it every day when I can."
+        <span class="cite">— From the learner's first conversation</span>
+      </blockquote>
+      <p>The PoC has to be good enough that the learner would actually open it on a Tuesday morning. Otherwise it can't do its job as the v1 test bed for the family.</p>
+    </section>
+
+    <div class="footer">
+      <a href="scope.md">Canonical Markdown version</a>
+      <span class="status-pill" style="background: #d1fae5; color: #065f46;">Approved</span>
+      <div style="margin-top:8px;">Scope is approved. Next is <code>3-prd</code>, where we get specific about every screen, every behavior.</div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      const buttons = document.querySelectorAll('.poc-btn');
+      const lists = document.querySelectorAll('.poc-list');
+
+      function setFilter(filter) {
+        buttons.forEach(b => {
+          b.classList.toggle('active', b.dataset.filter === filter);
+        });
+        lists.forEach(list => {
+          if (filter === 'all') {
+            list.classList.remove('hidden');
+          } else {
+            list.classList.toggle('hidden', list.dataset.set !== filter);
+          }
+        });
+      }
+
+      buttons.forEach(b => {
+        b.addEventListener('click', () => setFilter(b.dataset.filter));
+      });
+    })();
+  </script>
+</body>
+</html>
