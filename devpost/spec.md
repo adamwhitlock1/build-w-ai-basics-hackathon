@@ -169,6 +169,7 @@ PRD ref: implements `prd.md > Screens and Layout`.
 - Defines custom block types: `Articles`, `LocalEvents`, `Custom`.
 - Each block has a `render` function (used in view mode) and a `fields` schema (used in edit mode for any per-block settings; for v1, most fields are empty — the data is fetched on render).
 - The block library shows `Articles`, `LocalEvents`, and `Custom`. Clicking `Custom` opens the "describe a widget" prompt.
+- **Arrange toggle (learner's choice):** normally the page renders the saved layout read-only, so links and buttons inside widgets work. "Arrange" mounts the Puck editor (composition mode: `<Puck iframe={{enabled:false}}>` with only `<Puck.Preview/>` and our own toolbar, no default editor chrome) for drag-to-reorder and right-edge resize; "Done" returns to the normal page. Blocks live in a root slot field `blocks` rendered as a 4-column CSS grid; each block is `inline: true` with `puck.dragRef` and a `span` prop of 1–4.
 PRD ref: implements `prd.md > Drag-and-Drop Layout` and the canvas part of `prd.md > Custom Widgets`.
 
 #### Custom blocks

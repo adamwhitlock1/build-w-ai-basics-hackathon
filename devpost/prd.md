@@ -16,7 +16,7 @@ The end-to-end path someone walks from sign-up to "oh, that's cool":
 3. **Land on the homepage.** The parent is taken to their own homepage, which is already populated: two pre-seeded widgets (Articles, Local Events), a few empty slots, and a "+" icon to add a new widget. A sidebar lets them invite other family members and switch between views.
 4. **Invite the rest of the family.** From the sidebar, the parent enters the spouse's and kids' email addresses. Each invitee receives a link to set their password and lands on their own homepage.
 5. **Open the homepage.** Each family member logs in and sees *their own* homepage — their interests, their location, their pre-seeded widgets, their layout. The page is theirs.
-6. **Rearrange.** Anyone can drag widgets into a new order; widgets can also be resized from one-quarter to four-quarters of the page width. The layout persists for that member.
+6. **Rearrange.** Anyone taps "Arrange" and drags widgets into a new order; widgets can also be resized from one-quarter to four-quarters of the page width. The layout persists for that member.
 7. **Describe a new widget.** Anyone clicks the "+" icon, types a sentence ("show me upcoming SpaceX launches"), sees a brief "thinking" state, and a new widget appears on the page, populated with live data. They can drag it into position among the others.
 8. **Come back tomorrow.** Layout, custom widget definitions, interests, and location all persist. The articles and events widgets refresh with new content on each visit.
 
@@ -145,12 +145,14 @@ Source: `scope.md > The Unique Kernel`, `scope.md > What "Working" Looks Like` (
 
 Widget cards can be reordered and resized.
 
-- **Reorder:** drag a widget by its body; other widgets reflow around it. Drop in the new position.
+- **Arrange mode:** the page normally behaves like a page — links and refresh buttons inside widgets just work. An "Arrange" toggle switches into arranging, where widgets can be dragged and resized; "Done" switches back. (Chosen during the build over always-draggable widgets, which would make every card's links and buttons fight the drag layer.)
+- **Reorder:** in arrange mode, drag a widget by its body; other widgets reflow around it. Drop in the new position.
 - **Resize:** drag the right edge of a widget from its current width (1/4, 2/4, 3/4, or 4/4) to a new width. Snap to 1/4 increments.
 - **Persistence:** the layout is saved automatically on drop, no explicit save button.
 - **Per-member:** each member's layout is stored independently. Switching views shows each member's own layout.
 
 **Acceptance criteria:**
+- Tapping "Arrange" enables dragging and resizing; tapping "Done" returns to the normal page, where links and buttons in widgets work.
 - Dragging a widget into a new position moves it; releasing the mouse drops it there.
 - Resizing a widget to a different width snaps to 1/4 increments and persists.
 - Logging out and back in preserves the layout.

@@ -39,7 +39,7 @@ Build mode: fast
   Commit: `Add AI-curated Articles and Local Events widgets`
 
 - [ ] **4. Arrange your page: drag, resize, and it sticks**
-  Becomes usable: Your page is a 4-column grid of widget cards, with "This spot is empty" cards and a "+" at the end. Switch into arranging (see the edit-mode decision) and drag cards into a new order, or drag a card's right edge to resize it from 1/4 to 4/4 (it snaps to quarters). Changes save automatically and survive reloads and re-logins. A new widget from "+" opens inline at the top of the grid, fades into the next empty slot, and can be dragged like the rest.
+  Becomes usable: Your page is a 4-column grid of widget cards, with "This spot is empty" cards and a "+" at the end. Tap "Arrange" (the learner chose an Arrange toggle over always-draggable cards) and drag cards into a new order, or drag a card's right edge to resize it from 1/4 to 4/4 (it snaps to quarters). Changes save automatically and survive reloads and re-logins. A new widget from "+" opens inline at the top of the grid, fades into the next empty slot, and can be dragged like the rest.
   Why now: The canvas comes after the curated widgets so it arranges the real set of cards (Articles, Local Events, Custom), and the default layout is seeded once, here. Puck has no built-in resize, so the right-edge resize is custom code. A browser prototype during planning showed it works, but it still needs proving in the real app.
   PRD ref: `prd.md > Drag-and-Drop Layout`, `prd.md > The Homepage (the main surface)`, `prd.md > The New-Widget Prompt`, `prd.md > The Core Journey` (steps 6–7)
   Spec ref: `spec.md > Components` (Puck configuration, Custom blocks, the "describe-a-widget" prompt modal, `internal/layout`), `spec.md > Data Model` (`homepage_layouts`), `spec.md > Look and Feel`
@@ -70,7 +70,7 @@ Build mode: fast
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 1: the describe-a-widget moment in the browser, while its look and output quality can still shape the curated widgets and the canvas
+- [x] Early usable behavior explored — after slice 1: the describe-a-widget moment in the browser, while its look and output quality can still shape the curated widgets and the canvas. Feedback: switch to a faster, more accurate model (now `openai/gpt-4.1-mini`, about 4s per widget instead of about 25s, and the shaping fixes were committed). The learner expected more of the app; the remaining features are slices 2–6 as planned, with no reordering requested.
 - [ ] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
@@ -100,3 +100,4 @@ Activity mode:
 - Default model is `openai/gpt-4.1-mini`, checked at startup — the spec's example free model no longer exists on OpenRouter.
 - Brave Search facts updated (paid Search plan with $5/month free credit, separate news endpoint, no events feed) and `SESSION_SECRET` removed — the spec's Brave free tier is outdated, and scs doesn't sign cookies.
 - Signup creates the family and the admin user in one transaction, and the schema gains a `sessions` table and `invites.is_admin` — `users.family_id` is `NOT NULL`, scs needs its own table, and co-admin invites need a role.
+- Widgets are moved and resized in an "Arrange" mode (toggle on, then "Done") instead of being draggable at all times — the learner's choice: Puck's drag layer captures clicks on links and buttons inside cards, so an always-on canvas would make widgets harder to use as a page.
