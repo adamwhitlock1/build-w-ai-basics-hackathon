@@ -1,5 +1,17 @@
-// Small helpers for showing family members and invites: initials avatars,
-// role names, invite links and their dates.
+// Small helpers for showing family members and invites: names, initials
+// avatars, role names, invite links and their dates.
+
+/**
+ * What to call someone in a heading, until people have names of their own:
+ * the part of their email before the "@", capitalised ("maya@example.com" →
+ * "Maya", "kid.whitlock@example.com" → "Kid.whitlock").
+ */
+export function nameFor(email: string): string {
+  const local = email.split('@')[0] ?? ''
+  // Array.from splits by character, so an accented letter or emoji stays whole.
+  const [first = '', ...rest] = Array.from(local)
+  return first.toUpperCase() + rest.join('')
+}
 
 /**
  * Two letters for an avatar, taken from the part of an email before the "@":

@@ -1,10 +1,12 @@
 package widgets_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -33,17 +35,21 @@ type fakeCurator struct {
 	called        []string         // method names, in call order
 	extractedFrom []sources.Result // the results passed to ExtractEvents
 	planTimeLeft  time.Duration    // how long the planning call was given
+	interests     string           // what the last planning call was given
+	location      string
 }
 
-func (f *fakeCurator) CurateArticles(ctx context.Context, _ string) ([]string, error) {
+func (f *fakeCurator) CurateArticles(ctx context.Context, interests string) ([]string, error) {
 	f.called = append(f.called, "CurateArticles")
 	f.notePlanDeadline(ctx)
+	f.interests = interests
 	return f.articleQueries, f.articleErr
 }
 
-func (f *fakeCurator) CurateEvents(ctx context.Context, _, _ string, _ time.Time) ([]string, error) {
+func (f *fakeCurator) CurateEvents(ctx context.Context, interests, location string, _ time.Time) ([]string, error) {
 	f.called = append(f.called, "CurateEvents")
 	f.notePlanDeadline(ctx)
+	f.interests, f.location = interests, location
 	return f.eventQueries, f.eventErr
 }
 
@@ -694,5 +700,66 @@ func TestCuratedStopsWhenTheClientLeaves(t *testing.T) {
 	}
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Errorf("status = %d, want 503; body: %s", rec.Code, rec.Body)
+	}
+}
+
+// profilesByUser is a widgets.ProfileStore holding a profile per user id.
+type profilesByUser map[int64]store.MemberProfile
+
+func (p profilesByUser) GetMemberProfile(_ context.Context, userID int64) (store.MemberProfile, error) {
+	profile, ok := p[userID]
+	if !ok {
+		return store.MemberProfile{}, store.ErrNotFound
+	}
+	return profile, nil
+}
+
+// When a parent looks at a family member's page, the curated widgets are
+// planned from the member's interests and location, not the parent's, and
+// the log records both people.
+func TestCuratedWidgetsFollowTheSubject(t *testing.T) {
+	kid := store.User{ID: 8, Email: "kid@example.com"}
+	profiles := profilesByUser{
+		alice.ID: {Interests: "space, soccer", Location: "Denver, CO"},
+		kid.ID:   {Interests: "minecraft", Location: "Boulder, CO"},
+	}
+
+	for _, path := range []string{"/api/members/8/widgets/articles", "/api/members/8/widgets/events"} {
+		t.Run(path, func(t *testing.T) {
+			curator := &fakeCurator{
+				articleQueries: []string{"minecraft news"},
+				eventQueries:   []string{"Boulder events"},
+				events:         []llm.Event{{Name: "Build-off", Date: "Sat", URL: "https://example.com/1"}},
+			}
+			found := map[string][]sources.Result{"minecraft news": {article("1")}, "Boulder events": {article("1")}}
+			news := &querySource{name: "news_search", results: found}
+			events := &querySource{name: "events_search", results: found}
+			var logs bytes.Buffer
+			h := widgets.NewCuratedHandler(curator, sources.NewRegistry(news, events), profiles,
+				slog.New(slog.NewTextHandler(&logs, nil)))
+
+			// Alice is logged in; RequireMember made her kid the subject.
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req = req.WithContext(auth.WithSubject(auth.WithUser(req.Context(), alice), kid))
+			rec := httptest.NewRecorder()
+			if strings.HasSuffix(path, "/articles") {
+				h.Articles(rec, req)
+			} else {
+				h.Events(rec, req)
+			}
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body)
+			}
+			if curator.interests != "minecraft" {
+				t.Errorf("planned from interests %q, want the kid's %q", curator.interests, "minecraft")
+			}
+			if strings.HasSuffix(path, "/events") && curator.location != "Boulder, CO" {
+				t.Errorf("planned for location %q, want the kid's %q", curator.location, "Boulder, CO")
+			}
+			if line := logs.String(); !strings.Contains(line, "user_id=8 viewer_id=7") {
+				t.Errorf("log = %q, want the kid as user_id and alice as viewer_id", line)
+			}
+		})
 	}
 }

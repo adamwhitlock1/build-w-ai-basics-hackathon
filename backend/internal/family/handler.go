@@ -1,7 +1,7 @@
 // Package family serves the account and family endpoints: sign up, log in,
 // log out, "who am I", the create-family intro, editing your interests and
-// location, and the family itself: who's in it, inviting new members, and
-// accepting an invite (invites.go).
+// location (or, for a parent, a family member's), and the family itself:
+// who's in it, inviting new members, and accepting an invite (invites.go).
 package family
 
 import (
@@ -288,7 +288,8 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 	h.writeMe(w, r, http.StatusOK, user)
 }
 
-// profileRequest is the body of PUT /api/me/profile. The fields are
+// profileRequest is the body of PUT /api/me/profile (and PUT
+// /api/members/{id}/profile). The fields are
 // pointers so a missing one (nil) can be told apart from one sent blank
 // (""): a PUT replaces both, and a forgotten field mustn't quietly erase
 // what was saved.
@@ -304,12 +305,16 @@ type ProfileResponse struct {
 	Profile MeProfile `json:"profile"`
 }
 
-// UpdateProfile handles PUT /api/me/profile: it replaces the logged-in
-// user's interests and location (both must be sent; either may be blank)
-// and responds with what was saved. The Articles and Local Events widgets read them on their
-// next request. It must sit behind auth.RequireAuth.
+// UpdateProfile handles PUT /api/me/profile, where members set their own
+// interests and location, and PUT /api/members/{id}/profile, where a parent
+// sets a family member's. Either way it replaces the request subject's
+// interests and location (see auth.SubjectFrom; both must be sent, and
+// either may be blank) and responds with what was saved. The Articles and
+// Local Events widgets read them on their next request. It must sit behind
+// auth.RequireAuth.
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFrom(r.Context())
+	ctx := r.Context()
+	member, ok := auth.SubjectFrom(ctx)
 	if !ok {
 		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
 		return
@@ -328,8 +333,8 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.store.UpsertMemberProfile(r.Context(), store.MemberProfile{
-		UserID:    user.ID,
+	err := h.store.UpsertMemberProfile(ctx, store.MemberProfile{
+		UserID:    member.ID,
 		Interests: profile.Interests,
 		Location:  profile.Location,
 	})
@@ -337,7 +342,10 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, "save profile", err)
 		return
 	}
-	h.logger.InfoContext(r.Context(), "profile updated", "user_id", user.ID)
+	// user_id is whose profile changed; viewer_id is who changed it (the
+	// same id unless a parent set a family member's).
+	viewer, _ := auth.UserFrom(ctx)
+	h.logger.InfoContext(ctx, "profile updated", "user_id", member.ID, "viewer_id", viewer.ID)
 	respond.JSON(w, http.StatusOK, ProfileResponse{Profile: profile})
 }
 

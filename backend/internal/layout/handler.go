@@ -47,7 +47,8 @@ func NewHandler(st Store, logger *slog.Logger) *Handler {
 	return &Handler{store: st, logger: logger}
 }
 
-// Homepage is the response body of GET /api/me/homepage.
+// Homepage is the response body of GET /api/me/homepage and GET
+// /api/members/{id}/homepage.
 type Homepage struct {
 	Profile Profile `json:"profile"`
 	// Layout is how the page is arranged. It is never null: someone who
@@ -62,22 +63,26 @@ type Profile struct {
 	Location  string `json:"location"`
 }
 
-// Homepage handles GET /api/me/homepage for the logged-in user. It must sit
-// behind auth.RequireAuth.
+// Homepage handles GET /api/me/homepage, the logged-in user's own page, and
+// GET /api/members/{id}/homepage, a family member's page as a parent sees
+// it. Either way it describes the request's subject (see auth.SubjectFrom).
+// It only reads: the layout is healed in memory, never saved, so a parent
+// looking at a member's page doesn't change it. It must sit behind
+// auth.RequireAuth.
 func (h *Handler) Homepage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, ok := auth.UserFrom(ctx)
+	member, ok := auth.SubjectFrom(ctx)
 	if !ok {
 		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
 		return
 	}
 
-	profile, err := h.store.GetMemberProfile(ctx, user.ID)
+	profile, err := h.store.GetMemberProfile(ctx, member.ID)
 	if err != nil && !errors.Is(err, store.ErrNotFound) { // no profile yet reads as an empty one
 		h.serverError(w, r, "load profile", err)
 		return
 	}
-	saved, err := h.store.ListCustomWidgets(ctx, user.ID)
+	saved, err := h.store.ListCustomWidgets(ctx, member.ID)
 	if err != nil {
 		h.serverError(w, r, "list widgets", err)
 		return
@@ -101,7 +106,7 @@ func (h *Handler) Homepage(w http.ResponseWriter, r *http.Request) {
 
 	// The layout is healed against the widgets being sent, so every Custom
 	// card in it has its widget in customWidgets.
-	page.Layout, err = h.loadLayout(ctx, user.ID, widgetIDs)
+	page.Layout, err = h.loadLayout(ctx, member.ID, widgetIDs)
 	if err != nil {
 		h.serverError(w, r, "load layout", err)
 		return
@@ -161,6 +166,10 @@ type SaveResponse struct {
 // SaveLayout handles PUT /api/me/homepage: it checks the layout in the body,
 // saves the normalised version as the logged-in user's layout, and responds
 // with it. It must sit behind auth.RequireAuth.
+//
+// It always saves the logged-in user's own layout (auth.UserFrom, never
+// auth.SubjectFrom): parents can look at a family member's page but not
+// rearrange it, so there is no member route for this.
 func (h *Handler) SaveLayout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, ok := auth.UserFrom(ctx)

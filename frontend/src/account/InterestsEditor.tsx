@@ -12,11 +12,18 @@ export interface InterestsEditorProps {
   id?: string
   /** The panel's heading. */
   heading?: string
-  /** The saved interests and location the form starts from. */
-  initial: Profile
   /**
-   * Saves the form: useUpdateProfile() for your own interests, or (later) a
-   * parent's save for a child's. Its pending and error states show here.
+   * The saved interests and location the form starts from. If a fresher copy
+   * is passed before anything's been typed (the page asks for one as the
+   * editor opens: see useFreshPageProfile), the form shows that instead.
+   */
+  initial: Profile
+  /** Whose interests these are, for the fields' wording (see ProfileFields). Yours by default. */
+  whose?: 'yours' | 'theirs'
+  /**
+   * Saves the form: useUpdateProfile() for your own interests, or
+   * useUpdateMemberProfile() for a parent setting a family member's. Its
+   * pending and error states show here.
    */
   save: UseMutationResult<unknown, ApiError, Profile>
   /**
@@ -38,12 +45,22 @@ export function InterestsEditor({
   id,
   heading = 'Your interests',
   initial,
+  whose = 'yours',
   save,
   focusRequest,
   onSaved,
   onCancel,
 }: InterestsEditorProps) {
   const [profile, setProfile] = useState<Profile>(initial)
+  // The `initial` the form was last filled from. When a new one arrives and
+  // the form still shows the old one untouched, show the new one. (This is
+  // React's pattern for adjusting state when a prop changes: set it during
+  // render, and React renders again straight away with the new values.)
+  const [filledFrom, setFilledFrom] = useState(initial)
+  if (initial !== filledFrom) {
+    setFilledFrom(initial)
+    if (profile === filledFrom) setProfile(initial)
+  }
   const formRef = useRef<HTMLFormElement>(null)
   const headingId = useId()
 
@@ -95,7 +112,7 @@ export function InterestsEditor({
       </h2>
 
       <form ref={formRef} noValidate onSubmit={handleSubmit} className="mt-5 space-y-5">
-        <ProfileFields value={profile} onChange={handleChange} />
+        <ProfileFields value={profile} onChange={handleChange} whose={whose} />
 
         {save.isError && <FormError message={save.error.message} hint={save.error.hint} />}
 

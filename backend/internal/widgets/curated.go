@@ -66,8 +66,9 @@ const (
 )
 
 // CuratedWidget is the response body of GET /api/widgets/articles and GET
-// /api/widgets/events. EmptyReason is "" unless the member has to fill
-// something in first; a widget that found nothing new has no reason.
+// /api/widgets/events (and of their /api/members/{id}/widgets/...
+// versions). EmptyReason is "" unless the member has to fill something in
+// first; a widget that found nothing new has no reason.
 type CuratedWidget struct {
 	// Widget is embedded, so its fields are flattened into this object,
 	// as in SavedWidget.
@@ -78,6 +79,10 @@ type CuratedWidget struct {
 // CuratedHandler serves the Articles and Local Events widgets. They pick
 // their own searches from the member's interests and location, and are
 // worked out fresh on every request: nothing is cached or saved.
+//
+// The member is the request's subject (see auth.SubjectFrom): the logged-in
+// user on /api/widgets/..., or, on /api/members/{id}/widgets/..., the
+// family member a parent is looking at.
 type CuratedHandler struct {
 	curator  Curator
 	news     sources.Source
@@ -108,13 +113,14 @@ func mustGetSource(srcs SourceFinder, name string) sources.Source {
 	return src
 }
 
-// Articles handles GET /api/widgets/articles: 3-5 recent news articles for
-// the logged-in member's interests. The LLM writes one news query per
-// interest (or, if it fails, the interests are split into queries), every
-// query is searched at once, and each query's best result is shown. It must
-// sit behind auth.RequireAuth.
+// Articles handles GET /api/widgets/articles (and GET
+// /api/members/{id}/widgets/articles): 3-5 recent news articles for the
+// member's interests. The LLM writes one news query per interest (or, if it
+// fails, the interests are split into queries), every query is searched at
+// once, and each query's best result is shown. It must sit behind
+// auth.RequireAuth.
 func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
-	user, profile, ok := h.loadProfile(w, r)
+	viewer, member, profile, ok := h.loadProfile(w, r)
 	if !ok {
 		return
 	}
@@ -163,7 +169,8 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	widget.Items = pickArticles(perQuery)
 
 	h.logger.InfoContext(ctx, "articles curated",
-		"user_id", user.ID,
+		"user_id", member.ID, // whose card this is
+		"viewer_id", viewer.ID, // who asked: a parent, if not the member
 		"queries", widget.Query,
 		"from_llm", fromLLM,
 		"results", countResults(perQuery),
@@ -172,14 +179,15 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusOK, widget)
 }
 
-// Events handles GET /api/widgets/events: up to 5 upcoming events near the
-// logged-in member, matched to their interests when they have some. The LLM
+// Events handles GET /api/widgets/events (and GET
+// /api/members/{id}/widgets/events): up to 5 upcoming events near the
+// member, matched to their interests when they have some. The LLM
 // writes 2-3 location- and month-anchored web queries (with a fixed
 // fallback, unless OpenRouter itself is turning calls away), every query is
 // searched at once, and the LLM picks dated events out of the merged
 // results. It must sit behind auth.RequireAuth.
 func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
-	user, profile, ok := h.loadProfile(w, r)
+	viewer, member, profile, ok := h.loadProfile(w, r)
 	if !ok {
 		return
 	}
@@ -251,7 +259,8 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.InfoContext(ctx, "events curated",
-		"user_id", user.ID,
+		"user_id", member.ID,
+		"viewer_id", viewer.ID,
 		"queries", widget.Query,
 		"from_llm", fromLLM,
 		"results", len(results),
@@ -260,25 +269,27 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusOK, widget)
 }
 
-// loadProfile returns the logged-in user and their profile, trimmed. No
-// profile yet reads as an empty one. On failure it writes the response and
-// returns ok == false.
-func (h *CuratedHandler) loadProfile(w http.ResponseWriter, r *http.Request) (user store.User, profile store.MemberProfile, ok bool) {
+// loadProfile returns who is asking (the logged-in user), the member the
+// widget is for (the request's subject, usually the same person), and that
+// member's profile, trimmed. No profile yet reads as an empty one. On
+// failure it writes the response and returns ok == false.
+func (h *CuratedHandler) loadProfile(w http.ResponseWriter, r *http.Request) (viewer, member store.User, profile store.MemberProfile, ok bool) {
 	ctx := r.Context()
-	user, ok = auth.UserFrom(ctx)
+	viewer, ok = auth.UserFrom(ctx)
 	if !ok {
 		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
-		return user, profile, false
+		return viewer, member, profile, false
 	}
-	profile, err := h.profiles.GetMemberProfile(ctx, user.ID)
+	member, _ = auth.SubjectFrom(ctx) // falls back to viewer, so always ok here
+	profile, err := h.profiles.GetMemberProfile(ctx, member.ID)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		h.logger.ErrorContext(ctx, "load profile failed", "user_id", user.ID, "err", err)
+		h.logger.ErrorContext(ctx, "load profile failed", "user_id", member.ID, "viewer_id", viewer.ID, "err", err)
 		respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")
-		return user, profile, false
+		return viewer, member, profile, false
 	}
 	profile.Interests = strings.TrimSpace(profile.Interests)
 	profile.Location = strings.TrimSpace(profile.Location)
-	return user, profile, true
+	return viewer, member, profile, true
 }
 
 // search runs every query on src at once (see searchAll). A failed query is

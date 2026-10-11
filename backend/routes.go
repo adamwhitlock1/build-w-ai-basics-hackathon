@@ -35,6 +35,21 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	parentsOnly := func(message string, h http.HandlerFunc) http.Handler {
 		return authn.RequireAuth(auth.RequireAdminWithMessage(message, "Ask a parent in your family.", h))
 	}
+	// asParent serves h on a parent's behalf for the family member in the
+	// path's {id}. Each wrapper does one job, outermost first: RequireAuth
+	// finds who's asking, the admin check turns away anyone who isn't a
+	// parent, and RequireMember looks up member {id} (404 unless they're in
+	// the parent's family) and makes them the request's subject, which h
+	// reads with auth.SubjectFrom.
+	//
+	// The admin check comes first, so a kid gets a 403 even for their own
+	// id: these routes are how parents see other people's pages, and a kid
+	// already has their own page through the routes under "Logged in".
+	asParent := func(h http.HandlerFunc) http.Handler {
+		return authn.RequireAuth(auth.RequireAdminWithMessage(
+			"Only parents can see other family members' pages.", "Ask a parent in your family.",
+			authn.RequireMember(h)))
+	}
 
 	// Go 1.22 patterns put the HTTP method in the route itself, and {id}
 	// is a wildcard the handler reads with r.PathValue("id").
@@ -61,6 +76,16 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.Handle("POST /api/widgets/from-prompt", private(widgetHandler.FromPrompt))
 	mux.Handle("GET /api/widgets/custom/{id}", private(widgetHandler.GetCustom))
 	mux.Handle("DELETE /api/widgets/custom/{id}", private(widgetHandler.DeleteCustom))
+
+	// A parent looking at someone in their family, and setting their
+	// interests and location. These reuse the handlers above, which act on
+	// the request's subject: the logged-in user there, member {id} here.
+	// There are deliberately no member routes for changing a layout or
+	// widgets: parents look, and only edit interests and location.
+	mux.Handle("GET /api/members/{id}/homepage", asParent(layoutHandler.Homepage))
+	mux.Handle("PUT /api/members/{id}/profile", asParent(familyHandler.UpdateProfile))
+	mux.Handle("GET /api/members/{id}/widgets/articles", asParent(curatedHandler.Articles))
+	mux.Handle("GET /api/members/{id}/widgets/events", asParent(curatedHandler.Events))
 
 	// Family admins.
 	mux.Handle("POST /api/families", adminOnly(familyHandler.CreateFamily))

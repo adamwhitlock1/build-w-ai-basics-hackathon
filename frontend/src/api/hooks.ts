@@ -8,6 +8,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
+import { useContext } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import {
   ApiError,
@@ -29,6 +30,7 @@ import {
   type ProfileResponse,
   type SavedWidget,
 } from './client'
+import { ViewedMemberContext, type PageOwner } from './pageOwner'
 
 // ---------------------------------------------------------------------------
 // Who's logged in
@@ -170,6 +172,22 @@ export function useFamily() {
 }
 
 /**
+ * One member of your family, from the list the sidebar loads (undefined
+ * until it has, or if they aren't in it). Reading it here doesn't ask the
+ * server for the list again; the sidebar keeps it fresh.
+ */
+export function useFamilyMember(memberId: number) {
+  const { data } = useQuery({
+    ...familyQueryOptions,
+    refetchOnMount: false,
+    // Only the member is handed back, so changes to anyone else (or to the
+    // invites) don't re-render the caller.
+    select: (family) => family.members.find((member) => member.id === memberId),
+  })
+  return data
+}
+
+/**
  * Creates an invite link for someone to join the family (parents only).
  * Call `mutate({ email, role })`; it resolves with the invite. Inviting an
  * email that already has a pending invite gives back that same invite, with
@@ -260,19 +278,34 @@ export function useAcceptInvite(token: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Your page
+// Pages: yours, and (for parents) family members'
 // ---------------------------------------------------------------------------
 
 /**
- * The logged-in person's page: their profile, the layout of their cards, and
- * their saved widgets, oldest first. It only changes through this app, which
- * updates the cache as it goes, so it's never refetched in the background
- * (but can still be invalidated).
+ * Query key of someone's page: ['homepage'] for yours, and ['members',
+ * memberId, 'homepage'] for a family member's. (One type for both, so a card
+ * can read either one through the same hook: see usePageHomepage.)
  */
-export const homepageQueryOptions = queryOptions({
+type HomepageKey = readonly ['homepage'] | readonly ['members', number, 'homepage']
+
+/**
+ * The logged-in person's page: their profile, the layout of their cards, and
+ * their saved widgets, oldest first. The layout and widgets only change
+ * through this app, which updates the cache as it goes, so it's never
+ * refetched in the background (but can still be invalidated). The profile
+ * can also be changed by a parent, so the interests editor asks for a fresh
+ * copy as it opens (see useFreshPageProfile).
+ */
+export const homepageQueryOptions = queryOptions<Homepage, ApiError, Homepage, HomepageKey>({
   queryKey: ['homepage'],
-  queryFn: ({ signal }) => apiFetch<Homepage>('/api/me/homepage', { signal }),
+  queryFn: ({ client, queryKey, signal }) => {
+    const owner: PageOwner = { isYou: true, userId: client.getQueryData(meQueryOptions.queryKey)?.user.id }
+    return fetchPage(client, queryKey, '/api/me/homepage', owner, signal)
+  },
   staleTime: Infinity,
+  // Kept for the whole visit, like the cards picked from it, so a fresh copy
+  // can always be checked against the profile they were picked for.
+  gcTime: Infinity,
 })
 
 /**
@@ -281,6 +314,97 @@ export const homepageQueryOptions = queryOptions({
  */
 export function useHomepage() {
   return useSuspenseQuery(homepageQueryOptions)
+}
+
+/**
+ * A family member's page, as a parent sees it: their profile, the layout of
+ * their cards and their saved widgets (the same shape as yours). Parents
+ * only: the server answers anyone else with a 403, and an id that isn't
+ * someone in your family with a 404.
+ *
+ * It's a cheap request (no search credit), and they may have changed their
+ * page since you last looked, so it's asked again each time you switch to
+ * them, while the copy you already have shows.
+ */
+export function memberHomepageQueryOptions(memberId: number) {
+  return queryOptions<Homepage, ApiError, Homepage, HomepageKey>({
+    queryKey: ['members', memberId, 'homepage'],
+    // No AbortSignal: if you switch away mid-load, the answer is still worth
+    // keeping for when you come back. (With one, React's StrictMode, which
+    // mounts everything twice in development, would cancel and resend it.)
+    queryFn: ({ client, queryKey }) =>
+      fetchPage(client, queryKey, `/api/members/${memberId}/homepage`, { isYou: false, userId: memberId }),
+    // Kept for the whole visit, like their picks (see homepageQueryOptions).
+    gcTime: Infinity,
+  })
+}
+
+/**
+ * Fetches someone's page from `path`, and if its profile isn't the one in
+ * the cache, reloads that person's curated widgets to match.
+ *
+ * A profile can change without this tab knowing: a parent can set a kid's
+ * interests, and the kid (or another parent) can change them while a parent
+ * isn't looking. The cards would then show picks for the old interests under
+ * the new ones. Nothing is reloaded when the profile is unchanged, so the
+ * curated widgets' cost protections hold.
+ */
+async function fetchPage(
+  client: QueryClient,
+  queryKey: HomepageKey,
+  path: string,
+  owner: PageOwner,
+  signal?: AbortSignal,
+): Promise<Homepage> {
+  const before = client.getQueryData<Homepage>(queryKey)?.profile
+  const page = await apiFetch<Homepage>(path, { signal })
+  // Skipped on a first load (there are no picks to correct yet), and when a
+  // profile save landed meanwhile: the save has reloaded them already, and
+  // this copy is older than it.
+  if (before && client.getQueryData<Homepage>(queryKey)?.profile === before) {
+    void reseedCuratedWidgets(client, kindsAffected(before, page.profile), owner)
+  }
+  return page
+}
+
+/** A family member's page (see memberHomepageQueryOptions), with its loading and error states. */
+export function useMemberHomepage(memberId: number) {
+  return useQuery(memberHomepageQueryOptions(memberId))
+}
+
+/**
+ * Whose page the calling card is on: yours, or the family member's a parent
+ * is viewing (see ViewedMemberContext in pageOwner.ts).
+ */
+export function usePageOwner(): PageOwner {
+  const { data: me } = useMe()
+  const memberId = useContext(ViewedMemberContext)
+  return memberId === null ? { isYou: true, userId: me?.user.id } : { isYou: false, userId: memberId }
+}
+
+/**
+ * The page the calling card is on: yours, or the member's a parent is
+ * viewing. Pages only show their cards once they've loaded, so this reads
+ * it from the cache.
+ */
+export function usePageHomepage(): Homepage {
+  const owner = usePageOwner()
+  const options = owner.isYou ? homepageQueryOptions : memberHomepageQueryOptions(owner.userId)
+  return useSuspenseQuery(options).data
+}
+
+/**
+ * The profile of the page the caller is on (yours, or the member's a parent
+ * is viewing), for an interests editor to start from. The page is asked for
+ * again as the caller mounts: someone else may have changed the profile
+ * since it loaded (a parent setting a kid's interests, say), and a form
+ * filled from the old copy would save the old values back over theirs. The
+ * cached profile is returned until the fresh one arrives.
+ */
+export function useFreshPageProfile(): Profile {
+  const owner = usePageOwner()
+  const options = owner.isYou ? homepageQueryOptions : memberHomepageQueryOptions(owner.userId)
+  return useSuspenseQuery({ ...options, refetchOnMount: 'always' }).data.profile
 }
 
 /**
@@ -395,44 +519,57 @@ export function setCachedLayout(queryClient: QueryClient, layout: Layout) {
 /** The two widgets Porchlight curates from a member's interests and location. */
 export type CuratedKind = 'articles' | 'events'
 
-/** Query key of one person's curated widget: ['widgets', kind, userId]. */
-type CuratedWidgetKey = readonly ['widgets', CuratedKind, number | undefined]
+/**
+ * Query key of one person's curated widget: ['widgets', kind, userId] for
+ * yours, and ['members', memberId, 'widgets', kind] for a family member's.
+ */
+type CuratedWidgetKey =
+  | readonly ['widgets', CuratedKind, number | undefined]
+  | readonly ['members', number, 'widgets', CuratedKind]
 
 /**
  * The curated requests still under way, so saving new interests can stop
- * one asked with the old ones (see reseedCuratedWidgets). Keyed by kind and
- * user, like the queries.
+ * one asked with the old ones (see reseedCuratedWidgets). Keyed like the
+ * queries.
  */
 const curatedInFlight = new Map<string, AbortController>()
 
-function inFlightKey(kind: CuratedKind, userId: number | undefined) {
-  return `${kind}:${userId}`
+function inFlightKey(queryKey: CuratedWidgetKey) {
+  return JSON.stringify(queryKey)
 }
 
 /**
- * One person's Articles or Local Events widget. The server asks the LLM and
- * searches afresh on every request, and each one spends search credit, so it
- * loads once per page visit (a full reload loads it again) and after that
- * only when asked: the card's refresh button, or saving new interests. The
- * user id in the key keeps one person's picks off anyone else's page.
+ * One person's Articles or Local Events widget: yours, or a family member's
+ * while a parent looks at their page. The server asks the LLM and searches
+ * afresh on every request, and each one spends search credit, so it loads
+ * once per visit (a full reload loads it again) and after that only when
+ * asked: the card's refresh button, or saving new interests. The person's id
+ * in the key keeps one person's picks off anyone else's page.
  */
-export function curatedWidgetQueryOptions(kind: CuratedKind, userId: number | undefined) {
+export function curatedWidgetQueryOptions(kind: CuratedKind, owner: PageOwner) {
+  // Your picks come from /api/widgets/..., and a member's from the
+  // parents-only /api/members/{id}/widgets/..., which answers the same way.
+  const queryKey: CuratedWidgetKey = owner.isYou
+    ? ['widgets', kind, owner.userId]
+    : ['members', owner.userId, 'widgets', kind]
+  const path = owner.isYou ? `/api/widgets/${kind}` : `/api/members/${owner.userId}/widgets/${kind}`
+
   // The type arguments say failures are ApiErrors (apiFetch's only kind,
   // apart from the reseed's abort, which the query never sees), so cards
   // can show their message and hint.
   return queryOptions<CuratedWidget, ApiError, CuratedWidget, CuratedWidgetKey>({
-    queryKey: ['widgets', kind, userId],
+    queryKey,
     // Not TanStack's AbortSignal, on purpose. If the card unmounts mid-load
     // (StrictMode mounts everything twice in development, or someone clicks
     // away), the request finishes and its answer waits in the cache for the
     // card's return, instead of being cancelled and paid for a second time.
     // Only a reseed aborts it, through this request's own controller.
     queryFn: async () => {
-      const key = inFlightKey(kind, userId)
+      const key = inFlightKey(queryKey)
       const controller = new AbortController()
       curatedInFlight.set(key, controller)
       try {
-        return await apiFetch<CuratedWidget>(`/api/widgets/${kind}`, {
+        return await apiFetch<CuratedWidget>(path, {
           signal: controller.signal,
           // Skip the HTTP cache: otherwise the browser holds a newer request
           // for the same URL until an older one still running finishes.
@@ -443,35 +580,45 @@ export function curatedWidgetQueryOptions(kind: CuratedKind, userId: number | un
         if (curatedInFlight.get(key) === controller) curatedInFlight.delete(key)
       }
     },
-    enabled: userId !== undefined,
+    enabled: owner.userId !== undefined,
     staleTime: Infinity,
+    // Kept for the whole visit, even while no card shows it (say, while a
+    // parent looks at someone else's page), so coming back costs no search.
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     retry: false,
   })
 }
 
-/** Your Articles widget: news picked from your interests. `refetch()` asks for fresh picks. */
+/**
+ * The Articles widget of the page it's on: news picked from that person's
+ * interests. `refetch()` asks for fresh picks.
+ */
 export function useArticles() {
   return useCuratedWidget('articles')
 }
 
-/** Your Local Events widget: upcoming events near you. `refetch()` asks for fresh picks. */
+/**
+ * The Local Events widget of the page it's on: upcoming events near that
+ * person. `refetch()` asks for fresh picks.
+ */
 export function useEvents() {
   return useCuratedWidget('events')
 }
 
 function useCuratedWidget(kind: CuratedKind) {
-  const { data: me } = useMe()
-  return useQuery(curatedWidgetQueryOptions(kind, me?.user.id))
+  return useQuery(curatedWidgetQueryOptions(kind, usePageOwner()))
 }
 
 // ---------------------------------------------------------------------------
-// Your interests
+// Interests
 // ---------------------------------------------------------------------------
 
-/** What useUpdateProfile notes before saving (its onMutate result). */
+/** What a profile save notes before it starts (its onMutate result). */
 interface ProfileSaveContext {
+  /** Who was logged in. If someone else is by the time it lands, it's not their page to update. */
   userId: number | undefined
+  /** The profile before saving, to tell which curated widgets the change affects. */
   before: Profile | undefined
 }
 
@@ -483,43 +630,92 @@ interface ProfileSaveContext {
  */
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
+  const pageKey = homepageQueryOptions.queryKey
   return useMutation<ProfileResponse, ApiError, Profile, ProfileSaveContext>({
-    onMutate: () => {
-      const me = queryClient.getQueryData(meQueryOptions.queryKey)
-      return { userId: me?.user.id, before: me?.profile }
+    onMutate: async () => {
+      // A fetch of your page still under way (the one the editor starts as
+      // it opens, say) holds the profile from before this save. Cancel it,
+      // so it can't land afterwards and put the old interests back.
+      await queryClient.cancelQueries({ queryKey: pageKey })
+      return {
+        userId: queryClient.getQueryData(meQueryOptions.queryKey)?.user.id,
+        // What the editor started from, and what your cards were picked for.
+        before: queryClient.getQueryData(pageKey)?.profile,
+      }
     },
     mutationFn: (profile) => apiFetch<ProfileResponse>('/api/me/profile', { method: 'PUT', body: profile }),
     onSuccess: ({ profile }, _input, { userId, before }) => {
       // Someone else logged in on this device while it saved: not their profile.
       if (queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== userId) return
       queryClient.setQueryData(meQueryOptions.queryKey, (me) => (me ? { ...me, profile } : me))
-      queryClient.setQueryData(homepageQueryOptions.queryKey, (page) => (page ? { ...page, profile } : page))
-
-      // Articles read only your interests; events read both. Each reload
-      // spends search credit, so only reseed what the change affects.
-      const interestsChanged = before?.interests !== profile.interests
-      const locationChanged = before?.location !== profile.location
-      const stale: CuratedKind[] = []
-      if (interestsChanged) stale.push('articles')
-      if (interestsChanged || locationChanged) stale.push('events')
+      queryClient.setQueryData(pageKey, (page) => (page ? { ...page, profile } : page))
       // Not awaited: saving is done; the widgets reload in their own time.
-      void reseedCuratedWidgets(queryClient, stale, userId)
+      void reseedCuratedWidgets(queryClient, kindsAffected(before, profile), { isYou: true, userId })
     },
   })
 }
 
-/** Drops the picks of the given curated widgets and loads fresh ones. */
-async function reseedCuratedWidgets(queryClient: QueryClient, kinds: CuratedKind[], userId: number | undefined) {
+/**
+ * Saves a family member's interests and location, for a parent on their
+ * page. It works like useUpdateProfile, for member `memberId`: on success
+ * their cached page gets the new profile, and only their curated widgets
+ * that read what changed load fresh picks. Your own cached page and widgets
+ * are left alone.
+ */
+export function useUpdateMemberProfile(memberId: number) {
+  const queryClient = useQueryClient()
+  const pageKey = memberHomepageQueryOptions(memberId).queryKey
+  return useMutation<ProfileResponse, ApiError, Profile, ProfileSaveContext>({
+    onMutate: async () => {
+      // Their page is asked for again each time you switch to them (and as
+      // the editor opens). Cancel a fetch still under way, so its older
+      // profile can't land after this save and replace the new one.
+      await queryClient.cancelQueries({ queryKey: pageKey })
+      return {
+        userId: queryClient.getQueryData(meQueryOptions.queryKey)?.user.id,
+        before: queryClient.getQueryData(pageKey)?.profile,
+      }
+    },
+    mutationFn: (profile) =>
+      apiFetch<ProfileResponse>(`/api/members/${memberId}/profile`, { method: 'PUT', body: profile }),
+    onSuccess: ({ profile }, _input, { userId, before }) => {
+      // The parent logged out (and someone else in) while it saved.
+      if (queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== userId) return
+      queryClient.setQueryData(pageKey, (page) => (page ? { ...page, profile } : page))
+      void reseedCuratedWidgets(queryClient, kindsAffected(before, profile), { isYou: false, userId: memberId })
+    },
+    // Then ask for their page again: the fetch cancelled above may have had
+    // other news (a card they moved since, say). It's a cheap request.
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: pageKey }),
+  })
+}
+
+/**
+ * Which curated widgets a profile change affects. Articles read only the
+ * interests; events read both. Each reload spends search credit, so only
+ * these are reseeded.
+ */
+function kindsAffected(before: Profile | undefined, after: Profile): CuratedKind[] {
+  const interestsChanged = before?.interests !== after.interests
+  const locationChanged = before?.location !== after.location
+  const kinds: CuratedKind[] = []
+  if (interestsChanged) kinds.push('articles')
+  if (interestsChanged || locationChanged) kinds.push('events')
+  return kinds
+}
+
+/** Drops the picks of the given curated widgets on one person's page and loads fresh ones. */
+async function reseedCuratedWidgets(queryClient: QueryClient, kinds: CuratedKind[], owner: PageOwner) {
   await Promise.all(
     kinds.map(async (kind) => {
-      const { queryKey } = curatedWidgetQueryOptions(kind, userId)
+      const { queryKey } = curatedWidgetQueryOptions(kind, owner)
       // A first load still under way was asked with the old interests, and
       // invalidating alone would join it rather than start over. Cancel it
       // first so its answer is thrown away, and abort its request so the
       // server stops spending search credit on it. Cancelling comes first,
       // so the query never sees the abort as an error.
       const cancelled = queryClient.cancelQueries({ queryKey })
-      curatedInFlight.get(inFlightKey(kind, userId))?.abort()
+      curatedInFlight.get(inFlightKey(queryKey))?.abort()
       await cancelled
       // Refetches it now if a card is showing it, or on the card's next mount.
       await queryClient.invalidateQueries({ queryKey })

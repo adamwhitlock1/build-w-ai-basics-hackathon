@@ -5,10 +5,14 @@ import { WidgetItems } from './renderers/WidgetItems'
 interface WidgetCardProps {
   /**
    * What to show. It can be left out while `loading`, or when a `notice`
-   * explains why there's nothing yet; `title` is the heading until then.
+   * explains why there's nothing yet.
    */
   widget?: Widget
-  /** The heading while there's no widget, e.g. "Articles for you". */
+  /**
+   * The heading, e.g. "Articles for you". Left out, it's the widget's own
+   * title. (The curated cards always set it, so on a family member's page
+   * theirs can speak about them.)
+   */
   title?: string
   /** Just arrived: amber border plus a soft fade-and-slide in. */
   fresh?: boolean
@@ -72,7 +76,7 @@ export function WidgetCard({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{widget?.title || title}</h2>
+        <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{title || widget?.title}</h2>
         {headerAction && <div className="-mt-1 -mr-2 shrink-0">{headerAction}</div>}
       </div>
 

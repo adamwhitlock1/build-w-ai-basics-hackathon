@@ -21,7 +21,7 @@ export interface MissingInfo {
 interface CuratedWidgetCardProps {
   /** useArticles() or useEvents(). */
   result: UseQueryResult<CuratedWidget, ApiError>
-  /** The heading until the server answers, e.g. "Articles for you". */
+  /** The heading, e.g. "Articles for you" (or "Their articles" on a family member's page). */
   title: string
   /** What it shows, in the plural, for labels: "articles", "events". */
   noun: string

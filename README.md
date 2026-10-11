@@ -2,7 +2,7 @@
 
 Porchlight is a homepage for each member of a family where every widget is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new widget appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a widget, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into widget items, using only what the search returned. Your API keys never leave the server.
 
-> Status: slice 5 (accounts, family setup, widgets that are saved to you, Articles and Local Events cards that pick themselves from your interests and location, a page you can arrange, and a family sidebar where parents invite the rest of the family, each of whom gets their own page). Switching to look at another member's page comes in a later slice.
+> Status: slice 6 (accounts, family setup, widgets that are saved to you, Articles and Local Events cards that pick themselves from your interests and location, a page you can arrange, a family sidebar where parents invite the rest of the family, each of whom gets their own page, and parents switching to any member's page to set their interests).
 
 ## Prerequisites
 
@@ -41,7 +41,9 @@ To arrange your page, press **Arrange** at the top (it shows on screens at least
 
 To invite your family, use **Invite member** in the sidebar (on a phone, open **Family** first): enter their email and choose **Parent** (can invite and manage) or **Kid**. Porchlight sends no email. Instead it shows a link to copy and send them however you like. The link uses the address you opened the app at (for example `http://localhost:5174/invite/...`), so they need to be able to reach that address. A link works for 14 days, and until someone uses it, it stays under **Pending invites**, where you can copy it again or revoke it. Co-parents you named while setting up your family are listed there too. Opening the link while logged out asks the new member to choose a password, and then they land on their own page.
 
-Nothing is cached, so the Articles and Local Events cards search again every time your page loads (or you press a card's refresh button): up to 5 Brave news searches for Articles and up to 3 web searches for Local Events, plus a few small LLM calls. That's at most 8 searches per visit.
+To look at a family member's page, a parent picks them in the sidebar's member list (on a phone, under **Family**). Their page opens at `/?as=<their id>`: their cards in their own order, read-only, since arranging it and adding widgets is up to them. **Their interests** sets the interests and location their Articles and Local Events are picked from. Pick yourself, or press **Back to your page**, to return. Kids see only their own page; the server refuses anyone else's.
+
+Nothing is cached, so the Articles and Local Events cards search again every time your page loads (or you press a card's refresh button): up to 5 Brave news searches for Articles and up to 3 web searches for Local Events, plus a few small LLM calls. That's at most 8 searches per visit to your page. Each family member's page a parent opens spends up to 8 more, once per visit, for that member's picks (switching back to someone you've already looked at costs nothing).
 
 Accounts, families, saved widgets and page layouts live in a SQLite file, `backend/porchlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/porchlight.db*`. Set `DB_PATH` to use a different file.
 

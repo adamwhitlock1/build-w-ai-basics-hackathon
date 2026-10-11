@@ -58,7 +58,7 @@ Build mode: fast
   Learner check: Invite a test email as your son, open the link in a private window, set a password, and land on his page. Rearrange it there, then confirm your own page didn't change.
   Commit: `Add family invites and per-member homepages`
 
-- [ ] **6. Parents can switch to any member's page and set their interests**
+- [x] **6. Parents can switch to any member's page and set their interests**
   Becomes usable: As a parent, click a family member in the sidebar to see their page: their layout, their custom widgets, articles from their interests, events at their location. Set that member's interests and location from there, and their cards reseed. Kids only ever see their own page. Logging out lives in the sidebar too.
   Why now: Last because it reads everything the earlier slices built. It completes the demo's setup beat: a parent setting interests for one of the kids.
   PRD ref: `prd.md > Family Management`, `prd.md > The Homepage (the main surface)` (switch view), `prd.md > States and Boundaries` (permissions and boundaries)
@@ -106,3 +106,4 @@ Activity mode:
 - A first-use page shows two "This spot is empty" cards next to the "+" on a new row, and after that empty cards only fill out the last row. The default layout (Articles and Local Events at half width each) fills row one, so the "fill the last row" rule alone would never have shown the PRD's first-use placeholders.
 - Arrange is offered from tablet width up (on a phone the page is a single column, and four-column arranging isn't readable there). Puck loads only when Arrange is opened.
 - Invites gained a `revoked_at` column (migration 002), and all SQLite transactions now take the write lock up front (`_txlock=immediate`). Deleting a revoked invite let SQLite reuse its id, so a stale "revoke" could hit someone's new invite. Concurrent invites also hit "database is locked" without the up-front lock. Create-family now refuses a co-admin email that already has an account, matching the sidebar's invite rules.
+- Member routes are parents-only, even for a kid's own id (a kid's page always goes through `/api/me`). The switched view is read-only apart from interests and location, and the member's Articles card is titled "Their articles". The "subject user" middleware kept a single copy of each handler. The build also found that a page being arranged or a widget being built must block switching, so the sidebar's member rows stay plain until those finish.

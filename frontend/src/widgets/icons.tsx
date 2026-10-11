@@ -43,3 +43,17 @@ export function TrashIcon({ className = 'size-5' }: { className?: string }) {
     </svg>
   )
 }
+
+export function EyeIcon({ className = 'size-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={className}>
+      <path
+        d="M1.75 10S4.75 4.5 10 4.5 18.25 10 18.25 10 15.25 15.5 10 15.5 1.75 10 1.75 10Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  )
+}

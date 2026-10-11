@@ -592,6 +592,10 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 		{"PUT", "/api/me/profile"},
 		{"GET", "/api/widgets/articles"},
 		{"GET", "/api/widgets/events"},
+		{"GET", "/api/members/1/homepage"},
+		{"PUT", "/api/members/1/profile"},
+		{"GET", "/api/members/1/widgets/articles"},
+		{"GET", "/api/members/1/widgets/events"},
 	}
 	for _, r := range private {
 		t.Run(r.method+" "+r.path, func(t *testing.T) {

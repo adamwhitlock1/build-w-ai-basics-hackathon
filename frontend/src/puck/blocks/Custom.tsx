@@ -1,4 +1,4 @@
-import { useHomepage } from '../../api/hooks'
+import { usePageHomepage } from '../../api/hooks'
 import { WidgetCard } from '../../widgets/WidgetCard'
 
 interface CustomBlockProps {
@@ -9,12 +9,13 @@ interface CustomBlockProps {
 }
 
 /**
- * A widget you described, as placed on the page and in the Arrange editor.
- * Its content came with the page (Homepage.customWidgets), so it's read from
- * that cached copy rather than fetched on its own.
+ * A widget someone described, as placed on their page and in the Arrange
+ * editor. Its content came with the page (Homepage.customWidgets), so it's
+ * read from that cached copy rather than fetched on its own: from your page,
+ * or from the family member's a parent is looking at.
  */
 export function CustomBlock({ widgetId, fresh = false }: CustomBlockProps) {
-  const { data: page } = useHomepage()
+  const page = usePageHomepage()
   const widget = page.customWidgets.find((w) => w.id === widgetId)
 
   if (!widget) {
