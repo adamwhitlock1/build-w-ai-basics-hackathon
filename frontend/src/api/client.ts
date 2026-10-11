@@ -18,7 +18,7 @@ export interface WidgetItem {
   thumbnail: string
 }
 
-/** Response of POST /api/widgets/from-prompt (`widgets.Widget` in the Go backend). */
+/** A widget's content (`widgets.Widget` in the Go backend). */
 export interface Widget {
   title: string
   source: SourceName
@@ -26,6 +26,60 @@ export interface Widget {
   archetype: Archetype
   /** May be empty when the search found nothing. */
   items: WidgetItem[]
+}
+
+/**
+ * A widget saved to the signed-in person's page: what POST
+ * /api/widgets/from-prompt and GET /api/widgets/custom/{id} return, and each
+ * entry of Homepage.customWidgets.
+ */
+export interface SavedWidget extends Widget {
+  id: number
+  /** RFC 3339 timestamp, e.g. "2026-10-09T21:14:03Z". */
+  createdAt: string
+}
+
+/** What a member has told us about themselves; seeds their curated widgets. */
+export interface Profile {
+  /** Free text, e.g. "space launches, soccer, gardening". */
+  interests: string
+  /** Free text; a city is fine. */
+  location: string
+}
+
+/** Response of GET /api/me (and of signup, login and create-family). */
+export interface Me {
+  user: { id: number; email: string; isAdmin: boolean }
+  family: { id: number; name: string }
+  /** True until the create-family intro is done (the family has no name yet). */
+  needsFamilySetup: boolean
+  profile: Profile
+}
+
+/** Body of POST /api/signup and POST /api/login. */
+export interface Credentials {
+  email: string
+  password: string
+}
+
+/** Body of POST /api/families: the create-family intro. */
+export interface CreateFamilyInput {
+  /** 1–80 characters. */
+  name: string
+  /** Optional; each one becomes a pending co-admin invite. */
+  coAdminEmails: string[]
+  /** Up to 500 characters each; may be empty. */
+  interests: string
+  location: string
+}
+
+/** Response of GET /api/me/homepage. */
+export interface Homepage {
+  profile: Profile
+  /** Always null for now; the saved page layout arrives with drag-and-drop. */
+  layout: null
+  /** Oldest first. */
+  customWidgets: SavedWidget[]
 }
 
 /**
@@ -44,6 +98,23 @@ export class ApiError extends Error {
     this.status = status
     this.hint = hint
   }
+}
+
+/**
+ * Endpoints whose 401 is an answer, not an expired session: /api/me says
+ * "nobody is logged in", and login/signup say "wrong email or password".
+ */
+const SESSION_ENDPOINTS = new Set(['/api/me', '/api/login', '/api/signup'])
+
+let onUnauthorized: (() => void) | undefined
+
+/**
+ * Registers what to do when the server says the session is gone (a 401 from
+ * any other endpoint). The app shell sends the person to /login; keeping that
+ * outside this module means the client doesn't need to know about routing.
+ */
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler
 }
 
 /** Like RequestInit, but `body` is any JSON-serialisable value. */
@@ -78,7 +149,11 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
     )
   }
 
-  // Slice 2: a 401 here will redirect to /login.
+  if (res.status === 401 && !SESSION_ENDPOINTS.has(path.split('?')[0])) {
+    // "Session expired" (spec > Important Failure Modes). Still throw below,
+    // so the caller's own error handling runs as usual.
+    onUnauthorized?.()
+  }
 
   if (!res.ok) {
     throw await toApiError(res)
@@ -107,6 +182,15 @@ async function toApiError(res: Response): Promise<ApiError> {
     // Not JSON (e.g. the dev proxy's own error page) — fall through.
   }
 
+  if (res.status === 404) {
+    // Porchlight's own 404s are JSON (handled above). A plain-text one means
+    // the backend has no such endpoint: usually an older build still running.
+    return new ApiError(
+      404,
+      "The backend doesn't know this request.",
+      'It may be an older version. Stop it and run “make run” again in backend/.',
+    )
+  }
   if (res.status >= 500) {
     return new ApiError(
       res.status,

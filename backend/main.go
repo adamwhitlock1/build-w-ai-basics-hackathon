@@ -1,8 +1,9 @@
 // Command porchlight runs the Porchlight API server.
 //
 // It reads configuration from the environment (and backend/.env), checks
-// that OpenRouter will accept its requests, then serves the JSON API on
-// 127.0.0.1:$PORT until it receives SIGINT or SIGTERM.
+// that OpenRouter will accept its requests, opens the SQLite database, then
+// serves the JSON API on 127.0.0.1:$PORT until it receives SIGINT or
+// SIGTERM.
 package main
 
 import (
@@ -19,11 +20,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/joho/godotenv"
 
+	"porchlight/internal/auth"
 	"porchlight/internal/llm"
-	"porchlight/internal/respond"
 	"porchlight/internal/sources"
+	"porchlight/internal/store"
 	"porchlight/internal/widgets"
 )
 
@@ -42,6 +45,7 @@ func main() {
 // config is everything the server reads from the environment.
 type config struct {
 	port              string
+	dbPath            string
 	openRouterKey     string
 	openRouterModel   string
 	openRouterBaseURL string
@@ -59,6 +63,7 @@ func loadConfig() (config, error) {
 
 	cfg := config{
 		port:              envOr("PORT", "8080"),
+		dbPath:            envOr("DB_PATH", "porchlight.db"),
 		openRouterKey:     os.Getenv("OPENROUTER_API_KEY"),
 		openRouterModel:   envOr("OPENROUTER_MODEL", "openai/gpt-4.1-mini"),
 		openRouterBaseURL: envOr("OPENROUTER_BASE_URL", llm.DefaultBaseURL),
@@ -111,15 +116,22 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	// The Brave key is not checked at startup: every Brave call costs credit.
 	brave := sources.NewBraveClient(cfg.braveKey, cfg.braveBaseURL)
 	registry := sources.NewRegistry(brave.News(), brave.Events(), brave.Web())
-	widgetHandler := widgets.NewHandler(llmClient, registry, logger)
 
-	// Go 1.22 patterns put the HTTP method in the route itself.
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/health", handleHealth)
-	mux.HandleFunc("POST /api/widgets/from-prompt", widgetHandler.FromPrompt)
+	st, err := store.Open(ctx, cfg.dbPath)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+
+	// Sessions live in the same database. The session store deletes expired
+	// sessions in a background goroutine; StopCleanup ends it. Deferred calls
+	// run last-in, first-out, so it stops before st.Close runs.
+	sessionStore := sqlite3store.New(st.DB())
+	defer sessionStore.StopCleanup()
+	sessions := auth.NewSessionManager(sessionStore, logger)
 
 	srv := &http.Server{
-		Handler:           logRequests(logger, recoverPanics(logger, mux)),
+		Handler:           routes(logger, st, sessions, llmClient, registry),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
@@ -137,7 +149,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
-	logger.Info("porchlight API listening", "addr", "http://"+ln.Addr().String(), "model", cfg.openRouterModel)
+	logger.Info("porchlight API listening", "addr", "http://"+ln.Addr().String(), "model", cfg.openRouterModel, "db", cfg.dbPath)
 
 	select {
 	case err := <-serveErr:
@@ -178,8 +190,4 @@ func preflight(ctx context.Context, logger *slog.Logger, client *llm.Client) err
 		}
 	}
 	return nil
-}
-
-func handleHealth(w http.ResponseWriter, _ *http.Request) {
-	respond.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }

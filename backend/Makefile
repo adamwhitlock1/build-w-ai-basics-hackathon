@@ -1,9 +1,9 @@
 # Every go command here runs with these two settings:
 #
 # CGO_ENABLED=0 -- on this Mac, Go 1.22.0 binaries linked with cgo crash at
-#   launch ("dyld: missing LC_UUID"). Porchlight is pure Go, and so is the
-#   SQLite driver (modernc.org/sqlite) a later slice adds, so turning cgo off
-#   costs nothing and the binary runs.
+#   launch ("dyld: missing LC_UUID"). Porchlight is pure Go, and so is its
+#   SQLite driver (modernc.org/sqlite), so turning cgo off costs nothing and
+#   the binary runs.
 # GOTOOLCHAIN=local -- use the installed Go; never download a newer one.
 export CGO_ENABLED := 0
 export GOTOOLCHAIN := local

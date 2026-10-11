@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { Widget } from '../api/client'
+import type { SavedWidget } from '../api/client'
 import { useCreateWidgetFromPrompt } from '../api/hooks'
 import { CloseIcon, PlusIcon } from './icons'
 
@@ -14,8 +14,8 @@ const MAX_PROMPT_LENGTH = 500
 interface DescribeWidgetPromptProps {
   /** DOM id of the prompt, so the "+" button can point at it with aria-controls. */
   id: string
-  /** Called with the new widget once the server has built it. */
-  onCreated: (widget: Widget) => void
+  /** Called with the new widget once the server has built and saved it. */
+  onCreated: (widget: SavedWidget) => void
   /** Called when the person dismisses the prompt (close button or Escape). */
   onClose: () => void
 }

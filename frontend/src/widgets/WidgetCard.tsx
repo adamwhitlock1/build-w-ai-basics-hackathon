@@ -42,8 +42,8 @@ export function WidgetCard({ widget, fresh = false }: WidgetCardProps) {
 
       <div className="mt-5 flex-1">
         {items.length === 0 ? (
-          // Slice 1 has no per-widget refresh and nothing survives a reload,
-          // so point to what works now: describing it differently.
+          // Widgets can't be refreshed yet (their content is saved as it was
+          // built), so point to what works now: describing it differently.
           <p className="rounded-2xl bg-bg px-4 py-6 text-center text-sm text-ink-muted">
             Nothing turned up for that just now — try describing it a little differently.
           </p>

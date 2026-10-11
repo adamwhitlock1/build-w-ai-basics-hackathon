@@ -5,17 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build && tsc -b",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tanstack/react-query": "5.104.1",
+    "@tanstack/react-router": "1.170.41",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
+    "@tanstack/router-plugin": "1.168.42",
     "@types/node": "24.13.3",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",

@@ -1,8 +1,17 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
+  "ignorePatterns": ["src/routeTree.gen.ts"],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      // Route files export a `Route` next to their page component. The
+      // TanStack Router plugin splits them apart, so fast refresh still works.
+      "files": ["src/routes/**"],
+      "rules": { "react/only-export-components": "off" }
+    }
+  ]
 }

@@ -1,41 +1,46 @@
 import { useIsMutating } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useId, useRef, useState } from 'react'
-import type { Widget } from './api/client'
-import { createWidgetKey } from './api/hooks'
-import { DescribeWidgetPrompt } from './widgets/DescribeWidgetPrompt'
-import { PlusIcon } from './widgets/icons'
-import { WidgetCard } from './widgets/WidgetCard'
+import type { SavedWidget } from '../../api/client'
+import { createWidgetKey, homepageQueryOptions, useHomepage, useMe } from '../../api/hooks'
+import { BrandMark } from '../../components/BrandMark'
+import { LogoutButton } from '../../components/LogoutButton'
+import { DescribeWidgetPrompt } from '../../widgets/DescribeWidgetPrompt'
+import { PlusIcon } from '../../widgets/icons'
+import { WidgetCard } from '../../widgets/WidgetCard'
+
+export const Route = createFileRoute('/_authed/')({
+  // Load the page's data before showing it; the component then reads it
+  // from the Query cache, where new widgets are added as they're built.
+  loader: ({ context }) => context.queryClient.query(homepageQueryOptions),
+  component: HomePage,
+})
 
 /** How long a new widget keeps its amber "just arrived" border. */
 const FRESH_MS = 6000
 /** Placeholder slots shown on a sparse page, so it never looks bare. */
 const EMPTY_SLOTS = 2
 
-interface PageWidget {
-  id: number
-  widget: Widget
-}
-
 /**
- * Temporary single-page shell for slice 1. Widgets live only in React state
- * (in the order they were added) and vanish on reload; routing and
- * persistence come later.
+ * "Your page": your saved widgets, oldest first, then empty slots and the "+"
+ * that describes a new one. A new widget is saved by the server, appended to
+ * the cached page by the hook, and highlighted here.
  */
-export default function App() {
-  const [widgets, setWidgets] = useState<PageWidget[]>([])
+function HomePage() {
+  const { data: page } = useHomepage()
+  const { data: me } = useMe()
+  const widgets = page.customWidgets
   const [freshId, setFreshId] = useState<number | null>(null)
   const [promptOpen, setPromptOpen] = useState(false)
   const [announcement, setAnnouncement] = useState('')
-  const nextId = useRef(1)
   const addButtonRef = useRef<HTMLButtonElement>(null)
   const promptId = useId()
-  const building = useIsMutating({ mutationKey: createWidgetKey }) > 0
+  const building = useIsMutating({ mutationKey: createWidgetKey(me?.user.id) }) > 0
 
-  function addWidget(widget: Widget) {
-    const id = nextId.current++
-    // Appending puts the new widget in the next empty slot.
-    setWidgets((prev) => [...prev, { id, widget }])
-    setFreshId(id)
+  function handleCreated(widget: SavedWidget) {
+    // It's already in the page data (the hook added it), so the new card is
+    // rendering in the next empty slot; mark it as just arrived.
+    setFreshId(widget.id)
     // Collapse the prompt; the new card takes focus as it arrives.
     setPromptOpen(false)
     setAnnouncement(`Added “${widget.title}” to your page.`)
@@ -59,10 +64,11 @@ export default function App() {
     <div className="min-h-dvh">
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <header className="mb-8 sm:mb-10">
-          <p className="flex items-center gap-2 text-sm font-medium text-ink-muted">
-            <span aria-hidden="true" className="size-2.5 rounded-full bg-accent shadow-[0_0_0_4px] shadow-accent-soft" />
-            Porchlight
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <BrandMark familyName={me?.family.name} />
+            {/* Temporary home: this moves into the family sidebar later. */}
+            <LogoutButton />
+          </div>
           <h1 className="mt-3 text-4xl leading-tight text-ink sm:text-5xl">Your page</h1>
           <p className="mt-2 max-w-prose text-ink-soft">
             Describe anything you’d like to keep an eye on, and we’ll build a widget for it.
@@ -77,12 +83,12 @@ export default function App() {
         <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
           {promptOpen && (
             <div className="col-span-full">
-              <DescribeWidgetPrompt id={promptId} onCreated={addWidget} onClose={closePrompt} />
+              <DescribeWidgetPrompt id={promptId} onCreated={handleCreated} onClose={closePrompt} />
             </div>
           )}
 
-          {widgets.map((w) => (
-            <WidgetCard key={w.id} widget={w.widget} fresh={w.id === freshId} />
+          {widgets.map((widget) => (
+            <WidgetCard key={widget.id} widget={widget} fresh={widget.id === freshId} />
           ))}
 
           {Array.from({ length: emptySlots }, (_, i) => (

@@ -18,7 +18,7 @@ Build mode: fast
   Learner check: Start both halves, open http://localhost:5174, type "show me upcoming SpaceX launches" and then a prompt of your own. Does the widget feel like the "small magic trick" you pictured, and is the content any good?
   Commit: `Add describe-a-widget: a sentence becomes a live widget`
 
-- [ ] **2. Your own account, your family, and widgets that stay**
+- [x] **2. Your own account, your family, and widgets that stay**
   Becomes usable: Sign up with email and password, fill in the create-family intro (family name, co-admin emails, your interests, your location), and land on "Your page". Widgets you describe are saved to you and are still there after logging out and back in. Logged-out visitors are sent to the login screen; a wrong password shows an inline error.
   Why now: Everything after this is per-member, so the database, sessions, and "who am I" have to exist before the canvas, the curated widgets, or invites have anywhere to live. It comes second because the kernel's output now needs a home.
   PRD ref: `prd.md > The Core Journey` (steps 1–3), `prd.md > Login / Sign-up`, `prd.md > Create-Family Intro`, `prd.md > Authentication and Account`, `prd.md > States and Boundaries`

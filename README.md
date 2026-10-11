@@ -2,7 +2,7 @@
 
 Porchlight is a homepage for each member of a family where every widget is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new widget appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a widget, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into widget items, using only what the search returned. Your API keys never leave the server.
 
-> Status: slice 1 ("type a sentence, get a live widget"). Accounts, saved layouts and drag-and-drop come in later slices.
+> Status: slice 2 (accounts, family setup, and widgets that are saved to you). Curated widgets, drag-and-drop and invites come in later slices.
 
 ## Prerequisites
 
@@ -37,9 +37,11 @@ Then open **<http://localhost:5174>**. Port 5173 is taken by another app on this
 
 On startup the backend checks that both keys are set, that your `OPENROUTER_MODEL` exists and supports structured outputs, and that OpenRouter accepts your key. If any check fails, it stops and prints what to fix. These checks cost no credit. The Brave key isn't checked at startup, because every Brave call uses credit.
 
+Accounts, families and saved widgets live in a SQLite file, `backend/porchlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/porchlight.db*`. Set `DB_PATH` to use a different file.
+
 ### Why `make run` and not `go run .`?
 
-The Makefile sets `CGO_ENABLED=0` for every Go command. On this Mac, Go 1.22.0 binaries linked with cgo crash at launch with `dyld: missing LC_UUID`. Porchlight is pure Go, and so is the SQLite driver (modernc.org/sqlite) that a later slice adds, so turning cgo off costs nothing. The Makefile also sets `GOTOOLCHAIN=local` so Go never downloads a different toolchain. To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...`.
+The Makefile sets `CGO_ENABLED=0` for every Go command. On this Mac, Go 1.22.0 binaries linked with cgo crash at launch with `dyld: missing LC_UUID`. Porchlight is pure Go, and so is its SQLite driver (modernc.org/sqlite), so turning cgo off costs nothing. The Makefile also sets `GOTOOLCHAIN=local` so Go never downloads a different toolchain. To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...`.
 
 ## Tests
 
