@@ -93,13 +93,54 @@ export interface CreateFamilyInput {
   location: string
 }
 
+/** How many of the page's four columns a card spans: 1/4 up to 4/4. */
+export type Span = 1 | 2 | 3 | 4
+
+/** What every card on the page carries. */
+interface BlockProps {
+  /** Stable and unique on the page: "articles", "events" or "custom-<widgetId>". */
+  id: string
+  span: Span
+}
+
+/**
+ * One card on the page. The type decides what it shows; a Custom card also
+ * says which saved widget (SavedWidget.id) it is.
+ */
+export type LayoutBlock =
+  | { type: 'Articles'; props: BlockProps }
+  | { type: 'LocalEvents'; props: BlockProps }
+  | { type: 'Custom'; props: BlockProps & { widgetId: number } }
+
+/** The kinds of card a page can hold: 'Articles', 'LocalEvents' or 'Custom'. */
+export type BlockType = LayoutBlock['type']
+
+/**
+ * A page layout, stored by the server exactly as Puck (the drag-and-drop
+ * editor) reads and writes it: the cards live in the root's `blocks` slot,
+ * and `content` and `zones` stay empty.
+ */
+export interface Layout {
+  root: { props: { blocks: LayoutBlock[] } }
+  content: []
+  zones: Record<string, never>
+}
+
 /** Response of GET /api/me/homepage. */
 export interface Homepage {
   profile: Profile
-  /** Always null for now; the saved page layout arrives with drag-and-drop. */
-  layout: null
+  /**
+   * The cards and their order and widths. Never null: the server builds a
+   * default for a page that hasn't been arranged yet.
+   */
+  layout: Layout
   /** Oldest first. */
   customWidgets: SavedWidget[]
+}
+
+/** Body of PUT /api/me/homepage, and its response (the layout as the server stored it). */
+export interface LayoutResponse {
+  layout: Layout
 }
 
 /**

@@ -139,6 +139,7 @@ func TestGetMissing(t *testing.T) {
 		{"family", func() error { _, err := s.GetFamily(ctx, 99); return err }},
 		{"profile", func() error { _, err := s.GetMemberProfile(ctx, 99); return err }},
 		{"custom widget", func() error { _, err := s.GetCustomWidget(ctx, 1, 99); return err }},
+		{"layout", func() error { _, err := s.GetLayout(ctx, 99); return err }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -245,6 +246,28 @@ func TestCustomWidgets(t *testing.T) {
 	if err != nil || len(none) != 0 {
 		t.Errorf("unknown user's widgets = %v, %v; want none", none, err)
 	}
+
+	// Bob can't delete Alice's widget: it reads as missing, and stays.
+	if err := s.DeleteCustomWidget(ctx, bob.ID, first.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("deleting another user's widget: err = %v, want ErrNotFound", err)
+	}
+	if _, err := s.GetCustomWidget(ctx, alice.ID, first.ID); err != nil {
+		t.Errorf("after bob's delete, alice's widget: err = %v, want it still there", err)
+	}
+
+	// Alice can, once.
+	if err := s.DeleteCustomWidget(ctx, alice.ID, first.ID); err != nil {
+		t.Fatalf("delete own widget: %v", err)
+	}
+	if _, err := s.GetCustomWidget(ctx, alice.ID, first.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("deleted widget: err = %v, want ErrNotFound", err)
+	}
+	if err := s.DeleteCustomWidget(ctx, alice.ID, first.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("deleting it again: err = %v, want ErrNotFound", err)
+	}
+	if list, _ := s.ListCustomWidgets(ctx, alice.ID); len(list) != 1 || list[0].ID != second.ID {
+		t.Errorf("alice's widgets after the delete = %+v, want only %d", list, second.ID)
+	}
 }
 
 func TestProfilesAndInvites(t *testing.T) {
@@ -276,5 +299,47 @@ func TestProfilesAndInvites(t *testing.T) {
 	invites, err := s.ListPendingInvites(ctx, u.FamilyID)
 	if err != nil || len(invites) != 1 || invites[0].ID != inv.ID || invites[0].IsAdmin {
 		t.Errorf("ListPendingInvites = %+v, %v; want just the kid's (non-admin) invite", invites, err)
+	}
+}
+
+func TestLayouts(t *testing.T) {
+	ctx := context.Background()
+	s := openTestStore(t)
+	alice := signUp(t, s, "alice@example.com")
+	bob := signUp(t, s, "bob@example.com")
+
+	// Nobody has a layout until one is saved.
+	if _, err := s.GetLayout(ctx, alice.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("before saving: err = %v, want ErrNotFound", err)
+	}
+
+	first := json.RawMessage(`{"root":{"props":{"blocks":[]}},"content":[],"zones":{}}`)
+	if err := s.UpsertLayout(ctx, alice.ID, first); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetLayout(ctx, alice.ID)
+	if err != nil || string(got) != string(first) {
+		t.Errorf("GetLayout = %s, %v; want %s", got, err, first)
+	}
+
+	// Saving again replaces the row rather than adding a second one.
+	second := json.RawMessage(`{"root":{"props":{"blocks":[{"type":"Articles","props":{"id":"articles","span":4}}]}},"content":[],"zones":{}}`)
+	if err := s.UpsertLayout(ctx, alice.ID, second); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetLayout(ctx, alice.ID); string(got) != string(second) {
+		t.Errorf("after replacing: GetLayout = %s, want %s", got, second)
+	}
+	if n := countRows(t, s, "homepage_layouts"); n != 1 {
+		t.Errorf("homepage_layouts has %d rows, want 1", n)
+	}
+
+	// Layouts are per user.
+	if _, err := s.GetLayout(ctx, bob.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("bob's layout: err = %v, want ErrNotFound", err)
+	}
+	// The foreign key refuses a layout for a user who doesn't exist.
+	if err := s.UpsertLayout(ctx, 999, first); err == nil {
+		t.Error("saved a layout for a missing user; want the foreign key to refuse it")
 	}
 }

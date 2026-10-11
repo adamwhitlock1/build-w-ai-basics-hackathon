@@ -7,6 +7,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
+import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import {
   ApiError,
   apiFetch,
@@ -14,6 +15,8 @@ import {
   type Credentials,
   type CuratedWidget,
   type Homepage,
+  type Layout,
+  type LayoutResponse,
   type Me,
   type Profile,
   type ProfileResponse,
@@ -127,9 +130,10 @@ export function useCreateFamily() {
 // ---------------------------------------------------------------------------
 
 /**
- * The logged-in person's page: their profile and saved widgets, oldest first.
- * It only changes through this app, which updates the cache as it goes, so
- * it's never refetched in the background (but can still be invalidated).
+ * The logged-in person's page: their profile, the layout of their cards, and
+ * their saved widgets, oldest first. It only changes through this app, which
+ * updates the cache as it goes, so it's never refetched in the background
+ * (but can still be invalidated).
  */
 export const homepageQueryOptions = queryOptions({
   queryKey: ['homepage'],
@@ -185,15 +189,69 @@ export function useCreateWidgetFromPrompt({ onCreated }: CreateWidgetOptions = {
       // The server saved it to the person who asked. If they've logged out
       // since, it isn't for whoever's page is showing now.
       if (queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== userId) return
-      // Append it to the cached page (new widgets go last) rather than
-      // refetching the whole page.
+      // Show it straight away: add it to the cached page, with a card at the
+      // end of the layout, just as the server did.
       queryClient.setQueryData(homepageQueryOptions.queryKey, (page) => {
-        if (!page || page.customWidgets.some((w) => w.id === widget.id)) return page
-        return { ...page, customWidgets: [...page.customWidgets, widget] }
+        if (!page) return page
+        const known = page.customWidgets.some((w) => w.id === widget.id)
+        return {
+          ...page,
+          customWidgets: known ? page.customWidgets : [...page.customWidgets, widget],
+          layout: withCustomBlock(layoutOf(page), widget.id),
+        }
       })
+      // Then ask for the page again, so this copy matches what the server
+      // saved. The new card stays on screen meanwhile.
+      void queryClient.invalidateQueries({ queryKey: homepageQueryOptions.queryKey })
       onCreated?.(widget)
     },
   })
+}
+
+/**
+ * Deletes one of your saved widgets for good. Call `mutateAsync(widgetId)`.
+ * The server also takes its card off your saved layout; on success the
+ * widget and its card leave the cached page too.
+ *
+ * (Leaving a card out of a saved layout isn't enough: the server gives every
+ * saved widget a card, so the widget would come back on the next load.)
+ */
+export function useDeleteWidget() {
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, number>({
+    mutationFn: (widgetId) => apiFetch<void>(`/api/widgets/custom/${widgetId}`, { method: 'DELETE' }),
+    onSuccess: (_nothing, widgetId) => {
+      queryClient.setQueryData(homepageQueryOptions.queryKey, (page) =>
+        page
+          ? {
+              ...page,
+              customWidgets: page.customWidgets.filter((w) => w.id !== widgetId),
+              layout: withoutCustomBlock(layoutOf(page), widgetId),
+            }
+          : page,
+      )
+    },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Arranging your page
+// ---------------------------------------------------------------------------
+
+/**
+ * Saves the order and widths of your cards. Resolves with the layout as the
+ * server stored it (it keeps only the fields it knows). Called by the Arrange
+ * editor's autosave (puck/useLayoutAutosave.ts), which decides when to save,
+ * so this is a plain function rather than a mutation hook.
+ */
+export async function saveLayout(layout: Layout): Promise<Layout> {
+  const res = await apiFetch<LayoutResponse>('/api/me/homepage', { method: 'PUT', body: { layout } })
+  return res.layout
+}
+
+/** Puts a saved layout into the cached page, so the page shows it without asking the server again. */
+export function setCachedLayout(queryClient: QueryClient, layout: Layout) {
+  queryClient.setQueryData(homepageQueryOptions.queryKey, (page) => (page ? { ...page, layout } : page))
 }
 
 // ---------------------------------------------------------------------------

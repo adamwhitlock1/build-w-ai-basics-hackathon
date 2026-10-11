@@ -21,7 +21,9 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
 	layoutHandler := layout.NewHandler(st, logger)
-	widgetHandler := widgets.NewHandler(planner, srcs, st, logger)
+	// New widgets go onto the member's saved layout, and deleted ones come
+	// off it, through layoutHandler.
+	widgetHandler := widgets.NewHandler(planner, srcs, st, layoutHandler, logger)
 	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
@@ -43,11 +45,13 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	// Logged in.
 	mux.Handle("GET /api/me", private(familyHandler.Me))
 	mux.Handle("GET /api/me/homepage", private(layoutHandler.Homepage))
+	mux.Handle("PUT /api/me/homepage", private(layoutHandler.SaveLayout))
 	mux.Handle("PUT /api/me/profile", private(familyHandler.UpdateProfile))
 	mux.Handle("GET /api/widgets/articles", private(curatedHandler.Articles))
 	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
 	mux.Handle("POST /api/widgets/from-prompt", private(widgetHandler.FromPrompt))
 	mux.Handle("GET /api/widgets/custom/{id}", private(widgetHandler.GetCustom))
+	mux.Handle("DELETE /api/widgets/custom/{id}", private(widgetHandler.DeleteCustom))
 
 	// Family admins.
 	mux.Handle("POST /api/families", adminOnly(familyHandler.CreateFamily))

@@ -29,3 +29,17 @@ export function RefreshIcon({ className = 'size-5' }: { className?: string }) {
     </svg>
   )
 }
+
+export function TrashIcon({ className = 'size-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={className}>
+      <path
+        d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}

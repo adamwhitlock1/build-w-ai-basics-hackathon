@@ -66,6 +66,26 @@ func (s *Store) GetCustomWidget(ctx context.Context, userID, widgetID int64) (Cu
 	return w, nil
 }
 
+// DeleteCustomWidget deletes widget widgetID if it belongs to userID. Like
+// GetCustomWidget, it reports another user's widget as ErrNotFound, exactly
+// like a missing one, and leaves it alone.
+func (s *Store) DeleteCustomWidget(ctx context.Context, userID, widgetID int64) error {
+	// The user_id check is part of the DELETE itself, so there is no gap
+	// between checking who owns the widget and deleting it.
+	res, err := s.db.ExecContext(ctx, `DELETE FROM custom_widgets WHERE id = ? AND user_id = ?`, widgetID, userID)
+	if err != nil {
+		return fmt.Errorf("delete custom widget %d: %w", widgetID, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete custom widget %d: %w", widgetID, err)
+	}
+	if n == 0 {
+		return fmt.Errorf("delete custom widget %d: %w", widgetID, ErrNotFound)
+	}
+	return nil
+}
+
 // ListCustomWidgets returns userID's widgets, oldest first.
 func (s *Store) ListCustomWidgets(ctx context.Context, userID int64) ([]CustomWidget, error) {
 	rows, err := s.db.QueryContext(ctx,

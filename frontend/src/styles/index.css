@@ -74,3 +74,49 @@
     font-synthesis: none;
   }
 }
+
+/*
+ * The Arrange editor (Puck, see src/puck/ArrangeCanvas.tsx). Puck reads these
+ * variables for its outlines and action bar, so setting them here swaps its
+ * blues for our amber and its font for ours, without touching its CSS.
+ */
+@layer components {
+  .arrange-canvas {
+    --puck-font-family: var(--font-sans);
+    /* Hovered card: a faint amber wash and outline. */
+    --puck-slot-component-color-overlay: color-mix(in srgb, var(--color-accent) 7%, transparent);
+    --puck-slot-component-color-overlay-border: color-mix(in srgb, var(--color-accent) 60%, transparent);
+    /* Selected and dragged card: solid amber. */
+    --puck-slot-component-color-border-selected: var(--color-accent);
+    --puck-slot-component-color-border-dragging: var(--color-accent);
+    /* Where a dragged card will land. */
+    --puck-slot-component-color-placeholder: var(--color-accent-soft);
+    /* The active width button in the action bar. */
+    --puck-actionbar-color-action-active: var(--color-accent);
+    --puck-actionbar-color-action-hover: var(--color-accent-soft);
+    --puck-actionbar-radius: 0.75rem;
+  }
+
+  /* Round the hover and selection outlines to match the cards' corners. */
+  .arrange-canvas [data-puck-overlay] > div:last-child,
+  .arrange-canvas [data-puck-overlay] > div:last-child > div {
+    border-radius: var(--radius-3xl);
+  }
+
+  /* A card being dragged lifts off the table a little. */
+  .arrange-canvas [data-dnd-dragging][data-puck-component] {
+    box-shadow: 0 24px 48px -16px rgb(64 48 32 / 0.3);
+  }
+}
+
+/*
+ * Puck's root element scrolls (overflow: auto) to suit its own full-screen
+ * editor, which we don't show. Here it should grow with the page instead, so
+ * the resize grips on the rightmost cards can poke past the grid's edge
+ * without a scrollbar, and the Arrange toolbar can stay pinned as you scroll.
+ * This rule sits outside any @layer on purpose: Puck's CSS isn't layered, and
+ * unlayered CSS always beats layered CSS.
+ */
+.arrange-canvas > .Puck {
+  overflow: visible;
+}

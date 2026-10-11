@@ -1,17 +1,17 @@
 import { useIsMutating } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { InterestsEditor, type InterestsEditorProps } from '../../account/InterestsEditor'
 import { InterestsEditorContext, type ProfileField } from '../../account/interestsEditorContext'
-import type { SavedWidget } from '../../api/client'
+import type { Layout, SavedWidget } from '../../api/client'
 import { createWidgetKey, homepageQueryOptions, useHomepage, useMe, useUpdateProfile } from '../../api/hooks'
 import { BrandMark } from '../../components/BrandMark'
 import { LogoutButton } from '../../components/LogoutButton'
-import { ArticlesWidget } from '../../widgets/ArticlesWidget'
+import { layoutOf } from '../../puck/layout'
+import { LayoutView } from '../../puck/LayoutView'
+import { useLayoutAutosave } from '../../puck/useLayoutAutosave'
 import { DescribeWidgetPrompt } from '../../widgets/DescribeWidgetPrompt'
 import { PlusIcon } from '../../widgets/icons'
-import { LocalEventsWidget } from '../../widgets/LocalEventsWidget'
-import { WidgetCard } from '../../widgets/WidgetCard'
 
 export const Route = createFileRoute('/_authed/')({
   // Load the page's data before showing it; the component then reads it
@@ -20,21 +20,30 @@ export const Route = createFileRoute('/_authed/')({
   component: HomePage,
 })
 
+// The Arrange editor brings Puck (a large library) with it, so it's only
+// downloaded when needed: as the pointer or focus reaches "Arrange", or at
+// the latest when it's tapped. React's lazy() turns the import into a
+// component that shows a fallback (<Suspense>) until it has loaded.
+const loadArrangeCanvas = () => import('../../puck/ArrangeCanvas')
+const ArrangeCanvas = lazy(() => loadArrangeCanvas().then((m) => ({ default: m.ArrangeCanvas })))
+
 /** How long a new widget keeps its amber "just arrived" border. */
 const FRESH_MS = 6000
-/** Placeholder slots shown on a sparse page, so it never looks bare. */
-const EMPTY_SLOTS = 2
 
 /**
- * "Your page": the Articles and Local Events widgets picked for you, then
- * your saved widgets, oldest first, then empty slots and the "+" that
- * describes a new one. A new widget is saved by the server, appended to the
- * cached page by the hook, and highlighted here.
+ * "Your page": your cards in the order and widths you've arranged them (at
+ * first, the Articles and Local Events widgets picked for you, then your
+ * saved widgets), then empty spots and the "+" that describes a new one. A
+ * new widget is saved by the server, added to the end of the cached page by
+ * the hook, and highlighted here.
+ *
+ * "Arrange" swaps the page for the Puck editor, where cards can be dragged
+ * and resized; changes save as you go, and "Done" (or Escape) swaps back.
  */
 function HomePage() {
   const { data: page } = useHomepage()
   const { data: me } = useMe()
-  const widgets = page.customWidgets
+  const layout = layoutOf(page)
   const [freshId, setFreshId] = useState<number | null>(null)
   const [promptOpen, setPromptOpen] = useState(false)
   const [announcement, setAnnouncement] = useState('')
@@ -77,8 +86,8 @@ function HomePage() {
   }
 
   function handleCreated(widget: SavedWidget) {
-    // It's already in the page data (the hook added it), so the new card is
-    // rendering in the next empty slot; mark it as just arrived.
+    // It's already in the page data (the hook added it, with a card at the
+    // end of the layout), so the new card is rendering; mark it as just arrived.
     setFreshId(widget.id)
     // Collapse the prompt; the new card takes focus as it arrives.
     setPromptOpen(false)
@@ -97,7 +106,55 @@ function HomePage() {
     return () => window.clearTimeout(timer)
   }, [freshId])
 
-  const emptySlots = Math.max(0, EMPTY_SLOTS - widgets.length)
+  // Arranging. `arrangeFrom` is the layout the editor opened with, and null
+  // while the page is shown normally.
+  const [arrangeFrom, setArrangeFrom] = useState<Layout | null>(null)
+  const arranging = arrangeFrom !== null
+  const { state: saveState, start: startSaving, change: saveChange, finish: finishSaving } = useLayoutAutosave()
+  const [finishing, setFinishing] = useState(false)
+  // The same, for event handlers that may run twice before a re-render (a
+  // quick Escape and click).
+  const finishingRef = useRef(false)
+
+  function startArranging() {
+    // The "+" prompt and the interests editor step aside while arranging,
+    // and a just-built widget loses its highlight (so it doesn't grab focus
+    // again when the page comes back).
+    setPromptOpen(false)
+    setEditorFocus(null)
+    setFreshId(null)
+    // A copy, so nothing the editor does can touch the cached page.
+    const from = structuredClone(layout)
+    startSaving(from)
+    setArrangeFrom(from)
+    setAnnouncement('Arranging your page. Drag cards to reorder, or drag a card’s right edge to resize.')
+  }
+
+  const finishArranging = useCallback(async () => {
+    if (finishingRef.current) return
+    finishingRef.current = true
+    setFinishing(true)
+    // Sends any change still waiting, and puts the final layout in the
+    // cached page, which the normal page then shows.
+    const saved = await finishSaving()
+    finishingRef.current = false
+    setFinishing(false)
+    // If it didn't save, stay here: the toolbar says why, and it's retried.
+    if (!saved) return
+    setArrangeFrom(null)
+    setAnnouncement('Your page is saved.')
+  }, [finishSaving])
+
+  // Escape also finishes arranging, unless something else used it first
+  // (cancelling a drag or a resize marks it with preventDefault).
+  useEffect(() => {
+    if (!arranging) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) void finishArranging()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [arranging, finishArranging])
 
   return (
     // Widgets anywhere on the page can open the interests editor through this.
@@ -111,18 +168,47 @@ function HomePage() {
               <BrandMark familyName={me?.family.name} />
               {/* Temporary home: these move into the family sidebar later. */}
               <div className="ml-auto flex shrink-0 items-start gap-1 sm:gap-2">
+                {/* One button that reads "Arrange", then "Done" while
+                    arranging, so keyboard focus stays on it either way.
+                    Arranging uses the wide-screen grid of four columns,
+                    which is far too cramped on a phone, so "Arrange" only
+                    appears from tablet width up ("Done" always shows). */}
                 <button
-                  ref={interestsButtonRef}
                   type="button"
-                  aria-expanded={editorFocus !== null}
-                  aria-controls={editorId}
-                  // Opens and closes the editor; focus stays on this button.
-                  onClick={() => (editorFocus ? setEditorFocus(null) : openEditor())}
-                  className="rounded-lg px-2 py-1 text-sm font-medium text-ink-soft underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  // Can't start arranging while a new widget is on its way:
+                  // its card is added to the page when it arrives.
+                  disabled={building && !arranging}
+                  title={building && !arranging ? 'Your new widget is still being built' : undefined}
+                  aria-disabled={finishing || undefined}
+                  onClick={() => (arranging ? void finishArranging() : startArranging())}
+                  // Start downloading the editor as soon as it looks likely to be wanted.
+                  onPointerEnter={() => void loadArrangeCanvas()}
+                  onFocus={() => void loadArrangeCanvas()}
+                  className={`rounded-lg px-2.5 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60 aria-disabled:cursor-wait ${
+                    arranging
+                      ? 'bg-ink text-white hover:bg-ink-soft'
+                      : 'text-ink-soft underline-offset-4 hover:text-primary hover:underline disabled:hover:text-ink-soft disabled:hover:no-underline max-md:hidden'
+                  }`}
                 >
-                  Your interests
+                  {arranging ? 'Done' : 'Arrange'}
                 </button>
-                <LogoutButton />
+                {/* "Your interests" and "Log out" step aside while arranging:
+                    "Done" comes first, so the last change is saved (logging
+                    out mid-save could lose it). */}
+                {!arranging && (
+                  <button
+                    ref={interestsButtonRef}
+                    type="button"
+                    aria-expanded={editorFocus !== null}
+                    aria-controls={editorId}
+                    // Opens and closes the editor; focus stays on this button.
+                    onClick={() => (editorFocus ? setEditorFocus(null) : openEditor())}
+                    className="rounded-lg px-2 py-1 text-sm font-medium text-ink-soft underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    Your interests
+                  </button>
+                )}
+                {!arranging && <LogoutButton />}
               </div>
             </div>
             <h1 className="mt-3 text-4xl leading-tight text-ink sm:text-5xl">Your page</h1>
@@ -148,56 +234,43 @@ function HomePage() {
             </div>
           )}
 
-          {/* Six columns on wide screens: the two picked-for-you widgets take
-              half the width each, and everything after them a third. */}
-          <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-6">
-            {promptOpen && (
-              <div className="col-span-full">
-                <DescribeWidgetPrompt id={promptId} onCreated={handleCreated} onClose={closePrompt} />
-              </div>
-            )}
-
-            <div className="xl:col-span-3">
-              <ArticlesWidget />
-            </div>
-            <div className="xl:col-span-3">
-              <LocalEventsWidget />
-            </div>
-
-            {widgets.map((widget) => (
-              <div key={widget.id} className="xl:col-span-2">
-                <WidgetCard widget={widget} fresh={widget.id === freshId} />
-              </div>
-            ))}
-
-            {Array.from({ length: emptySlots }, (_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="flex min-h-40 items-center justify-center rounded-3xl border-2 border-dashed border-line p-6 text-center text-sm text-ink-muted xl:col-span-2"
-              >
-                This spot is empty — add a widget to fill it
-              </div>
-            ))}
-
-            {/* The "+" at the end of the grid opens the prompt at the top of it. */}
-            <button
-              ref={addButtonRef}
-              type="button"
-              aria-expanded={promptOpen}
-              aria-controls={promptId}
-              disabled={building}
-              onClick={() => (promptOpen ? closePrompt() : setPromptOpen(true))}
-              className="group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-accent/50 p-6 text-sm font-medium text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:cursor-wait disabled:opacity-60 disabled:hover:border-accent/50 disabled:hover:bg-transparent xl:col-span-2"
-            >
-              <span
-                aria-hidden="true"
-                className="flex size-12 items-center justify-center rounded-full bg-accent text-ink transition-colors group-hover:bg-accent-strong group-disabled:bg-accent"
-              >
-                <PlusIcon className="size-6" />
-              </span>
-              {building ? 'Building your widget…' : 'Add a widget'}
-            </button>
-          </div>
+          {arranging ? (
+            // While the editor downloads (only the first time), show the
+            // cards as they are, so nothing jumps.
+            <Suspense fallback={<LayoutView layout={arrangeFrom} />}>
+              {/* A new key per person: Puck reads its starting layout only
+                  when it mounts, so another person's page must start afresh. */}
+              <ArrangeCanvas key={me?.user.id} initial={arrangeFrom} onChange={saveChange} save={saveState} />
+            </Suspense>
+          ) : (
+            <LayoutView
+              layout={layout}
+              freshWidgetId={freshId}
+              top={
+                promptOpen && <DescribeWidgetPrompt id={promptId} onCreated={handleCreated} onClose={closePrompt} />
+              }
+              addTile={
+                // The "+" at the end of the grid opens the prompt at the top of it.
+                <button
+                  ref={addButtonRef}
+                  type="button"
+                  aria-expanded={promptOpen}
+                  aria-controls={promptId}
+                  disabled={building}
+                  onClick={() => (promptOpen ? closePrompt() : setPromptOpen(true))}
+                  className="group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-accent/50 p-6 text-sm font-medium text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:cursor-wait disabled:opacity-60 disabled:hover:border-accent/50 disabled:hover:bg-transparent"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="flex size-12 items-center justify-center rounded-full bg-accent text-ink transition-colors group-hover:bg-accent-strong group-disabled:bg-accent"
+                  >
+                    <PlusIcon className="size-6" />
+                  </span>
+                  {building ? 'Building your widget…' : 'Add a widget'}
+                </button>
+              }
+            />
+          )}
         </main>
       </div>
     </InterestsEditorContext.Provider>

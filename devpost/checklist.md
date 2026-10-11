@@ -38,7 +38,7 @@ Build mode: fast
   Learner check: Open your page. Are the articles really about your interests? Are the events near you and still upcoming? Hit refresh, then change your interests and watch both cards reseed.
   Commit: `Add AI-curated Articles and Local Events widgets`
 
-- [ ] **4. Arrange your page: drag, resize, and it sticks**
+- [x] **4. Arrange your page: drag, resize, and it sticks**
   Becomes usable: Your page is a 4-column grid of widget cards, with "This spot is empty" cards and a "+" at the end. Tap "Arrange" (the learner chose an Arrange toggle over always-draggable cards) and drag cards into a new order, or drag a card's right edge to resize it from 1/4 to 4/4 (it snaps to quarters). Changes save automatically and survive reloads and re-logins. A new widget from "+" opens inline at the top of the grid, fades into the next empty slot, and can be dragged like the rest.
   Why now: The canvas comes after the curated widgets so it arranges the real set of cards (Articles, Local Events, Custom), and the default layout is seeded once, here. Puck has no built-in resize, so the right-edge resize is custom code. A browser prototype during planning showed it works, but it still needs proving in the real app.
   PRD ref: `prd.md > Drag-and-Drop Layout`, `prd.md > The Homepage (the main surface)`, `prd.md > The New-Widget Prompt`, `prd.md > The Core Journey` (steps 6–7)
@@ -102,3 +102,6 @@ Activity mode:
 - Signup creates the family and the admin user in one transaction, and the schema gains a `sessions` table and `invites.is_admin` — `users.family_id` is `NOT NULL`, scs needs its own table, and co-admin invites need a role.
 - Widgets are moved and resized in an "Arrange" mode (toggle on, then "Done") instead of being draggable at all times — the learner's choice: Puck's drag layer captures clicks on links and buttons inside cards, so an always-on canvas would make widgets harder to use as a page.
 - `PUT /api/me/profile` lives in `internal/family` (next to create-family) instead of `internal/layout`, and Articles uses each query's top news result directly, with no second LLM call. The build found that the profile endpoint shares validation with create-family, and that Brave news results already carry a title, summary, source and thumbnail.
+- Arrange mode has a "Remove" action for your own custom widgets, backed by a new `DELETE /api/widgets/custom/{id}`. The layout self-heals on load (so no saved widget can go missing), which meant removing only the card had it come back on the next load. Remove therefore asks for confirmation and deletes the widget for good. The curated Articles and Local Events cards can't be removed.
+- A first-use page shows two "This spot is empty" cards next to the "+" on a new row, and after that empty cards only fill out the last row. The default layout (Articles and Local Events at half width each) fills row one, so the "fill the last row" rule alone would never have shown the PRD's first-use placeholders.
+- Arrange is offered from tablet width up (on a phone the page is a single column, and four-column arranging isn't readable there). Puck loads only when Arrange is opened.

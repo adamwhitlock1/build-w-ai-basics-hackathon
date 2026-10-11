@@ -55,11 +55,21 @@ type SourceFinder interface {
 	Get(name string) (sources.Source, bool)
 }
 
-// WidgetStore saves and loads users' custom widgets. *store.Store
+// WidgetStore saves, loads and deletes users' custom widgets. *store.Store
 // satisfies it.
 type WidgetStore interface {
 	CreateCustomWidget(ctx context.Context, w store.CustomWidget) (store.CustomWidget, error)
 	GetCustomWidget(ctx context.Context, userID, widgetID int64) (store.CustomWidget, error)
+	DeleteCustomWidget(ctx context.Context, userID, widgetID int64) error
+}
+
+// Layouts puts newly saved widgets on the user's homepage layout, and takes
+// deleted ones off it. *layout.Handler satisfies it. (The layout package
+// imports this one, so this one can't import it back: Go forbids import
+// cycles. An interface declared here breaks the cycle.)
+type Layouts interface {
+	AddCustomWidget(ctx context.Context, userID, widgetID int64) error
+	RemoveCustomWidget(ctx context.Context, userID, widgetID int64) error
 }
 
 // Handler serves the widget endpoints.
@@ -67,13 +77,15 @@ type Handler struct {
 	planner Planner
 	sources SourceFinder
 	saved   WidgetStore
+	layouts Layouts
 	logger  *slog.Logger
 }
 
-// NewHandler returns a Handler that builds widgets with planner and srcs
-// and keeps them in saved.
-func NewHandler(planner Planner, srcs SourceFinder, saved WidgetStore, logger *slog.Logger) *Handler {
-	return &Handler{planner: planner, sources: srcs, saved: saved, logger: logger}
+// NewHandler returns a Handler that builds widgets with planner and srcs,
+// keeps them in saved, and keeps the user's layout in step as widgets are
+// added and deleted.
+func NewHandler(planner Planner, srcs SourceFinder, saved WidgetStore, layouts Layouts, logger *slog.Logger) *Handler {
+	return &Handler{planner: planner, sources: srcs, saved: saved, layouts: layouts, logger: logger}
 }
 
 // Widget is a widget ready to draw: where its data came from, how to
@@ -132,8 +144,9 @@ type fromPromptRequest struct {
 
 // FromPrompt handles POST /api/widgets/from-prompt: it asks the LLM for a
 // widget spec, searches the chosen source, shapes the results into items,
-// saves the widget for the logged-in user, and responds 201 with it. It
-// must sit behind auth.RequireAuth.
+// saves the widget for the logged-in user (adding it to the end of their
+// saved layout), and responds 201 with it. It must sit behind
+// auth.RequireAuth.
 func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFrom(r.Context())
 	if !ok {
@@ -199,13 +212,14 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusCreated, saved)
 }
 
-// save stores widget for userID.
+// save stores widget for userID and puts it at the end of their saved
+// layout.
 //
 // By now the LLM and search calls are done and paid for, so the save uses
 // neither the pipeline's deadline (which may have just run out) nor the
 // request's cancellation (the browser tab may have closed): the widget will
 // be on the page next time. context.WithoutCancel keeps ctx's values but
-// drops its cancellation, and saveTimeout bounds the write instead.
+// drops its cancellation, and saveTimeout bounds the writes instead.
 func (h *Handler) save(ctx context.Context, userID int64, widget Widget) (SavedWidget, error) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), saveTimeout)
 	defer cancel()
@@ -223,6 +237,13 @@ func (h *Handler) save(ctx context.Context, userID int64, widget Widget) (SavedW
 	})
 	if err != nil {
 		return SavedWidget{}, err
+	}
+
+	// If this fails the widget is still saved, and GET /api/me/homepage adds
+	// a card for any widget the layout is missing, so it's not worth failing
+	// the request over: log it and carry on.
+	if err := h.layouts.AddCustomWidget(ctx, userID, cw.ID); err != nil {
+		h.logger.WarnContext(ctx, "couldn't add the new widget to the layout", "user_id", userID, "widget_id", cw.ID, "err", err)
 	}
 	return SavedWidget{ID: cw.ID, Widget: widget, CreatedAt: cw.CreatedAt.UTC()}, nil
 }
@@ -259,6 +280,47 @@ func (h *Handler) GetCustom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond.JSON(w, http.StatusOK, saved)
+}
+
+// DeleteCustom handles DELETE /api/widgets/custom/{id}: it deletes one of
+// the logged-in user's saved widgets for good, takes its card off their
+// saved layout, and responds 204 No Content. Another user's widget gets the
+// same 404 as a missing one, and is left alone. It must sit behind
+// auth.RequireAuth.
+//
+// Deleting is its own request on purpose: a layout saved without a widget's
+// card doesn't delete the widget (GET /api/me/homepage puts the card back),
+// because a layout saved from an old tab could otherwise wipe out widgets
+// made since.
+func (h *Handler) DeleteCustom(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := auth.UserFrom(ctx)
+	if !ok {
+		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeWidgetNotFound(w)
+		return
+	}
+
+	err = h.saved.DeleteCustomWidget(ctx, user.ID, id)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeWidgetNotFound(w)
+		return
+	case err != nil:
+		h.serverError(w, r, "delete widget", err)
+		return
+	}
+
+	// The widget is gone either way; GET /api/me/homepage drops the card of
+	// a widget that no longer exists, so a failure here is only logged.
+	if err := h.layouts.RemoveCustomWidget(ctx, user.ID, id); err != nil {
+		h.logger.WarnContext(ctx, "couldn't take the deleted widget off the layout", "user_id", user.ID, "widget_id", id, "err", err)
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func writeWidgetNotFound(w http.ResponseWriter) {

@@ -131,6 +131,7 @@ PRD ref: implements `prd.md > Drag-and-Drop Layout` and the persistence parts of
 - GET `/api/widgets/events` — returns 3–5 local events.
 - POST `/api/widgets/from-prompt` (the **kernel**) — accepts `{prompt: string}`, calls OpenRouter + Brave Search, persists a `custom_widgets` row, returns the new block spec.
 - GET `/api/widgets/custom/:id` — renders a custom widget (called by the frontend on initial load; may be re-rendered on refresh).
+- DELETE `/api/widgets/custom/:id` — permanently deletes one of your custom widgets and its card (the Arrange mode "Remove" action).
 PRD ref: implements `prd.md > Articles Widget`, `prd.md > Local Events Widget`, and `prd.md > Custom Widgets ("Describe-a-Widget")`.
 
 #### `internal/sources` — data source registry

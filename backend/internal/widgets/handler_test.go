@@ -84,6 +84,47 @@ func (f *fakeWidgetStore) GetCustomWidget(_ context.Context, userID, widgetID in
 	return store.CustomWidget{}, store.ErrNotFound
 }
 
+func (f *fakeWidgetStore) DeleteCustomWidget(_ context.Context, userID, widgetID int64) error {
+	if f.err != nil {
+		return f.err
+	}
+	for i, w := range f.widgets {
+		if w.ID == widgetID && w.UserID == userID {
+			// slices.Delete removes element i, shifting the rest down.
+			f.widgets = slices.Delete(f.widgets, i, i+1)
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+// fakeLayouts is a widgets.Layouts that records the widgets added to it and
+// removed from it.
+type fakeLayouts struct {
+	added   []int64 // widget ids, in the order they were added
+	removed []int64 // widget ids, in the order they were removed
+	user    int64   // the user whose layout was last changed
+	err     error   // returned by every call when set
+}
+
+func (f *fakeLayouts) AddCustomWidget(_ context.Context, userID, widgetID int64) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.user = userID
+	f.added = append(f.added, widgetID)
+	return nil
+}
+
+func (f *fakeLayouts) RemoveCustomWidget(_ context.Context, userID, widgetID int64) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.user = userID
+	f.removed = append(f.removed, widgetID)
+	return nil
+}
+
 var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 // alice is the logged-in user in these tests.
@@ -227,7 +268,8 @@ func TestFromPrompt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.source.name = "events_search"
 			saved := &fakeWidgetStore{err: tt.saveErr}
-			h := widgets.NewHandler(tt.planner, sources.NewRegistry(tt.source), saved, discardLogger)
+			layouts := &fakeLayouts{}
+			h := widgets.NewHandler(tt.planner, sources.NewRegistry(tt.source), saved, layouts, discardLogger)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/widgets/from-prompt", strings.NewReader(tt.body))
 			if !tt.anonymous {
@@ -250,8 +292,8 @@ func TestFromPrompt(t *testing.T) {
 			}
 
 			if rec.Code != http.StatusCreated {
-				if len(saved.widgets) != 0 {
-					t.Errorf("saved %d widgets on a failed request", len(saved.widgets))
+				if len(saved.widgets) != 0 || len(layouts.added) != 0 {
+					t.Errorf("saved %d widgets and added %d to the layout on a failed request", len(saved.widgets), len(layouts.added))
 				}
 				var body struct {
 					Error *string `json:"error"`
@@ -299,6 +341,10 @@ func TestFromPrompt(t *testing.T) {
 			if stored.UserID != alice.ID || stored.Name != launchSpec.Title || stored.Source != launchSpec.Source || stored.Query != launchSpec.Query {
 				t.Errorf("stored widget = %+v", stored)
 			}
+			// ...and it was put on their layout.
+			if !slices.Equal(layouts.added, []int64{got.ID}) || layouts.user != alice.ID {
+				t.Errorf("layout additions = %v for user %d, want [%d] for user %d", layouts.added, layouts.user, got.ID, alice.ID)
+			}
 			back, err := widgets.FromStore(stored)
 			if err != nil {
 				t.Fatal(err)
@@ -307,6 +353,27 @@ func TestFromPrompt(t *testing.T) {
 				t.Errorf("FromStore = %+v, want %+v", back, got)
 			}
 		})
+	}
+}
+
+// A widget that can't be put on the layout is still saved and returned:
+// GET /api/me/homepage adds it to the page later.
+func TestFromPromptLayoutFailureIsNotFatal(t *testing.T) {
+	saved := &fakeWidgetStore{}
+	layouts := &fakeLayouts{err: errors.New("database is locked")}
+	h := widgets.NewHandler(&fakePlanner{spec: launchSpec, items: shapedItems},
+		sources.NewRegistry(fakeSource{name: "events_search", results: results}), saved, layouts, discardLogger)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/widgets/from-prompt", strings.NewReader(`{"prompt":"show me upcoming SpaceX launches"}`))
+	req = req.WithContext(auth.WithUser(req.Context(), alice))
+	rec := httptest.NewRecorder()
+	h.FromPrompt(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201; body: %s", rec.Code, rec.Body)
+	}
+	if len(saved.widgets) != 1 {
+		t.Errorf("saved %d widgets, want 1", len(saved.widgets))
 	}
 }
 
@@ -330,7 +397,7 @@ func TestGetCustom(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, discardLogger)
+			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, &fakeLayouts{}, discardLogger)
 
 			// Routing through a ServeMux fills in r.PathValue("id").
 			mux := http.NewServeMux()
@@ -357,6 +424,62 @@ func TestGetCustom(t *testing.T) {
 			}
 			if got.ID != 1 || got.Title != "SpaceX Launches" || got.Source != "events_search" || len(got.Items) != 1 || got.Items[0].Title != "Starlink" {
 				t.Errorf("widget = %+v", got)
+			}
+		})
+	}
+}
+
+func TestDeleteCustom(t *testing.T) {
+	mine := store.CustomWidget{ID: 1, UserID: alice.ID, Name: "SpaceX Launches"}
+	theirs := store.CustomWidget{ID: 2, UserID: 99, Name: "Bob's"}
+
+	tests := []struct {
+		name        string
+		id          string
+		store       *fakeWidgetStore
+		layouts     *fakeLayouts
+		anonymous   bool
+		wantStatus  int
+		wantRemoved []int64 // widgets taken off the layout
+		wantLeft    int     // widgets still saved afterwards
+	}{
+		{"own widget", "1", &fakeWidgetStore{widgets: []store.CustomWidget{mine, theirs}}, &fakeLayouts{}, false, http.StatusNoContent, []int64{1}, 1},
+		{"missing widget", "3", &fakeWidgetStore{widgets: []store.CustomWidget{mine}}, &fakeLayouts{}, false, http.StatusNotFound, nil, 1},
+		{"someone else's widget", "2", &fakeWidgetStore{widgets: []store.CustomWidget{mine, theirs}}, &fakeLayouts{}, false, http.StatusNotFound, nil, 2},
+		{"not a number", "abc", &fakeWidgetStore{widgets: []store.CustomWidget{mine}}, &fakeLayouts{}, false, http.StatusNotFound, nil, 1},
+		{"database down", "1", &fakeWidgetStore{err: errors.New("disk on fire")}, &fakeLayouts{}, false, http.StatusInternalServerError, nil, 0},
+		{"not logged in", "1", &fakeWidgetStore{widgets: []store.CustomWidget{mine}}, &fakeLayouts{}, true, http.StatusUnauthorized, nil, 1},
+		// The widget is deleted even if its card can't come off the layout:
+		// GET /api/me/homepage drops that card anyway.
+		{"layout update fails", "1", &fakeWidgetStore{widgets: []store.CustomWidget{mine}}, &fakeLayouts{err: errors.New("database is locked")}, false, http.StatusNoContent, nil, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, tt.layouts, discardLogger)
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("DELETE /api/widgets/custom/{id}", h.DeleteCustom)
+			req := httptest.NewRequest(http.MethodDelete, "/api/widgets/custom/"+tt.id, nil)
+			if !tt.anonymous {
+				req = req.WithContext(auth.WithUser(req.Context(), alice))
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d; body: %s", rec.Code, tt.wantStatus, rec.Body)
+			}
+			if rec.Code == http.StatusNotFound && !strings.Contains(rec.Body.String(), "That widget doesn't exist.") {
+				t.Errorf("404 body = %s", rec.Body)
+			}
+			if !slices.Equal(tt.layouts.removed, tt.wantRemoved) {
+				t.Errorf("removed from layout = %v, want %v", tt.layouts.removed, tt.wantRemoved)
+			}
+			if len(tt.wantRemoved) > 0 && tt.layouts.user != alice.ID {
+				t.Errorf("changed the layout of user %d, want %d", tt.layouts.user, alice.ID)
+			}
+			if len(tt.store.widgets) != tt.wantLeft {
+				t.Errorf("%d widgets left, want %d", len(tt.store.widgets), tt.wantLeft)
 			}
 		})
 	}

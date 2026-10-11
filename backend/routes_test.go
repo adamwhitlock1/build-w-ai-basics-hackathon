@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -547,8 +549,11 @@ func TestWidgetsAreSavedPerUser(t *testing.T) {
 	if page.Profile != (layout.Profile{Interests: "rockets", Location: "Portland"}) {
 		t.Errorf("homepage profile = %+v", page.Profile)
 	}
-	if string(page.Layout) != "null" {
-		t.Errorf("layout = %s, want null", page.Layout)
+	// Alice never arranged her page, so she gets the default layout, which
+	// includes her new widget.
+	wantCards := []string{"Articles articles 2", "LocalEvents events 2", fmt.Sprintf("Custom custom-%d 2 #%d", widget.ID, widget.ID)}
+	if got := cards(page.Layout); !slices.Equal(got, wantCards) {
+		t.Errorf("layout = %q, want %q", got, wantCards)
 	}
 
 	path := "/api/widgets/custom/" + strconv.FormatInt(widget.ID, 10)
@@ -576,9 +581,11 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 	private := []struct{ method, path string }{
 		{"GET", "/api/me"},
 		{"GET", "/api/me/homepage"},
+		{"PUT", "/api/me/homepage"},
 		{"POST", "/api/families"},
 		{"POST", "/api/widgets/from-prompt"},
 		{"GET", "/api/widgets/custom/1"},
+		{"DELETE", "/api/widgets/custom/1"},
 		{"PUT", "/api/me/profile"},
 		{"GET", "/api/widgets/articles"},
 		{"GET", "/api/widgets/events"},
@@ -683,7 +690,14 @@ func TestDataSurvivesRestart(t *testing.T) {
 	c := newClient(t, first)
 	c.signup("parent@example.com")
 	c.setUpFamily()
-	c.do("POST", "/api/widgets/from-prompt", map[string]string{"prompt": "show me upcoming SpaceX launches"}, http.StatusCreated, nil)
+	var widget widgets.SavedWidget
+	c.do("POST", "/api/widgets/from-prompt", map[string]string{"prompt": "show me upcoming SpaceX launches"}, http.StatusCreated, &widget)
+	arranged := blocks(
+		custom(widget.ID, "custom-"+strconv.FormatInt(widget.ID, 10), 4),
+		card("LocalEvents", "events", 1),
+		card("Articles", "articles", 3),
+	)
+	c.do("PUT", "/api/me/homepage", map[string]any{"layout": arranged}, http.StatusOK, nil)
 	first.Close()
 
 	second, _ := startServer(t, dbPath)
@@ -701,5 +715,9 @@ func TestDataSurvivesRestart(t *testing.T) {
 	c.do("GET", "/api/me/homepage", nil, http.StatusOK, &page)
 	if len(page.CustomWidgets) != 1 {
 		t.Errorf("after restart: %d widgets, want 1", len(page.CustomWidgets))
+	}
+	want := []string{fmt.Sprintf("Custom custom-%d 4 #%d", widget.ID, widget.ID), "LocalEvents events 1", "Articles articles 3"}
+	if got := cards(page.Layout); !slices.Equal(got, want) {
+		t.Errorf("after restart: layout = %q, want %q", got, want)
 	}
 }
