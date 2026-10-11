@@ -75,6 +75,7 @@ Build mode: fast
 
 ## Final Review
 
+- [ ] Quote of the Day (hero card) shows the quote twice, as the headline and again as the detail line. Fix: drop a detail line that repeats the title, in the backend and in the card renderer.
 - [ ] Final review complete — feedback resolved and learner confirms ready to ship
 
 ## Code Tour and App Map

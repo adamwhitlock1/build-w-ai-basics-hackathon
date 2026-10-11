@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { WidgetItem } from '../../api/client'
-import { metaLine, primaryText } from './itemText'
+import { detailText, metaLine, primaryText } from './itemText'
 import { safeUrl } from './safeUrl'
 import type { ItemsRendererProps } from './types'
 
@@ -35,8 +35,8 @@ function SmallCard({ item }: { item: WidgetItem }) {
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 font-medium leading-snug text-ink">{primaryText(item)}</p>
         {meta && <p className="mt-1 text-xs text-ink-muted">{meta}</p>}
-        {item.title && item.snippet && (
-          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-soft">{item.snippet}</p>
+        {detailText(item) && (
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-soft">{detailText(item)}</p>
         )}
       </div>
       <Thumbnail src={item.thumbnail} />
