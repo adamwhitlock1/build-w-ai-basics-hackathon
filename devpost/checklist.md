@@ -71,12 +71,12 @@ Build mode: fast
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — after slice 1: the describe-a-widget moment in the browser, while its look and output quality can still shape the curated widgets and the canvas. Feedback: switch to a faster, more accurate model (now `openai/gpt-4.1-mini`, about 4s per widget instead of about 25s, and the shaping fixes were committed). The learner expected more of the app; the remaining features are slices 2–6 as planned, with no reordering requested.
-- [ ] Final kick-the-tires exploration and feedback completed
+- [x] Final kick-the-tires exploration and feedback completed. The learner ran the full app. Dragging feels fine, and the Remove action stays. One bug: Quote of the Day showed the quote twice.
 
 ## Final Review
 
-- [ ] Quote of the Day (hero card) shows the quote twice, as the headline and again as the detail line. Fix: drop a detail line that repeats the title, in the backend and in the card renderer.
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Quote of the Day (hero card) shows the quote twice, as the headline and again as the detail line. Fix: drop a detail line that repeats the title, in the backend and in the card renderer. Fixed in `6ceecb0`, with Go and live checks, and the learner confirmed it.
+- [x] Final review complete — feedback resolved and learner confirms ready to ship ("fixed, the poc is ready")
 
 ## Code Tour and App Map
 
