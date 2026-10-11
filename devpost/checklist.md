@@ -87,7 +87,7 @@ Build mode: fast
 Activity and evidence: Guided Go route, tied to the learner's goal (Go for APIs and backends). The learner followed "describe a widget" through the Go backend, ending at the build moment where the date filtering moved from the model into Go (`before`, pinned by `TestShapeItems` "future_only drops items dated before today").
 Route and stops: (1) `backend/routes.go` `routes()`, the `POST /api/widgets/from-prompt` pattern and `private`/`RequireAuth` middleware; (2) `backend/internal/widgets/handler.go` `FromPrompt` and `type Planner interface` (fakes in `TestFromPrompt`); (3) `backend/internal/llm/items.go` `groundItems` and `before`. All three stops completed.
 Edit outcome: Kept. The learner renamed the Local Events card to "Happening near you" in `curated.go` and updated `curated_test.go`; `make check` passed. The visible heading is set by the frontend (`LocalEventsWidget.tsx`), so that line was aligned too ("Happening near you" / "Happening near them"). Build and lint pass, committed in `efeff4e`.
-Reflection: Offered (optional transfer question).
+Reflection: Offered and answered (recorded in the ignored learner profile).
 Activity mode: Live app and editor (the learner ran `make check` themselves). App map: `devpost/app-map.html`, a snapshot of `efeff4e`, checked in the browser pane.
 
 ## Revisions
