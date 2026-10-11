@@ -553,7 +553,7 @@ func TestEvents(t *testing.T) {
 			if tt.wantStatus != http.StatusOK {
 				return
 			}
-			if got.Title != "Local events" || got.Archetype != llm.ArchetypeList || got.Source != "events_search" {
+			if got.Title != "Happening near you" || got.Archetype != llm.ArchetypeList || got.Source != "events_search" {
 				t.Errorf("widget header = %q, %q, %q", got.Title, got.Archetype, got.Source)
 			}
 			if got.Query != tt.wantQuery || got.EmptyReason != tt.wantEmpty {
