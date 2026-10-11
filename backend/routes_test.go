@@ -52,6 +52,39 @@ func (fakeSource) Search(context.Context, string) ([]sources.Result, error) {
 	return []sources.Result{{Title: "Launch schedule", URL: "https://example.com/launch"}}, nil
 }
 
+// fakeNews finds one article per query, titled after the query.
+type fakeNews struct{}
+
+func (fakeNews) Name() string  { return "news_search" }
+func (fakeNews) Shape() string { return "test news" }
+func (fakeNews) Search(_ context.Context, query string) ([]sources.Result, error) {
+	return []sources.Result{{
+		Title: "News about " + query,
+		URL:   "https://news.example.com/" + url.PathEscape(query),
+		Site:  "news.example.com",
+	}}, nil
+}
+
+// fakeCurator plans like the LLM's fallbacks do, so the queries follow the
+// profile, and finds one event tomorrow in the first result.
+type fakeCurator struct{}
+
+func (fakeCurator) CurateArticles(_ context.Context, interests string) ([]string, error) {
+	return llm.FallbackArticleQueries(interests), nil
+}
+
+func (fakeCurator) CurateEvents(_ context.Context, _, location string, now time.Time) ([]string, error) {
+	return llm.FallbackEventQueries(location, now), nil
+}
+
+func (fakeCurator) ExtractEvents(_ context.Context, _, _ string, results []sources.Result, now time.Time) ([]llm.Event, error) {
+	tomorrow := now.AddDate(0, 0, 1)
+	return []llm.Event{{
+		Name: "Fall Festival", Date: tomorrow.Format("Mon, Jan 2"), SortDate: tomorrow.Format(time.DateOnly),
+		Venue: "City Park", URL: results[0].URL,
+	}}, nil
+}
+
 // startServer serves the API backed by the database at dbPath.
 func startServer(t *testing.T, dbPath string) (*httptest.Server, *store.Store) {
 	t.Helper()
@@ -62,7 +95,7 @@ func startServer(t *testing.T, dbPath string) (*httptest.Server, *store.Store) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// A cleanup interval of 0 means no background goroutine to stop.
 	sessions := auth.NewSessionManager(sqlite3store.NewWithCleanupInterval(st.DB(), 0), logger)
-	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, sources.NewRegistry(fakeSource{})))
+	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, sources.NewRegistry(fakeNews{}, fakeSource{})))
 	// Cleanups run last-in, first-out: the server stops before the store closes.
 	t.Cleanup(func() { st.Close() })
 	t.Cleanup(srv.Close)
@@ -344,6 +377,46 @@ func TestCrossSiteWritesRejected(t *testing.T) {
 	c.do("GET", "/api/me", nil, http.StatusOK, nil) // still logged in
 }
 
+// The curated widgets spend LLM and search credit on every GET, so a read
+// that a browser says came from another site is refused too.
+func TestCrossSiteReadsRejected(t *testing.T) {
+	srv, _ := newTestServer(t)
+	c := newClient(t, srv)
+	c.signup("parent@example.com")
+	c.setUpFamily()
+
+	tests := []struct {
+		name         string
+		secFetchSite string // "" sends no Sec-Fetch-Site header
+		wantStatus   int
+	}{
+		{"another site", "cross-site", http.StatusForbidden},
+		{"another localhost port", "same-site", http.StatusForbidden},
+		{"the app itself", "same-origin", http.StatusOK},
+		{"typed into the address bar", "none", http.StatusOK},
+		{"no header, like curl", "", http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", srv.URL+"/api/widgets/articles", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.secFetchSite != "" {
+				req.Header.Set("Sec-Fetch-Site", tt.secFetchSite)
+			}
+			resp, err := c.http.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != tt.wantStatus {
+				t.Errorf("status = %d, want %d", resp.StatusCode, tt.wantStatus)
+			}
+		})
+	}
+}
+
 func TestSignupRejects(t *testing.T) {
 	srv, _ := newTestServer(t)
 	newClient(t, srv).signup("taken@example.com")
@@ -506,6 +579,9 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 		{"POST", "/api/families"},
 		{"POST", "/api/widgets/from-prompt"},
 		{"GET", "/api/widgets/custom/1"},
+		{"PUT", "/api/me/profile"},
+		{"GET", "/api/widgets/articles"},
+		{"GET", "/api/widgets/events"},
 	}
 	for _, r := range private {
 		t.Run(r.method+" "+r.path, func(t *testing.T) {
@@ -514,6 +590,90 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 	}
 
 	newClient(t, srv).do("GET", "/api/health", nil, http.StatusOK, nil)
+}
+
+func TestUpdateProfile(t *testing.T) {
+	srv, _ := newTestServer(t)
+	c := newClient(t, srv)
+	c.signup("parent@example.com")
+	c.setUpFamily()
+
+	long := strings.Repeat("a", 501)
+	c.wantError("PUT", "/api/me/profile", map[string]string{"interests": long, "location": "Denver"},
+		http.StatusBadRequest, "That's a lot of interests!")
+	c.wantError("PUT", "/api/me/profile", map[string]string{"interests": "soccer", "location": long},
+		http.StatusBadRequest, "That location is too long.")
+	// A PUT replaces both fields, so leaving one out is a mistake, not a
+	// request to erase it.
+	sendJSON := `Send JSON like {"interests": "space exploration, soccer", "location": "Denver, CO"}.`
+	c.wantError("PUT", "/api/me/profile", "interests=soccer", http.StatusBadRequest, sendJSON)
+	c.wantError("PUT", "/api/me/profile", json.RawMessage("null"), http.StatusBadRequest, sendJSON)
+	c.wantError("PUT", "/api/me/profile", map[string]string{}, http.StatusBadRequest, sendJSON)
+	c.wantError("PUT", "/api/me/profile", map[string]string{"interests": "only interests"}, http.StatusBadRequest, sendJSON)
+
+	// A write from another site is refused before it reaches the handler.
+	req, err := http.NewRequest("PUT", srv.URL+"/api/me/profile", strings.NewReader(`{"interests":"planted"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", "http://localhost:5173")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("cross-site PUT: status = %d, want 403", resp.StatusCode)
+	}
+
+	// 500 characters (not bytes) is fine, and both fields are trimmed.
+	fiveHundred := strings.Repeat("é", 500)
+	var saved family.ProfileResponse
+	c.do("PUT", "/api/me/profile", map[string]string{"interests": " " + fiveHundred + " ", "location": " Denver, CO "}, http.StatusOK, &saved)
+	if saved.Profile != (family.MeProfile{Interests: fiveHundred, Location: "Denver, CO"}) {
+		t.Errorf("saved profile = %+v", saved.Profile)
+	}
+
+	// Everything that shows the profile sees the change.
+	c.do("PUT", "/api/me/profile", map[string]string{"interests": "space exploration, soccer", "location": "Denver, CO"}, http.StatusOK, nil)
+	var me family.Me
+	c.do("GET", "/api/me", nil, http.StatusOK, &me)
+	var page layout.Homepage
+	c.do("GET", "/api/me/homepage", nil, http.StatusOK, &page)
+	want := family.MeProfile{Interests: "space exploration, soccer", Location: "Denver, CO"}
+	if me.Profile != want || page.Profile != (layout.Profile(want)) {
+		t.Errorf("after update: /api/me profile = %+v, homepage profile = %+v; want %+v", me.Profile, page.Profile, want)
+	}
+}
+
+func TestCuratedWidgetsFollowTheProfile(t *testing.T) {
+	srv, _ := newTestServer(t)
+	c := newClient(t, srv)
+	c.signup("parent@example.com")
+	c.setUpFamily() // interests "rockets", location "Portland"
+
+	var articles widgets.CuratedWidget
+	c.do("GET", "/api/widgets/articles", nil, http.StatusOK, &articles)
+	if articles.Query != "rockets" || len(articles.Items) != 1 || articles.Items[0].Label != "news.example.com" {
+		t.Errorf("articles = %+v, want one rockets article labelled with its site", articles)
+	}
+	var events widgets.CuratedWidget
+	c.do("GET", "/api/widgets/events", nil, http.StatusOK, &events)
+	if !strings.Contains(events.Query, "Portland") || len(events.Items) != 1 || events.Items[0].Label != "City Park" {
+		t.Errorf("events = %+v, want one event in Portland at City Park", events)
+	}
+
+	// New interests reseed the articles; a blank location empties events.
+	c.do("PUT", "/api/me/profile", map[string]string{"interests": "space exploration, soccer", "location": ""}, http.StatusOK, nil)
+	c.do("GET", "/api/widgets/articles", nil, http.StatusOK, &articles)
+	if articles.Query != "space exploration · soccer" || len(articles.Items) != 2 {
+		t.Errorf("articles after update = %+v, want two items for the new interests", articles)
+	}
+	c.do("GET", "/api/widgets/events", nil, http.StatusOK, &events)
+	if events.EmptyReason != widgets.EmptyNoLocation || events.Items == nil || len(events.Items) != 0 {
+		t.Errorf("events with no location = %+v, want no items and emptyReason no_location", events)
+	}
 }
 
 func TestDataSurvivesRestart(t *testing.T) {

@@ -19,6 +19,8 @@ const webBody = `{
     "description": "Next up: <strong>Starlink</strong> 10-12 on Jun&nbsp;12.",
     "age": "2 days ago",
     "thumbnail": {"src": "https://img.example.com/t.jpg"},
+    "meta_url": {"scheme": "https", "netloc": "example.com", "hostname": "www.example.com", "path": "› launches"},
+    "profile": {"name": "Example", "long_name": "example.com"},
     "extra_snippets": ["Falcon 9 <em>lifts off</em> at 9pm", "  "]
   }]}
 }`
@@ -28,7 +30,8 @@ const newsBody = `{
     "title": "Crew-11 docks",
     "url": "https://news.example.com/crew-11",
     "description": "The capsule arrived &quot;on time&quot;.",
-    "page_age": "2025-06-10T08:00:00"
+    "page_age": "2025-06-10T08:00:00",
+    "meta_url": {"scheme": "https", "netloc": "news.example.com", "hostname": "news.example.com"}
   }]
 }`
 
@@ -51,6 +54,7 @@ func TestBraveSearch(t *testing.T) {
 				Snippet:       "Next up: Starlink 10-12 on Jun 12.",
 				Date:          "2 days ago",
 				Thumbnail:     "https://img.example.com/t.jpg",
+				Site:          "example.com",
 				ExtraSnippets: []string{"Falcon 9 lifts off at 9pm"},
 			},
 		},
@@ -65,6 +69,7 @@ func TestBraveSearch(t *testing.T) {
 				Snippet:       "Next up: Starlink 10-12 on Jun 12.",
 				Date:          "2 days ago",
 				Thumbnail:     "https://img.example.com/t.jpg",
+				Site:          "example.com",
 				ExtraSnippets: []string{"Falcon 9 lifts off at 9pm"},
 			},
 		},
@@ -78,6 +83,7 @@ func TestBraveSearch(t *testing.T) {
 				URL:           "https://news.example.com/crew-11",
 				Snippet:       `The capsule arrived "on time".`,
 				Date:          "2025-06-10",
+				Site:          "news.example.com",
 				ExtraSnippets: []string{},
 			},
 		},
@@ -120,6 +126,28 @@ func TestBraveSearch(t *testing.T) {
 				t.Errorf("result mismatch\n got: %+v\nwant: %+v", got[0], tt.want)
 			}
 		})
+	}
+}
+
+func TestBraveResultSite(t *testing.T) {
+	tests := []struct {
+		name     string
+		hostname string
+		profile  string
+		want     string
+	}{
+		{"host without www", "www.space.com", "Space", "space.com"},
+		{"host as is", "news.example.com", "", "news.example.com"},
+		{"no host falls back to the profile name", "", "Wikipedia", "Wikipedia"},
+		{"neither", "", "", ""},
+	}
+	for _, tt := range tests {
+		var r braveResult
+		r.MetaURL.Hostname = tt.hostname
+		r.Profile.Name = tt.profile
+		if got := r.normalize().Site; got != tt.want {
+			t.Errorf("%s: Site = %q, want %q", tt.name, got, tt.want)
+		}
 	}
 }
 

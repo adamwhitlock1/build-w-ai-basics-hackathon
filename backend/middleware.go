@@ -49,26 +49,41 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-// rejectCrossSite turns away state-changing requests that another website
-// could have sent with this browser's session cookie (cross-site request
-// forgery). The cookie's SameSite=Lax setting can't do this alone: browsers
-// ignore ports when deciding what is "same-site", so a page served from
-// localhost:5173 may POST here with the cookie attached.
+// rejectCrossSite turns away requests that another website could have sent
+// with this browser's session cookie (cross-site request forgery). The
+// cookie's SameSite=Lax setting can't do this alone: browsers ignore ports
+// when deciding what is "same-site", so a page served from localhost:5173
+// may send requests here with the cookie attached.
 //
-// Two checks, each enough on its own in a current browser:
+// Reads need guarding as well as writes: GET /api/widgets/articles and
+// /events spend LLM and search credit on every call, so even an <img> tag
+// on another page pointed at them would cost money.
+//
+// Three checks:
+//   - Current browsers label every request with Sec-Fetch-Site. If it says
+//     the request came from another origin ("cross-site", or "same-site",
+//     which covers another port on localhost), refuse it, whatever the
+//     method. Without the header (curl, an older browser) the request goes
+//     on to the checks below.
 //   - Browsers send an Origin header with every cross-origin POST. If it
 //     names a different host than the request went to, refuse it.
 //   - A request body must be JSON. A page on another origin can only send
 //     Content-Type: application/json after a CORS "preflight" check, which
 //     this server never approves.
 //
-// The Vite dev proxy keeps the browser's Host header (it doesn't set
-// changeOrigin), so requests from the app itself pass the Origin check.
+// The Vite dev proxy passes the browser's Sec-Fetch-Site through and keeps
+// its Host header (it doesn't set changeOrigin), so requests from the app
+// itself ("same-origin") pass every check.
 func rejectCrossSite(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Header.Get("Sec-Fetch-Site") {
+		case "cross-site", "same-site":
+			respond.Error(w, http.StatusForbidden, "That request came from another site.", "")
+			return
+		}
 		switch r.Method {
 		case http.MethodGet, http.MethodHead, http.MethodOptions:
-			next.ServeHTTP(w, r) // these only read, so there's nothing to forge
+			next.ServeHTTP(w, r) // no body to check
 			return
 		}
 		if origin := r.Header.Get("Origin"); origin != "" && !sameHost(origin, r.Host) {

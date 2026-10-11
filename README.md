@@ -2,7 +2,7 @@
 
 Porchlight is a homepage for each member of a family where every widget is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new widget appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a widget, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into widget items, using only what the search returned. Your API keys never leave the server.
 
-> Status: slice 2 (accounts, family setup, and widgets that are saved to you). Curated widgets, drag-and-drop and invites come in later slices.
+> Status: slice 3 (accounts, family setup, widgets that are saved to you, and Articles and Local Events cards that pick themselves from your interests and location). Drag-and-drop and invites come in later slices.
 
 ## Prerequisites
 
@@ -36,6 +36,8 @@ npm run dev
 Then open **<http://localhost:5174>**. Port 5173 is taken by another app on this machine, so Vite uses 5174 and proxies `/api` to the Go server.
 
 On startup the backend checks that both keys are set, that your `OPENROUTER_MODEL` exists and supports structured outputs, and that OpenRouter accepts your key. If any check fails, it stops and prints what to fix. These checks cost no credit. The Brave key isn't checked at startup, because every Brave call uses credit.
+
+Nothing is cached, so the Articles and Local Events cards search again every time your page loads (or you press a card's refresh button): up to 5 Brave news searches for Articles and up to 3 web searches for Local Events, plus a few small LLM calls. That's at most 8 searches per visit.
 
 Accounts, families and saved widgets live in a SQLite file, `backend/porchlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/porchlight.db*`. Set `DB_PATH` to use a different file.
 

@@ -1,8 +1,10 @@
 import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
 import { focusField, looksLikeEmail, splitEmails } from '../account/forms'
+import { ProfileFields } from '../account/ProfileFields'
+import type { Profile } from '../api/client'
 import { meQueryOptions, useCreateFamily, useMe } from '../api/hooks'
-import { TextAreaField, TextField } from '../components/Field'
+import { TextField } from '../components/Field'
 import { FormError } from '../components/FormError'
 import { LogoutButton } from '../components/LogoutButton'
 import { SubmitButton } from '../components/SubmitButton'
@@ -17,9 +19,8 @@ export const Route = createFileRoute('/create-family')({
   component: CreateFamilyPage,
 })
 
-/** Server limits, enforced here with maxLength so nobody types past them. */
+/** The server's limit, enforced here with maxLength so nobody types past it. */
 const NAME_MAX = 80
-const PROFILE_MAX = 500
 
 interface FieldErrors {
   name?: string
@@ -33,8 +34,7 @@ function CreateFamilyPage() {
   const createFamily = useCreateFamily()
   const [name, setName] = useState('')
   const [coAdmins, setCoAdmins] = useState('')
-  const [interests, setInterests] = useState('')
-  const [location, setLocation] = useState('')
+  const [profile, setProfile] = useState<Profile>({ interests: '', location: '' })
   const [errors, setErrors] = useState<FieldErrors>({})
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -53,7 +53,12 @@ function CreateFamilyPage() {
     }
 
     createFamily.mutate(
-      { name: name.trim(), coAdminEmails, interests: interests.trim(), location: location.trim() },
+      {
+        name: name.trim(),
+        coAdminEmails,
+        interests: profile.interests.trim(),
+        location: profile.location.trim(),
+      },
       // replace: going "back" shouldn't land on a form that's already done.
       { onSuccess: () => void navigate({ to: '/', replace: true }) },
     )
@@ -102,25 +107,7 @@ function CreateFamilyPage() {
             setErrors((prev) => ({ ...prev, coAdminEmails: undefined }))
           }}
         />
-        <TextAreaField
-          label="What would you like to see on your page?"
-          hint="Your interests, in your own words. We’ll use them to pick articles and events for you."
-          name="interests"
-          placeholder="e.g. space launches, Premier League soccer, easy weeknight dinners"
-          maxLength={PROFILE_MAX}
-          value={interests}
-          onChange={(e) => setInterests(e.target.value)}
-        />
-        <TextField
-          label="Where are you?"
-          hint="A city is fine. It’s for finding events near you."
-          name="location"
-          placeholder="e.g. Denver, Colorado"
-          autoComplete="address-level2"
-          maxLength={PROFILE_MAX}
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
+        <ProfileFields value={profile} onChange={setProfile} />
 
         {createFamily.isError && (
           <FormError message={createFamily.error.message} hint={createFamily.error.hint}>

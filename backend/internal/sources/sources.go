@@ -30,6 +30,7 @@ type Result struct {
 	Snippet       string
 	Date          string // human-readable, e.g. "2 days ago" or "2025-05-01"
 	Thumbnail     string // image URL
+	Site          string // who published it, e.g. "space.com" or "Wikipedia"
 	ExtraSnippets []string
 }
 

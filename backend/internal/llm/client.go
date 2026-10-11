@@ -40,6 +40,11 @@ var (
 type UpstreamError struct {
 	Reason string // what went wrong, e.g. "OpenRouter is rate limiting requests"
 	Hint   string // what to try next; may be empty
+	// Status is the HTTP error status OpenRouter answered with (such as 401
+	// for a bad key or 402 for no credits), or 0 when there was no such
+	// answer: the call timed out or never got through, or the model's
+	// reply was unusable.
+	Status int
 	Err    error
 }
 
@@ -230,8 +235,9 @@ func httpStatus(err error) int {
 // upstreamError converts a go-openai error into an *UpstreamError with a
 // reason and hint a person can act on.
 func upstreamError(err error) error {
-	e := &UpstreamError{Reason: "couldn't reach OpenRouter", Hint: "Check your internet connection, then try again.", Err: err}
-	switch status := httpStatus(err); {
+	status := httpStatus(err)
+	e := &UpstreamError{Reason: "couldn't reach OpenRouter", Hint: "Check your internet connection, then try again.", Status: status, Err: err}
+	switch {
 	case status == http.StatusUnauthorized:
 		e.Reason, e.Hint = "OpenRouter rejected the API key", "Check OPENROUTER_API_KEY in backend/.env, then restart the backend."
 	case status == http.StatusPaymentRequired:

@@ -39,12 +39,32 @@ export interface SavedWidget extends Widget {
   createdAt: string
 }
 
+/**
+ * Why a curated widget came back empty without searching: the member hasn't
+ * told us what it needs yet. "" (or missing) means it did search.
+ */
+export type EmptyReason = '' | 'no_interests' | 'no_location'
+
+/**
+ * A widget Porchlight picks for you from your interests and location: what
+ * GET /api/widgets/articles and GET /api/widgets/events return. It's
+ * recomputed on every request, so it has no id.
+ */
+export interface CuratedWidget extends Widget {
+  emptyReason?: EmptyReason
+}
+
 /** What a member has told us about themselves; seeds their curated widgets. */
 export interface Profile {
   /** Free text, e.g. "space launches, soccer, gardening". */
   interests: string
   /** Free text; a city is fine. */
   location: string
+}
+
+/** Response of PUT /api/me/profile (whose body is a Profile). */
+export interface ProfileResponse {
+  profile: Profile
 }
 
 /** Response of GET /api/me (and of signup, login and create-family). */

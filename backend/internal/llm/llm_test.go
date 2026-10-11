@@ -128,6 +128,7 @@ func TestPickWidgetSpec(t *testing.T) {
 		replies      []reply
 		wantErr      error  // matched with errors.Is
 		wantUpstream string // substring of UpstreamError.Reason; "" = no UpstreamError expected
+		wantStatus   int    // UpstreamError.Status: OpenRouter's HTTP error status, or 0
 		wantCalls    int
 	}{
 		{
@@ -159,6 +160,7 @@ func TestPickWidgetSpec(t *testing.T) {
 			name:         "rate limited twice",
 			replies:      []reply{rateLimited, rateLimited},
 			wantUpstream: "rate limiting",
+			wantStatus:   http.StatusTooManyRequests,
 			wantCalls:    2,
 		},
 		{
@@ -186,6 +188,7 @@ func TestPickWidgetSpec(t *testing.T) {
 			name:         "rejected key",
 			replies:      []reply{{status: 401, body: `{"error":{"message":"No auth credentials found","code":401}}`}},
 			wantUpstream: "API key",
+			wantStatus:   http.StatusUnauthorized,
 			wantCalls:    1,
 		},
 	}
@@ -204,6 +207,9 @@ func TestPickWidgetSpec(t *testing.T) {
 			case tt.wantUpstream != "":
 				if !errors.As(err, &upstream) || !strings.Contains(upstream.Reason, tt.wantUpstream) {
 					t.Fatalf("err = %v, want UpstreamError mentioning %q", err, tt.wantUpstream)
+				}
+				if upstream.Status != tt.wantStatus {
+					t.Errorf("UpstreamError.Status = %d, want %d", upstream.Status, tt.wantStatus)
 				}
 			case tt.wantErr != nil:
 				if !errors.Is(err, tt.wantErr) {

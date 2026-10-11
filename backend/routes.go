@@ -15,13 +15,14 @@ import (
 )
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
-// session and logging middleware. Tests call it with fakes for the LLM and
-// the search sources.
-func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, srcs widgets.SourceFinder) http.Handler {
+// session and logging middleware. Tests call it with fakes for the LLM
+// (planner and curator) and the search sources.
+func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, curator widgets.Curator, srcs widgets.SourceFinder) http.Handler {
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
 	layoutHandler := layout.NewHandler(st, logger)
 	widgetHandler := widgets.NewHandler(planner, srcs, st, logger)
+	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
 	// needs that user to be a family admin. A method value such as
@@ -42,6 +43,9 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	// Logged in.
 	mux.Handle("GET /api/me", private(familyHandler.Me))
 	mux.Handle("GET /api/me/homepage", private(layoutHandler.Homepage))
+	mux.Handle("PUT /api/me/profile", private(familyHandler.UpdateProfile))
+	mux.Handle("GET /api/widgets/articles", private(curatedHandler.Articles))
+	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
 	mux.Handle("POST /api/widgets/from-prompt", private(widgetHandler.FromPrompt))
 	mux.Handle("GET /api/widgets/custom/{id}", private(widgetHandler.GetCustom))
 
@@ -49,7 +53,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.Handle("POST /api/families", adminOnly(familyHandler.CreateFamily))
 
 	// The first wrapper listed runs first: log, recover from panics, turn
-	// away forged cross-site writes, then load the session (and save it as
+	// away forged cross-site requests, then load the session (and save it as
 	// the response is written).
 	return logRequests(logger, recoverPanics(logger, rejectCrossSite(sessions.LoadAndSave(mux))))
 }

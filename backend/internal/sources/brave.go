@@ -168,6 +168,12 @@ type braveResult struct {
 	Thumbnail   struct {
 		Src string `json:"src"`
 	} `json:"thumbnail"`
+	MetaURL struct {
+		Hostname string `json:"hostname"` // e.g. "www.space.com"
+	} `json:"meta_url"`
+	Profile struct {
+		Name string `json:"name"` // the site's name, e.g. "Wikipedia"; web results only
+	} `json:"profile"`
 	ExtraSnippets []string `json:"extra_snippets"`
 }
 
@@ -188,8 +194,18 @@ func (r braveResult) normalize() Result {
 		Snippet:       cleanText(r.Description),
 		Date:          date,
 		Thumbnail:     r.Thumbnail.Src,
+		Site:          r.site(),
 		ExtraSnippets: extras,
 	}
+}
+
+// site names who published the result: the page's host without a leading
+// "www.", or else the site name Brave knows it by.
+func (r braveResult) site() string {
+	if host := strings.TrimPrefix(r.MetaURL.Hostname, "www."); host != "" {
+		return host
+	}
+	return cleanText(r.Profile.Name)
 }
 
 // get calls path with params and decodes the JSON body into out. On HTTP 429

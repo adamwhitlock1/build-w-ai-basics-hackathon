@@ -55,6 +55,19 @@ func cleanEmails(raw []string, own string) (emails []string, bad string) {
 	return emails, ""
 }
 
+// cleanProfile trims interests and location and checks their lengths. If
+// one is too long, it returns a message and hint for the member instead.
+func cleanProfile(interests, location string) (p MeProfile, msg, hint string) {
+	p = MeProfile{Interests: strings.TrimSpace(interests), Location: strings.TrimSpace(location)}
+	switch {
+	case utf8.RuneCountInString(p.Interests) > maxProfileRunes:
+		return p, "That's a lot of interests!", fmt.Sprintf("Keep them under %d characters.", maxProfileRunes)
+	case utf8.RuneCountInString(p.Location) > maxProfileRunes:
+		return p, "That location is too long.", "A city is plenty."
+	}
+	return p, "", ""
+}
+
 // passwordProblem returns a message and hint explaining why p can't be a
 // password, or empty strings if it's fine.
 func passwordProblem(p string) (msg, hint string) {

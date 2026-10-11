@@ -131,12 +131,12 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	sessions := auth.NewSessionManager(sessionStore, logger)
 
 	srv := &http.Server{
-		Handler:           routes(logger, st, sessions, llmClient, registry),
+		Handler:           routes(logger, st, sessions, llmClient, llmClient, registry),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
-		// The widget handler gives up after widgets.RequestBudget; the extra
-		// time lets it write its reply before the connection is cut.
+		// The widget handlers give up after widgets.RequestBudget; the extra
+		// time lets them write their reply before the connection is cut.
 		WriteTimeout: widgets.RequestBudget + 30*time.Second,
 		IdleTimeout:  time.Minute,
 	}

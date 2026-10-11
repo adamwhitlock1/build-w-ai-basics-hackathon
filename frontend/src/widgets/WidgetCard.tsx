@@ -1,11 +1,30 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import type { SourceName, Widget } from '../api/client'
 import { WidgetItems } from './renderers/WidgetItems'
 
 interface WidgetCardProps {
-  widget: Widget
+  /**
+   * What to show. It can be left out while `loading`, or when a `notice`
+   * explains why there's nothing yet; `title` is the heading until then.
+   */
+  widget?: Widget
+  /** The heading while there's no widget, e.g. "Articles for you". */
+  title?: string
   /** Just arrived: amber border plus a soft fade-and-slide in. */
   fresh?: boolean
+  /** A small control beside the heading, such as a refresh button. */
+  headerAction?: ReactNode
+  /** What to say when the widget has no items. */
+  emptyMessage?: string
+  /** The first load is under way: soft placeholder rows instead of items. */
+  loading?: boolean
+  /** Warm words above the placeholder rows, e.g. "Finding articles for you…". */
+  loadingMessage?: string
+  /**
+   * Shown above the items: an error with a "Try again" button, say, or what's
+   * missing before anything can show. It replaces the empty message.
+   */
+  notice?: ReactNode
 }
 
 const SOURCE_LABELS: Record<SourceName, string> = {
@@ -14,13 +33,27 @@ const SOURCE_LABELS: Record<SourceName, string> = {
   web_search: 'a web search',
 }
 
+// Saved custom widgets can't be refreshed yet (their content is kept as it
+// was built), so by default point to what works now: describing it again.
+const DEFAULT_EMPTY_MESSAGE = 'Nothing turned up for that just now — try describing it a little differently.'
+
 /**
- * A widget on the page. Purely presentational: it renders a Widget and
- * owns no data fetching, so it can later be wrapped as a Puck block.
+ * A widget on the page. Purely presentational: it renders a Widget (or its
+ * loading and error states) and owns no data fetching, so it can later be
+ * wrapped as a Puck block.
  */
-export function WidgetCard({ widget, fresh = false }: WidgetCardProps) {
-  const items = widget.items ?? []
-  const sourceLabel = SOURCE_LABELS[widget.source] ?? 'a search'
+export function WidgetCard({
+  widget,
+  title,
+  fresh = false,
+  headerAction,
+  emptyMessage = DEFAULT_EMPTY_MESSAGE,
+  loading = false,
+  loadingMessage = 'Loading…',
+  notice,
+}: WidgetCardProps) {
+  const items = widget?.items ?? []
+  const sourceLabel = widget ? (SOURCE_LABELS[widget.source] ?? 'a search') : ''
   const ref = useRef<HTMLElement>(null)
 
   // A widget that just arrived takes focus, which also scrolls it into view
@@ -38,25 +71,59 @@ export function WidgetCard({ widget, fresh = false }: WidgetCardProps) {
         fresh ? 'border-accent ring-4 ring-accent/15 motion-safe:animate-widget-in' : 'border-line'
       }`}
     >
-      <h2 className="text-2xl leading-tight text-ink">{widget.title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{widget?.title || title}</h2>
+        {headerAction && <div className="-mt-1 -mr-2 shrink-0">{headerAction}</div>}
+      </div>
 
       <div className="mt-5 flex-1">
-        {items.length === 0 ? (
-          // Widgets can't be refreshed yet (their content is saved as it was
-          // built), so point to what works now: describing it differently.
-          <p className="rounded-2xl bg-bg px-4 py-6 text-center text-sm text-ink-muted">
-            Nothing turned up for that just now — try describing it a little differently.
-          </p>
+        {loading ? (
+          <LoadingRows message={loadingMessage} />
         ) : (
-          <WidgetItems archetype={widget.archetype} items={items} />
+          <>
+            {notice}
+            {widget && items.length > 0 ? (
+              <div className={notice ? 'mt-4' : undefined}>
+                <WidgetItems archetype={widget.archetype} items={items} />
+              </div>
+            ) : (
+              !notice && (
+                <p className="rounded-2xl bg-bg px-4 py-6 text-center text-sm text-ink-muted">{emptyMessage}</p>
+              )
+            )}
+          </>
         )}
       </div>
 
-      {widget.query && (
+      {widget?.query && !loading && (
         <p className="mt-6 truncate border-t border-line pt-4 text-xs text-ink-muted" title={widget.query}>
           From {sourceLabel} for “{widget.query}”
         </p>
       )}
     </article>
+  )
+}
+
+/** Widths for the placeholder rows, so they look like text rather than bars. */
+const PLACEHOLDER_WIDTHS = [
+  ['w-3/4', 'w-1/2'],
+  ['w-2/3', 'w-2/5'],
+  ['w-4/5', 'w-1/3'],
+]
+
+/** Soft, gently pulsing placeholder rows while a widget's first load runs. */
+function LoadingRows({ message }: { message: string }) {
+  return (
+    <div role="status">
+      <p className="text-sm text-ink-muted">{message}</p>
+      <ul aria-hidden="true" className="mt-4 space-y-3">
+        {PLACEHOLDER_WIDTHS.map(([first, second], i) => (
+          <li key={i} className="rounded-2xl border border-line bg-bg/60 p-3.5">
+            <div className={`h-3.5 rounded-full bg-line motion-safe:animate-pulse ${first}`} />
+            <div className={`mt-2.5 h-3 rounded-full bg-line/60 motion-safe:animate-pulse ${second}`} />
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }

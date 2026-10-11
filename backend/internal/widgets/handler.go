@@ -1,6 +1,7 @@
-// Package widgets serves the widget endpoints, including the kernel:
-// POST /api/widgets/from-prompt, which turns a sentence into a live widget
-// and saves it for the user.
+// Package widgets serves the widget endpoints: the kernel, POST
+// /api/widgets/from-prompt, which turns a sentence into a live widget and
+// saves it for the user, and the curated Articles and Local Events widgets,
+// which pick their own searches from the member's interests and location.
 package widgets
 
 import (
@@ -32,11 +33,12 @@ const maxBodyBytes = 8 << 10
 // saveTimeout bounds saving a finished widget to the database.
 const saveTimeout = 5 * time.Second
 
-// RequestBudget caps how long FromPrompt works on one request. Without it the
-// worst case (two 40s attempts for each of the two LLM steps, plus a Brave
-// search and its retry) is over three minutes. When the budget runs out,
-// planning fails with a 502 and shaping falls back to the raw search results.
-// The server's WriteTimeout must be longer than this.
+// RequestBudget caps how long one widget request (FromPrompt, Articles, or
+// Events) works. Without it the worst case (two 40s attempts for each of the
+// two LLM steps, plus Brave searches and their retries) is over three
+// minutes. When it runs out, FromPrompt's planning fails with a 502 and its
+// shaping falls back to the raw search results. The server's WriteTimeout
+// must be longer than this.
 const RequestBudget = 100 * time.Second
 
 // Planner is the LLM half of the pipeline. *llm.Client satisfies it; tests
@@ -165,7 +167,7 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	// 2. Search.
 	results, err := src.Search(ctx, spec.Query)
 	if err != nil {
-		h.writeSearchError(w, r, err)
+		writeSearchError(w, r, h.logger, err)
 		return
 	}
 
@@ -312,18 +314,18 @@ func decodePrompt(w http.ResponseWriter, r *http.Request) (prompt string, ok boo
 // client went away or the server is shutting down. Neither is an upstream
 // failure, so it logs at Info rather than Error. It reports whether it wrote
 // a response.
-func (h *Handler) writeIfCancelled(w http.ResponseWriter, r *http.Request, err error) bool {
+func writeIfCancelled(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) bool {
 	if r.Context().Err() == nil {
 		return false
 	}
-	h.logger.InfoContext(r.Context(), "request cancelled before the widget was ready", "err", err)
+	logger.InfoContext(r.Context(), "request cancelled before the widget was ready", "err", err)
 	respond.Error(w, http.StatusServiceUnavailable, "The server stopped working on that request.", "Try again in a moment.")
 	return true
 }
 
 // writeLLMError maps a planner error to an HTTP response.
 func (h *Handler) writeLLMError(w http.ResponseWriter, r *http.Request, err error) {
-	if h.writeIfCancelled(w, r, err) {
+	if writeIfCancelled(w, r, h.logger, err) {
 		return
 	}
 	var upstream *llm.UpstreamError
@@ -340,12 +342,13 @@ func (h *Handler) writeLLMError(w http.ResponseWriter, r *http.Request, err erro
 	}
 }
 
-// writeSearchError maps a search error to an HTTP response.
-func (h *Handler) writeSearchError(w http.ResponseWriter, r *http.Request, err error) {
-	if h.writeIfCancelled(w, r, err) {
+// writeSearchError maps a search error to an HTTP response. It's a function
+// rather than a Handler method so the curated widgets can share it.
+func writeSearchError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) {
+	if writeIfCancelled(w, r, logger, err) {
 		return
 	}
-	h.logger.ErrorContext(r.Context(), "search failed", "err", err)
+	logger.ErrorContext(r.Context(), "search failed", "err", err)
 	switch {
 	case errors.Is(err, sources.ErrRateLimited):
 		respond.Error(w, http.StatusBadGateway, "Brave Search is busy right now.", "Wait a few seconds and try again.")

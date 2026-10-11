@@ -1,5 +1,6 @@
 // Package family serves the account and family endpoints: sign up, log in,
-// log out, "who am I", and the create-family intro.
+// log out, "who am I", the create-family intro, and editing your interests
+// and location.
 package family
 
 import (
@@ -38,6 +39,7 @@ type Store interface {
 	GetUserByEmail(ctx context.Context, email string) (store.User, error)
 	GetFamily(ctx context.Context, id int64) (store.Family, error)
 	GetMemberProfile(ctx context.Context, userID int64) (store.MemberProfile, error)
+	UpsertMemberProfile(ctx context.Context, p store.MemberProfile) error
 	CompleteFamilySetup(ctx context.Context, setup store.FamilySetup) error
 }
 
@@ -217,8 +219,6 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := strings.TrimSpace(req.Name)
-	interests := strings.TrimSpace(req.Interests)
-	location := strings.TrimSpace(req.Location)
 	switch {
 	case name == "":
 		respond.Error(w, http.StatusBadRequest, "Give your family a name.", `For example, "The Robinsons".`)
@@ -226,11 +226,10 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 	case utf8.RuneCountInString(name) > maxFamilyNameRunes:
 		respond.Error(w, http.StatusBadRequest, "That family name is too long.", fmt.Sprintf("Keep it under %d characters.", maxFamilyNameRunes))
 		return
-	case utf8.RuneCountInString(interests) > maxProfileRunes:
-		respond.Error(w, http.StatusBadRequest, "That's a lot of interests!", fmt.Sprintf("Keep them under %d characters.", maxProfileRunes))
-		return
-	case utf8.RuneCountInString(location) > maxProfileRunes:
-		respond.Error(w, http.StatusBadRequest, "That location is too long.", "A city is plenty.")
+	}
+	profile, msg, hint := cleanProfile(req.Interests, req.Location)
+	if msg != "" {
+		respond.Error(w, http.StatusBadRequest, msg, hint)
 		return
 	}
 
@@ -258,7 +257,7 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 	err := h.store.CompleteFamilySetup(r.Context(), store.FamilySetup{
 		FamilyID: user.FamilyID,
 		Name:     name,
-		Profile:  store.MemberProfile{UserID: user.ID, Interests: interests, Location: location},
+		Profile:  store.MemberProfile{UserID: user.ID, Interests: profile.Interests, Location: profile.Location},
 		Invites:  invites,
 	})
 	switch {
@@ -271,6 +270,59 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logger.InfoContext(r.Context(), "family set up", "family_id", user.FamilyID, "co_admin_invites", len(invites))
 	h.writeMe(w, r, http.StatusOK, user)
+}
+
+// profileRequest is the body of PUT /api/me/profile. The fields are
+// pointers so a missing one (nil) can be told apart from one sent blank
+// (""): a PUT replaces both, and a forgotten field mustn't quietly erase
+// what was saved.
+type profileRequest struct {
+	Interests *string `json:"interests"`
+	Location  *string `json:"location"`
+}
+
+const profileExample = `Send JSON like {"interests": "space exploration, soccer", "location": "Denver, CO"}.`
+
+// ProfileResponse is the response body of UpdateProfile.
+type ProfileResponse struct {
+	Profile MeProfile `json:"profile"`
+}
+
+// UpdateProfile handles PUT /api/me/profile: it replaces the logged-in
+// user's interests and location (both must be sent; either may be blank)
+// and responds with what was saved. The Articles and Local Events widgets read them on their
+// next request. It must sit behind auth.RequireAuth.
+func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFrom(r.Context())
+	if !ok {
+		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
+		return
+	}
+	var req profileRequest
+	if !decodeJSON(w, r, &req, profileExample) {
+		return
+	}
+	if req.Interests == nil || req.Location == nil {
+		respond.Error(w, http.StatusBadRequest, profileExample, `Send both fields; use "" to clear one.`)
+		return
+	}
+	profile, msg, hint := cleanProfile(*req.Interests, *req.Location)
+	if msg != "" {
+		respond.Error(w, http.StatusBadRequest, msg, hint)
+		return
+	}
+
+	err := h.store.UpsertMemberProfile(r.Context(), store.MemberProfile{
+		UserID:    user.ID,
+		Interests: profile.Interests,
+		Location:  profile.Location,
+	})
+	if err != nil {
+		h.serverError(w, r, "save profile", err)
+		return
+	}
+	h.logger.InfoContext(r.Context(), "profile updated", "user_id", user.ID)
+	respond.JSON(w, http.StatusOK, ProfileResponse{Profile: profile})
 }
 
 // writeMe loads user's family and profile and writes them as Me.

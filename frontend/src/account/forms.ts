@@ -1,9 +1,12 @@
-// Small helpers shared by the login, sign-up and create-family forms. The
-// checks mirror the server's so mistakes are caught before a round trip, but
-// the server always has the final say.
+// Small helpers shared by the login, sign-up, create-family and interests
+// forms. The checks mirror the server's so mistakes are caught before a round
+// trip, but the server always has the final say.
 
 /** The server's minimum password length. */
 export const MIN_PASSWORD_LENGTH = 8
+
+/** The server's limit for interests and for location, each. */
+export const PROFILE_MAX_LENGTH = 500
 
 /** A loose "looks like an email" check, like the server's: something, one "@", then a dotted domain. */
 export function looksLikeEmail(value: string): boolean {

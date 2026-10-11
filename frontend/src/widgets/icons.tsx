@@ -15,3 +15,17 @@ export function CloseIcon({ className = 'size-5' }: { className?: string }) {
     </svg>
   )
 }
+
+export function RefreshIcon({ className = 'size-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5M20 4v4.5h-4.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}

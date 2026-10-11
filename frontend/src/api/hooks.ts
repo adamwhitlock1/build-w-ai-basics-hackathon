@@ -12,8 +12,11 @@ import {
   apiFetch,
   type CreateFamilyInput,
   type Credentials,
+  type CuratedWidget,
   type Homepage,
   type Me,
+  type Profile,
+  type ProfileResponse,
   type SavedWidget,
 } from './client'
 
@@ -191,4 +194,143 @@ export function useCreateWidgetFromPrompt({ onCreated }: CreateWidgetOptions = {
       onCreated?.(widget)
     },
   })
+}
+
+// ---------------------------------------------------------------------------
+// Widgets picked for you
+// ---------------------------------------------------------------------------
+
+/** The two widgets Porchlight curates from a member's interests and location. */
+export type CuratedKind = 'articles' | 'events'
+
+/** Query key of one person's curated widget: ['widgets', kind, userId]. */
+type CuratedWidgetKey = readonly ['widgets', CuratedKind, number | undefined]
+
+/**
+ * The curated requests still under way, so saving new interests can stop
+ * one asked with the old ones (see reseedCuratedWidgets). Keyed by kind and
+ * user, like the queries.
+ */
+const curatedInFlight = new Map<string, AbortController>()
+
+function inFlightKey(kind: CuratedKind, userId: number | undefined) {
+  return `${kind}:${userId}`
+}
+
+/**
+ * One person's Articles or Local Events widget. The server asks the LLM and
+ * searches afresh on every request, and each one spends search credit, so it
+ * loads once per page visit (a full reload loads it again) and after that
+ * only when asked: the card's refresh button, or saving new interests. The
+ * user id in the key keeps one person's picks off anyone else's page.
+ */
+export function curatedWidgetQueryOptions(kind: CuratedKind, userId: number | undefined) {
+  // The type arguments say failures are ApiErrors (apiFetch's only kind,
+  // apart from the reseed's abort, which the query never sees), so cards
+  // can show their message and hint.
+  return queryOptions<CuratedWidget, ApiError, CuratedWidget, CuratedWidgetKey>({
+    queryKey: ['widgets', kind, userId],
+    // Not TanStack's AbortSignal, on purpose. If the card unmounts mid-load
+    // (StrictMode mounts everything twice in development, or someone clicks
+    // away), the request finishes and its answer waits in the cache for the
+    // card's return, instead of being cancelled and paid for a second time.
+    // Only a reseed aborts it, through this request's own controller.
+    queryFn: async () => {
+      const key = inFlightKey(kind, userId)
+      const controller = new AbortController()
+      curatedInFlight.set(key, controller)
+      try {
+        return await apiFetch<CuratedWidget>(`/api/widgets/${kind}`, {
+          signal: controller.signal,
+          // Skip the HTTP cache: otherwise the browser holds a newer request
+          // for the same URL until an older one still running finishes.
+          cache: 'no-store',
+        })
+      } finally {
+        // Unless a newer request has taken its place already.
+        if (curatedInFlight.get(key) === controller) curatedInFlight.delete(key)
+      }
+    },
+    enabled: userId !== undefined,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+}
+
+/** Your Articles widget: news picked from your interests. `refetch()` asks for fresh picks. */
+export function useArticles() {
+  return useCuratedWidget('articles')
+}
+
+/** Your Local Events widget: upcoming events near you. `refetch()` asks for fresh picks. */
+export function useEvents() {
+  return useCuratedWidget('events')
+}
+
+function useCuratedWidget(kind: CuratedKind) {
+  const { data: me } = useMe()
+  return useQuery(curatedWidgetQueryOptions(kind, me?.user.id))
+}
+
+// ---------------------------------------------------------------------------
+// Your interests
+// ---------------------------------------------------------------------------
+
+/** What useUpdateProfile notes before saving (its onMutate result). */
+interface ProfileSaveContext {
+  userId: number | undefined
+  before: Profile | undefined
+}
+
+/**
+ * Saves your interests and location. Call `mutate({ interests, location })`;
+ * the server trims each and allows up to 500 characters. On success the
+ * cached profile is updated in place, and the curated widgets that read what
+ * changed load fresh picks (their old items stay up until the new ones land).
+ */
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation<ProfileResponse, ApiError, Profile, ProfileSaveContext>({
+    onMutate: () => {
+      const me = queryClient.getQueryData(meQueryOptions.queryKey)
+      return { userId: me?.user.id, before: me?.profile }
+    },
+    mutationFn: (profile) => apiFetch<ProfileResponse>('/api/me/profile', { method: 'PUT', body: profile }),
+    onSuccess: ({ profile }, _input, { userId, before }) => {
+      // Someone else logged in on this device while it saved: not their profile.
+      if (queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== userId) return
+      queryClient.setQueryData(meQueryOptions.queryKey, (me) => (me ? { ...me, profile } : me))
+      queryClient.setQueryData(homepageQueryOptions.queryKey, (page) => (page ? { ...page, profile } : page))
+
+      // Articles read only your interests; events read both. Each reload
+      // spends search credit, so only reseed what the change affects.
+      const interestsChanged = before?.interests !== profile.interests
+      const locationChanged = before?.location !== profile.location
+      const stale: CuratedKind[] = []
+      if (interestsChanged) stale.push('articles')
+      if (interestsChanged || locationChanged) stale.push('events')
+      // Not awaited: saving is done; the widgets reload in their own time.
+      void reseedCuratedWidgets(queryClient, stale, userId)
+    },
+  })
+}
+
+/** Drops the picks of the given curated widgets and loads fresh ones. */
+async function reseedCuratedWidgets(queryClient: QueryClient, kinds: CuratedKind[], userId: number | undefined) {
+  await Promise.all(
+    kinds.map(async (kind) => {
+      const { queryKey } = curatedWidgetQueryOptions(kind, userId)
+      // A first load still under way was asked with the old interests, and
+      // invalidating alone would join it rather than start over. Cancel it
+      // first so its answer is thrown away, and abort its request so the
+      // server stops spending search credit on it. Cancelling comes first,
+      // so the query never sees the abort as an error.
+      const cancelled = queryClient.cancelQueries({ queryKey })
+      curatedInFlight.get(inFlightKey(kind, userId))?.abort()
+      await cancelled
+      // Refetches it now if a card is showing it, or on the card's next mount.
+      await queryClient.invalidateQueries({ queryKey })
+    }),
+  )
 }

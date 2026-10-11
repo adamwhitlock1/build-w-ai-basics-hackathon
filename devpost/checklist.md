@@ -28,7 +28,7 @@ Build mode: fast
   Learner check: Sign up, create your family with your real interests and location, describe a widget, log out, log back in, and confirm the widget is still on your page. Try a wrong password too.
   Commit: `Add accounts, family setup, and saved custom widgets`
 
-- [ ] **3. Articles and Local Events pick themselves from your interests**
+- [x] **3. Articles and Local Events pick themselves from your interests**
   Becomes usable: Your page now opens with an Articles card (3–5 items: title, one-line summary, source, optional thumbnail) and a Local Events card (3–5 upcoming events: name, date, venue, one-line description) chosen for your interests and location. Each card has a refresh control, shows "Nothing new today — try refreshing later" when there's nothing, and reseeds when you edit your interests or location.
   Why now: This finishes the "every widget is AI-driven" kernel by reusing slice 1's LLM and search plumbing. Local events are the remaining data-quality risk (Brave has no events feed, so events come from web results plus LLM extraction), and we want to know they are demo-worthy before arranging the page around them.
   PRD ref: `prd.md > Articles Widget`, `prd.md > Local Events Widget`, `prd.md > Data Sources`, `prd.md > States and Boundaries`
@@ -101,3 +101,4 @@ Activity mode:
 - Brave Search facts updated (paid Search plan with $5/month free credit, separate news endpoint, no events feed) and `SESSION_SECRET` removed — the spec's Brave free tier is outdated, and scs doesn't sign cookies.
 - Signup creates the family and the admin user in one transaction, and the schema gains a `sessions` table and `invites.is_admin` — `users.family_id` is `NOT NULL`, scs needs its own table, and co-admin invites need a role.
 - Widgets are moved and resized in an "Arrange" mode (toggle on, then "Done") instead of being draggable at all times — the learner's choice: Puck's drag layer captures clicks on links and buttons inside cards, so an always-on canvas would make widgets harder to use as a page.
+- `PUT /api/me/profile` lives in `internal/family` (next to create-family) instead of `internal/layout`, and Articles uses each query's top news result directly, with no second LLM call. The build found that the profile endpoint shares validation with create-family, and that Brave news results already carry a title, summary, source and thumbnail.
