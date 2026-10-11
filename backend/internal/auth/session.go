@@ -130,13 +130,21 @@ func (a *Authenticator) RequireAuth(next http.Handler) http.Handler {
 // RequireAdmin only lets family admins through; other users get a 403. It
 // reads the user that RequireAuth stored, so it must sit inside RequireAuth.
 func RequireAdmin(next http.Handler) http.Handler {
+	return RequireAdminWithMessage("Only a family admin can do that.", "Ask an admin in your family.", next)
+}
+
+// RequireAdminWithMessage is RequireAdmin with a 403 message and hint of
+// your own, for routes where saying exactly what only admins can do (say,
+// "Only parents can invite family members.") helps the person who was
+// turned away.
+func RequireAdminWithMessage(message, hint string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, ok := UserFrom(r.Context())
 		switch {
 		case !ok:
 			writeLoginRequired(w)
 		case !user.IsAdmin:
-			respond.Error(w, http.StatusForbidden, "Only a family admin can do that.", "Ask an admin in your family.")
+			respond.Error(w, http.StatusForbidden, message, hint)
 		default:
 			next.ServeHTTP(w, r)
 		}

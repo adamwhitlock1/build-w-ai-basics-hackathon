@@ -34,17 +34,6 @@ type MemberProfile struct {
 	Location  string
 }
 
-// Invite is an invitation for an email address to join a family. The Token
-// is the secret part of the invite link.
-type Invite struct {
-	ID        int64
-	FamilyID  int64
-	Email     string
-	Token     string
-	IsAdmin   bool
-	ExpiresAt time.Time
-}
-
 // FamilySetup is everything the create-family intro saves at once.
 type FamilySetup struct {
 	FamilyID int64
@@ -116,6 +105,33 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (User, error) 
 	return u, nil
 }
 
+// ListFamilyMembers returns everyone in familyID: the admins first, then
+// everyone else, each group in the order they joined.
+func (s *Store) ListFamilyMembers(ctx context.Context, familyID int64) ([]User, error) {
+	// is_admin is stored as 1 or 0, so DESC puts the admins first. id breaks
+	// ties between people who joined in the same second (created_at only
+	// counts whole seconds).
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+userColumns+` FROM users WHERE family_id = ? ORDER BY is_admin DESC, created_at, id`, familyID)
+	if err != nil {
+		return nil, fmt.Errorf("list family members: %w", err)
+	}
+	defer rows.Close()
+
+	var members []User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, fmt.Errorf("list family members: %w", err)
+		}
+		members = append(members, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list family members: %w", err)
+	}
+	return members, nil
+}
+
 // GetFamily returns the family with the given id, or ErrNotFound.
 func (s *Store) GetFamily(ctx context.Context, id int64) (Family, error) {
 	var f Family
@@ -133,7 +149,9 @@ func (s *Store) GetFamily(ctx context.Context, id int64) (Family, error) {
 // CompleteFamilySetup saves the create-family intro in one transaction: it
 // names the family, saves the admin's profile, and records the co-admin
 // invites. It returns ErrFamilyAlreadySetUp if the family already has a
-// name, and ErrNotFound if there is no such family.
+// name, and ErrNotFound if there is no such family. If a co-admin email
+// already has an account, it returns an *EmailTakenError naming it. After
+// any error, nothing has changed.
 func (s *Store) CompleteFamilySetup(ctx context.Context, setup FamilySetup) error {
 	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
 		// "AND name = ''" makes checking and naming one atomic step, so two
@@ -154,6 +172,18 @@ func (s *Store) CompleteFamilySetup(ctx context.Context, setup FamilySetup) erro
 		}
 		for _, inv := range setup.Invites {
 			inv.FamilyID = setup.FamilyID
+			// The same rule as InviteToFamily: an email that already has an
+			// account can never accept an invite (each account belongs to
+			// one family), so refuse it rather than keep a link that can't
+			// work. The deferred rollback undoes the naming above too.
+			var taken bool
+			err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = ?)`, inv.Email).Scan(&taken)
+			if err != nil {
+				return fmt.Errorf("look up co-admin email: %w", err)
+			}
+			if taken {
+				return &EmailTakenError{Email: inv.Email}
+			}
 			if _, err := createInvite(ctx, tx, inv); err != nil {
 				return err
 			}
@@ -213,48 +243,4 @@ func upsertMemberProfile(ctx context.Context, q dbtx, p MemberProfile) error {
 		return fmt.Errorf("upsert profile for user %d: %w", p.UserID, err)
 	}
 	return nil
-}
-
-// CreateInvite records a pending invite and returns it with its ID set.
-func (s *Store) CreateInvite(ctx context.Context, inv Invite) (Invite, error) {
-	return createInvite(ctx, s.db, inv)
-}
-
-func createInvite(ctx context.Context, q dbtx, inv Invite) (Invite, error) {
-	err := q.QueryRowContext(ctx,
-		`INSERT INTO invites (family_id, email, token, is_admin, expires_at) VALUES (?, ?, ?, ?, ?)
-		 RETURNING id`,
-		inv.FamilyID, inv.Email, inv.Token, inv.IsAdmin, formatTime(inv.ExpiresAt)).Scan(&inv.ID)
-	if err != nil {
-		return Invite{}, fmt.Errorf("insert invite: %w", err)
-	}
-	return inv, nil
-}
-
-// ListPendingInvites returns the family's invites that haven't been
-// accepted yet (including expired ones), oldest first.
-func (s *Store) ListPendingInvites(ctx context.Context, familyID int64) ([]Invite, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, family_id, email, token, is_admin, expires_at
-		FROM invites
-		WHERE family_id = ? AND accepted_at IS NULL
-		ORDER BY id`, familyID)
-	if err != nil {
-		return nil, fmt.Errorf("list invites: %w", err)
-	}
-	defer rows.Close()
-
-	var invites []Invite
-	for rows.Next() {
-		var inv Invite
-		if err := rows.Scan(&inv.ID, &inv.FamilyID, &inv.Email, &inv.Token, &inv.IsAdmin, &inv.ExpiresAt); err != nil {
-			return nil, fmt.Errorf("list invites: %w", err)
-		}
-		invites = append(invites, inv)
-	}
-	// rows.Next returns false on error too; rows.Err tells the two apart.
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list invites: %w", err)
-	}
-	return invites, nil
 }

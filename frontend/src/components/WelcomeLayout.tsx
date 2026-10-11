@@ -18,7 +18,9 @@ export function WelcomeLayout({ title, intro, children, footer, wide = false }: 
     <div className="min-h-dvh px-4 py-12 sm:px-6 sm:py-20">
       <main className={`mx-auto w-full ${wide ? 'max-w-xl' : 'max-w-md'}`}>
         <BrandMark />
-        <h1 className="mt-4 text-4xl leading-tight text-ink sm:text-5xl">{title}</h1>
+        {/* break-words: a long name in the title (say, the family's on an
+            invite) wraps instead of pushing the page sideways on a phone. */}
+        <h1 className="mt-4 text-4xl leading-tight break-words text-ink sm:text-5xl">{title}</h1>
         {intro && <p className="mt-3 max-w-prose text-ink-soft">{intro}</p>}
         <div className="mt-8 rounded-3xl border border-line bg-surface p-6 shadow-card sm:p-8">{children}</div>
         {footer && <div className="mt-6 text-center text-sm text-ink-soft">{footer}</div>}

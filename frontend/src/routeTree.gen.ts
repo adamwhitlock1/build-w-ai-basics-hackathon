@@ -14,6 +14,7 @@ import { Route as CreateFamilyRouteImport } from './routes/create-family'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -39,17 +40,24 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/create-family': typeof CreateFamilyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/invite/$token': typeof InviteTokenRoute
 }
 export interface FileRoutesByTo {
   '/create-family': typeof CreateFamilyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/': typeof AuthedIndexRoute
 }
 export interface FileRoutesById {
@@ -58,19 +66,21 @@ export interface FileRoutesById {
   '/create-family': typeof CreateFamilyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/_authed/': typeof AuthedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/create-family' | '/login' | '/signup'
+  fullPaths: '/' | '/create-family' | '/login' | '/signup' | '/invite/$token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/create-family' | '/login' | '/signup' | '/'
+  to: '/create-family' | '/login' | '/signup' | '/invite/$token' | '/'
   id:
     | '__root__'
     | '/_authed'
     | '/create-family'
     | '/login'
     | '/signup'
+    | '/invite/$token'
     | '/_authed/'
   fileRoutesById: FileRoutesById
 }
@@ -79,6 +89,7 @@ export interface RootRouteChildren {
   CreateFamilyRoute: typeof CreateFamilyRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -118,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -137,6 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateFamilyRoute: CreateFamilyRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

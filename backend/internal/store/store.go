@@ -29,7 +29,28 @@ var (
 	// ErrFamilyAlreadySetUp means the family already has a name, so the
 	// create-family intro has been completed before.
 	ErrFamilyAlreadySetUp = errors.New("family is already set up")
+	// ErrAlreadyMember means the email belongs to someone already in the
+	// family they're being invited to.
+	ErrAlreadyMember = errors.New("already a member of this family")
+	// ErrInviteExpired means the invite exists but can't be accepted any
+	// more: it expired, or it was already accepted.
+	ErrInviteExpired = errors.New("invite expired or already accepted")
 )
+
+// EmailTakenError is ErrEmailTaken for one email in particular. It's for a
+// request that names several emails at once (the create-family intro's
+// co-admins), so the caller can say which one has an account. Like any
+// error, it can arrive wrapped: errors.Is(err, ErrEmailTaken) still matches
+// it, and errors.As(err, &target) gets it out, email and all.
+type EmailTakenError struct {
+	Email string
+}
+
+func (e *EmailTakenError) Error() string { return e.Email + ": " + ErrEmailTaken.Error() }
+
+// Unwrap returns ErrEmailTaken. It's how errors.Is finds that error inside
+// this one.
+func (e *EmailTakenError) Unwrap() error { return ErrEmailTaken }
 
 // timeFormat matches SQLite's CURRENT_TIMESTAMP ("2026-10-09 18:30:00", UTC).
 // Times we write ourselves use it too, so SQL can compare them as text.
@@ -48,11 +69,21 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	// enforce foreign keys, use write-ahead logging so reads don't block
 	// writes, and wait up to 5s for a lock instead of failing at once.
 	//
+	// _txlock=immediate makes every transaction take SQLite's write lock as
+	// it begins (BEGIN IMMEDIATE), waiting its turn if another write is
+	// under way. Every transaction here writes, and several read first and
+	// then write based on what they read (InviteToFamily checks for an
+	// existing invite, then adds one). Holding the lock from the start means
+	// no other write can slip in between the read and the write. Without
+	// it, SQLite would only ask for the lock at the first write, and refuse
+	// at once ("database is locked") if another write had happened since
+	// the read, instead of waiting.
+	//
 	// "file:" makes SQLite read the path as a URI, where '?' would start
 	// the options, '#' would end the path, and '%' starts an escape, so
 	// those three are escaped to keep any file name working.
 	escaped := strings.NewReplacer("%", "%25", "?", "%3f", "#", "%23").Replace(path)
-	dsn := "file:" + escaped + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
+	dsn := "file:" + escaped + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_txlock=immediate"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open database %s: %w", path, err)

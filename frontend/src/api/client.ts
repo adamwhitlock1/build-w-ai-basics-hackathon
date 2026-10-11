@@ -67,7 +67,7 @@ export interface ProfileResponse {
   profile: Profile
 }
 
-/** Response of GET /api/me (and of signup, login and create-family). */
+/** Response of GET /api/me (and of signup, login, create-family and accepting an invite). */
 export interface Me {
   user: { id: number; email: string; isAdmin: boolean }
   family: { id: number; name: string }
@@ -91,6 +91,71 @@ export interface CreateFamilyInput {
   /** Up to 500 characters each; may be empty. */
   interests: string
   location: string
+}
+
+/** Someone in the family, as GET /api/me/family lists them. */
+export interface FamilyMember {
+  id: number
+  email: string
+  /** A parent: can invite and manage the family. */
+  isAdmin: boolean
+  /** True for the logged-in person's own entry. */
+  isYou: boolean
+}
+
+/** An invite nobody has accepted yet (and that hasn't expired). */
+export interface PendingInvite {
+  id: number
+  email: string
+  /** Invited as a parent (true) or as a kid (false). */
+  isAdmin: boolean
+  /** The invite link as a path, "/invite/<token>"; put the site's origin in front to share it. */
+  url: string
+  /** RFC 3339 timestamp; the link stops working after this. */
+  expiresAt: string
+}
+
+/**
+ * Response of GET /api/me/family. Parents see everyone and the pending
+ * invites; kids see only themselves, and no invites.
+ */
+export interface FamilyOverview {
+  family: { id: number; name: string }
+  /** Parents first, then in the order they joined. */
+  members: FamilyMember[]
+  pendingInvites: PendingInvite[]
+}
+
+/** Who an invite is for: a parent can invite and manage, a kid has a page of their own. */
+export type InviteRole = 'parent' | 'kid'
+
+/** Body of POST /api/families/{id}/invites. */
+export interface CreateInviteInput {
+  email: string
+  role: InviteRole
+}
+
+/**
+ * Response of POST /api/families/{id}/invites: a new invite (201), or the
+ * one that email already had (200, with the role updated).
+ */
+export interface InviteResponse {
+  invite: PendingInvite
+}
+
+/** Response of GET /api/invites/{token}: what the invite page needs to greet someone. */
+export interface InviteDetails {
+  /** The invited email; it becomes their login. */
+  email: string
+  familyName: string
+  /** Invited as a parent. */
+  isAdmin: boolean
+}
+
+/** Body of POST /api/invites/{token}/accept, which responds with Me. */
+export interface AcceptInviteInput {
+  /** At least 8 characters, like at sign-up. */
+  password: string
 }
 
 /** How many of the page's four columns a card spans: 1/4 up to 4/4. */

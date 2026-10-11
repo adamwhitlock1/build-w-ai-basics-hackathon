@@ -1,6 +1,7 @@
 // Package family serves the account and family endpoints: sign up, log in,
-// log out, "who am I", the create-family intro, and editing your interests
-// and location.
+// log out, "who am I", the create-family intro, editing your interests and
+// location, and the family itself: who's in it, inviting new members, and
+// accepting an invite (invites.go).
 package family
 
 import (
@@ -20,7 +21,8 @@ import (
 	"porchlight/internal/store"
 )
 
-// Limits on what the create-family intro accepts.
+// Limits on what the create-family intro accepts, and how long an invite
+// link works (from the intro or the sidebar).
 const (
 	maxFamilyNameRunes = 80
 	maxProfileRunes    = 500 // each of interests and location
@@ -41,6 +43,12 @@ type Store interface {
 	GetMemberProfile(ctx context.Context, userID int64) (store.MemberProfile, error)
 	UpsertMemberProfile(ctx context.Context, p store.MemberProfile) error
 	CompleteFamilySetup(ctx context.Context, setup store.FamilySetup) error
+	ListFamilyMembers(ctx context.Context, familyID int64) ([]store.User, error)
+	ListPendingInvites(ctx context.Context, familyID int64) ([]store.Invite, error)
+	InviteToFamily(ctx context.Context, inv store.Invite) (saved store.Invite, created bool, err error)
+	RevokeInvite(ctx context.Context, familyID, inviteID int64) error
+	GetInviteByToken(ctx context.Context, token string) (store.Invite, error)
+	AcceptInvite(ctx context.Context, token string, passwordHash []byte) (store.User, error)
 }
 
 // Sessions logs users in and out. *auth.Authenticator satisfies it.
@@ -260,9 +268,17 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 		Profile:  store.MemberProfile{UserID: user.ID, Interests: profile.Interests, Location: profile.Location},
 		Invites:  invites,
 	})
+	// errors.As finds an *EmailTakenError inside err and points taken at it.
+	var taken *store.EmailTakenError
 	switch {
 	case errors.Is(err, store.ErrFamilyAlreadySetUp):
 		respond.Error(w, http.StatusConflict, "Your family is already set up.", "")
+		return
+	case errors.As(err, &taken):
+		// 400, like a mistyped co-admin email above: something to fix in
+		// the form. (On this page, 409 means the family is already set up.)
+		respond.Error(w, http.StatusBadRequest, fmt.Sprintf("%s already has a Porchlight account.", taken.Email),
+			"Each account belongs to one family for now, so leave that email out.")
 		return
 	case err != nil:
 		h.serverError(w, r, "complete family setup", err)

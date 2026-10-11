@@ -5,8 +5,7 @@ import { InterestsEditor, type InterestsEditorProps } from '../../account/Intere
 import { InterestsEditorContext, type ProfileField } from '../../account/interestsEditorContext'
 import type { Layout, SavedWidget } from '../../api/client'
 import { createWidgetKey, homepageQueryOptions, useHomepage, useMe, useUpdateProfile } from '../../api/hooks'
-import { BrandMark } from '../../components/BrandMark'
-import { LogoutButton } from '../../components/LogoutButton'
+import { FamilySidebar } from '../../family/FamilySidebar'
 import { layoutOf } from '../../puck/layout'
 import { LayoutView } from '../../puck/LayoutView'
 import { useLayoutAutosave } from '../../puck/useLayoutAutosave'
@@ -39,6 +38,9 @@ const FRESH_MS = 6000
  *
  * "Arrange" swaps the page for the Puck editor, where cards can be dragged
  * and resized; changes save as you go, and "Done" (or Escape) swaps back.
+ *
+ * Beside it, the family sidebar lists the family's members and, for
+ * parents, its invites (see family/FamilySidebar.tsx).
  */
 function HomePage() {
   const { data: page } = useHomepage()
@@ -159,15 +161,17 @@ function HomePage() {
   return (
     // Widgets anywhere on the page can open the interests editor through this.
     <InterestsEditorContext.Provider value={openEditor}>
-      <div className="min-h-dvh">
-        <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      {/* From 1024px wide, the family sidebar is a column on the left and
+          the page fills the rest; narrower, the sidebar is a strip on top. */}
+      <div className="min-h-dvh lg:flex">
+        <FamilySidebar arranging={arranging} />
+        <main className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
           <header className="mb-8 sm:mb-10">
-            {/* The buttons wrap below the family name when both don't fit
-                (on a phone, say), rather than cutting the name short. */}
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <BrandMark familyName={me?.family.name} />
-              {/* Temporary home: these move into the family sidebar later. */}
-              <div className="ml-auto flex shrink-0 items-start gap-1 sm:gap-2">
+            {/* The buttons share the heading's line, and wrap below it when
+                there isn't room. */}
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+              <h1 className="text-4xl leading-tight text-ink sm:text-5xl">Your page</h1>
+              <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
                 {/* One button that reads "Arrange", then "Done" while
                     arranging, so keyboard focus stays on it either way.
                     Arranging uses the wide-screen grid of four columns,
@@ -192,9 +196,9 @@ function HomePage() {
                 >
                   {arranging ? 'Done' : 'Arrange'}
                 </button>
-                {/* "Your interests" and "Log out" step aside while arranging:
-                    "Done" comes first, so the last change is saved (logging
-                    out mid-save could lose it). */}
+                {/* "Your interests" steps aside while arranging (as do the
+                    sidebar's buttons, "Log out" among them): "Done" comes
+                    first, so the last change is saved. */}
                 {!arranging && (
                   <button
                     ref={interestsButtonRef}
@@ -208,10 +212,8 @@ function HomePage() {
                     Your interests
                   </button>
                 )}
-                {!arranging && <LogoutButton />}
               </div>
             </div>
-            <h1 className="mt-3 text-4xl leading-tight text-ink sm:text-5xl">Your page</h1>
             <p className="mt-2 max-w-prose text-ink-soft">
               Describe anything you’d like to keep an eye on, and we’ll build a widget for it.
             </p>

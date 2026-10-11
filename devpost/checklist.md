@@ -48,7 +48,7 @@ Build mode: fast
   Learner check: Rearrange your page the way you'd want it on a Tuesday morning: drag a few cards, resize one, add a new widget, then reload. Does dragging feel satisfying, and did everything stay put?
   Commit: `Add drag-and-drop, resizable homepage canvas`
 
-- [ ] **5. Invite your family; everyone gets their own page**
+- [x] **5. Invite your family; everyone gets their own page**
   Becomes usable: The sidebar shows the family name, members with initials, pending invites (including the co-admins from setup), and "Invite member". Inviting an email (as parent or kid) gives you a link to copy. You can revoke a pending invite or copy its link again, and inviting an existing member shows "Already a member". Opening the link while logged out leads to "set your password", then to that person's own fresh page, whose layout is independent of yours.
   Why now: Multi-member is in the POC boundary and the demo's setup beat, but it builds on accounts, layouts, and curated widgets that now exist. Doing it after the canvas means each new member's page is complete the moment they arrive.
   PRD ref: `prd.md > Family Management`, `prd.md > Authentication and Account`, `prd.md > The Core Journey` (steps 4–5), `prd.md > States and Boundaries`
@@ -105,3 +105,4 @@ Activity mode:
 - Arrange mode has a "Remove" action for your own custom widgets, backed by a new `DELETE /api/widgets/custom/{id}`. The layout self-heals on load (so no saved widget can go missing), which meant removing only the card had it come back on the next load. Remove therefore asks for confirmation and deletes the widget for good. The curated Articles and Local Events cards can't be removed.
 - A first-use page shows two "This spot is empty" cards next to the "+" on a new row, and after that empty cards only fill out the last row. The default layout (Articles and Local Events at half width each) fills row one, so the "fill the last row" rule alone would never have shown the PRD's first-use placeholders.
 - Arrange is offered from tablet width up (on a phone the page is a single column, and four-column arranging isn't readable there). Puck loads only when Arrange is opened.
+- Invites gained a `revoked_at` column (migration 002), and all SQLite transactions now take the write lock up front (`_txlock=immediate`). Deleting a revoked invite let SQLite reuse its id, so a stale "revoke" could hit someone's new invite. Concurrent invites also hit "database is locked" without the up-front lock. Create-family now refuses a co-admin email that already has an account, matching the sidebar's invite rules.

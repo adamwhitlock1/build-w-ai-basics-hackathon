@@ -31,6 +31,10 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	// familyHandler.Me converts to http.HandlerFunc automatically.
 	private := func(h http.HandlerFunc) http.Handler { return authn.RequireAuth(h) }
 	adminOnly := func(h http.HandlerFunc) http.Handler { return authn.RequireAuth(auth.RequireAdmin(h)) }
+	// parentsOnly is adminOnly with a 403 that says what only parents can do.
+	parentsOnly := func(message string, h http.HandlerFunc) http.Handler {
+		return authn.RequireAuth(auth.RequireAdminWithMessage(message, "Ask a parent in your family.", h))
+	}
 
 	// Go 1.22 patterns put the HTTP method in the route itself, and {id}
 	// is a wildcard the handler reads with r.PathValue("id").
@@ -41,9 +45,14 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.HandleFunc("POST /api/signup", familyHandler.Signup)
 	mux.HandleFunc("POST /api/login", familyHandler.Login)
 	mux.HandleFunc("POST /api/logout", familyHandler.Logout)
+	// Invite links work for people who don't have an account yet. The
+	// token in the path is the secret; logRequests keeps it out of the log.
+	mux.HandleFunc("GET /api/invites/{token}", familyHandler.ShowInvite)
+	mux.HandleFunc("POST /api/invites/{token}/accept", familyHandler.AcceptInvite)
 
 	// Logged in.
 	mux.Handle("GET /api/me", private(familyHandler.Me))
+	mux.Handle("GET /api/me/family", private(familyHandler.Family))
 	mux.Handle("GET /api/me/homepage", private(layoutHandler.Homepage))
 	mux.Handle("PUT /api/me/homepage", private(layoutHandler.SaveLayout))
 	mux.Handle("PUT /api/me/profile", private(familyHandler.UpdateProfile))
@@ -55,6 +64,8 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 
 	// Family admins.
 	mux.Handle("POST /api/families", adminOnly(familyHandler.CreateFamily))
+	mux.Handle("POST /api/families/{id}/invites", parentsOnly("Only parents can invite family members.", familyHandler.CreateInvite))
+	mux.Handle("DELETE /api/families/{id}/invites/{inviteId}", parentsOnly("Only parents can manage invites.", familyHandler.RevokeInvite))
 
 	// The first wrapper listed runs first: log, recover from panics, turn
 	// away forged cross-site requests, then load the session (and save it as

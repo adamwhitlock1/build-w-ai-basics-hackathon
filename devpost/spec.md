@@ -115,9 +115,11 @@ PRD ref: implements `prd.md > Authentication and Account`.
 
 #### `internal/family` — family + member management handlers
 - POST `/api/families` — create the family on first signup.
-- POST `/api/families/:id/invites` — issue an invite (admin only).
+- GET `/api/me/family` — the sidebar's data: members (admins see everyone; a kid sees only themselves) and, for admins, pending invites with their links.
+- POST `/api/families/:id/invites` — issue an invite (admin only; `role` parent or kid; "Already a member" for existing members; re-inviting returns the same link).
+- DELETE `/api/families/:id/invites/:inviteId` — revoke a pending invite (admin only).
+- GET `/api/invites/:token` — public lookup for the set-password page (404 unknown or revoked, 410 expired or used).
 - POST `/api/invites/:token/accept` — accept an invite, set password, create user.
-- GET `/api/me/family` — list family members (admin sees all; member sees self).
 PRD ref: implements `prd.md > Family Management`.
 
 #### `internal/layout` — Puck layout persistence
@@ -218,7 +220,8 @@ CREATE TABLE invites (
   token       TEXT NOT NULL UNIQUE,
   is_admin    BOOLEAN NOT NULL DEFAULT 0,
   expires_at  DATETIME NOT NULL,
-  accepted_at DATETIME
+  accepted_at DATETIME,
+  revoked_at  DATETIME   -- added by migrations/002: revoking marks the row instead of deleting it
 );
 
 -- Server-side sessions for alexedwards/scs (sqlite3store expects this exact shape).

@@ -580,6 +580,9 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 	srv, _ := newTestServer(t)
 	private := []struct{ method, path string }{
 		{"GET", "/api/me"},
+		{"GET", "/api/me/family"},
+		{"POST", "/api/families/1/invites"},
+		{"DELETE", "/api/families/1/invites/1"},
 		{"GET", "/api/me/homepage"},
 		{"PUT", "/api/me/homepage"},
 		{"POST", "/api/families"},

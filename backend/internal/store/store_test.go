@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"porchlight/internal/store"
+	"porchlight/migrations"
 )
 
 // openTestStore opens a fresh database in a temporary directory that the
@@ -68,14 +70,19 @@ func countRows(t *testing.T, s *store.Store, table string) int {
 }
 
 func TestOpenIsRepeatable(t *testing.T) {
+	// One schema_migrations row per migration file, however many Opens.
+	files, err := fs.Glob(migrations.FS, "*.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
 	path := filepath.Join(t.TempDir(), "test.db")
 	for i := range 2 { // the second Open must find the schema already applied
 		s, err := store.Open(context.Background(), path)
 		if err != nil {
 			t.Fatalf("open #%d: %v", i+1, err)
 		}
-		if n := countRows(t, s, "schema_migrations"); n != 1 {
-			t.Errorf("open #%d: schema_migrations has %d rows, want 1", i+1, n)
+		if n := countRows(t, s, "schema_migrations"); n != len(files) {
+			t.Errorf("open #%d: schema_migrations has %d rows, want %d", i+1, n, len(files))
 		}
 		s.Close()
 	}
@@ -202,6 +209,41 @@ func TestCompleteFamilySetup(t *testing.T) {
 	}
 }
 
+// A co-admin email that already has an account could never accept its
+// invite, so the whole setup is refused, naming that email.
+func TestCompleteFamilySetupCoAdminHasAccount(t *testing.T) {
+	ctx := context.Background()
+	s := openTestStore(t)
+	u := signUp(t, s, "parent@example.com")
+	signUp(t, s, "taken@example.com") // in a family of their own
+
+	later := time.Now().Add(time.Hour)
+	err := s.CompleteFamilySetup(ctx, store.FamilySetup{
+		FamilyID: u.FamilyID,
+		Name:     "The Robinsons",
+		Profile:  store.MemberProfile{UserID: u.ID, Interests: "rockets"},
+		Invites: []store.Invite{
+			{Email: "free@example.com", Token: "tok-1", IsAdmin: true, ExpiresAt: later},
+			{Email: "taken@example.com", Token: "tok-2", IsAdmin: true, ExpiresAt: later},
+		},
+	})
+	var taken *store.EmailTakenError
+	if !errors.As(err, &taken) || taken.Email != "taken@example.com" || !errors.Is(err, store.ErrEmailTaken) {
+		t.Fatalf("err = %v, want an EmailTakenError for taken@example.com", err)
+	}
+
+	// Nothing was saved: not the name, the profile, or either invite.
+	if fam, _ := s.GetFamily(ctx, u.FamilyID); fam.Name != "" {
+		t.Errorf("family name = %q, want it still unset", fam.Name)
+	}
+	if p, _ := s.GetMemberProfile(ctx, u.ID); p.Interests != "" {
+		t.Errorf("profile = %+v, want it unchanged", p)
+	}
+	if n := countRows(t, s, "invites"); n != 0 {
+		t.Errorf("invites = %d, want 0", n)
+	}
+}
+
 func TestCustomWidgets(t *testing.T) {
 	ctx := context.Background()
 	s := openTestStore(t)
@@ -283,18 +325,23 @@ func TestProfilesAndInvites(t *testing.T) {
 		t.Errorf("profile = %+v, want %+v", got, want)
 	}
 
-	inv, err := s.CreateInvite(ctx, store.Invite{FamilyID: u.FamilyID, Email: "kid@example.com", Token: "tok", ExpiresAt: time.Now()})
+	later := time.Now().Add(time.Hour)
+	inv, err := s.CreateInvite(ctx, store.Invite{FamilyID: u.FamilyID, Email: "kid@example.com", Token: "tok", ExpiresAt: later})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if inv.ID == 0 {
 		t.Error("invite has no id")
 	}
-	if _, err := s.CreateInvite(ctx, store.Invite{FamilyID: u.FamilyID, Email: "other@example.com", Token: "tok", ExpiresAt: time.Now()}); err == nil {
+	if _, err := s.CreateInvite(ctx, store.Invite{FamilyID: u.FamilyID, Email: "other@example.com", Token: "tok", ExpiresAt: later}); err == nil {
 		t.Error("reused an invite token; want the UNIQUE constraint to refuse it")
 	}
-	if _, err := s.CreateInvite(ctx, store.Invite{FamilyID: 999, Email: "x@example.com", Token: "tok-2", ExpiresAt: time.Now()}); err == nil {
+	if _, err := s.CreateInvite(ctx, store.Invite{FamilyID: 999, Email: "x@example.com", Token: "tok-2", ExpiresAt: later}); err == nil {
 		t.Error("invite for a missing family; want the foreign key to refuse it")
+	}
+	// An expired invite isn't pending any more.
+	if _, err := s.CreateInvite(ctx, store.Invite{FamilyID: u.FamilyID, Email: "late@example.com", Token: "tok-3", ExpiresAt: time.Now().Add(-time.Second)}); err != nil {
+		t.Fatal(err)
 	}
 	invites, err := s.ListPendingInvites(ctx, u.FamilyID)
 	if err != nil || len(invites) != 1 || invites[0].ID != inv.ID || invites[0].IsAdmin {

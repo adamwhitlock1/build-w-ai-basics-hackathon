@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
   useSuspenseQuery,
+  type Query,
   type QueryClient,
 } from '@tanstack/react-query'
 import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
@@ -11,13 +12,19 @@ import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import {
   ApiError,
   apiFetch,
+  type AcceptInviteInput,
   type CreateFamilyInput,
+  type CreateInviteInput,
   type Credentials,
   type CuratedWidget,
+  type FamilyOverview,
   type Homepage,
+  type InviteDetails,
+  type InviteResponse,
   type Layout,
   type LayoutResponse,
   type Me,
+  type PendingInvite,
   type Profile,
   type ProfileResponse,
   type SavedWidget,
@@ -56,10 +63,20 @@ export function useMe() {
   return useQuery(meQueryOptions)
 }
 
-/** Starts from a clean cache for the person who just logged in or signed up. */
+/**
+ * Whether a cached query holds the logged-in person's data (nearly all do).
+ * An invite's details are the exception: they're the same for anyone holding
+ * the link, and the invite page stays on screen while its visitor logs out
+ * or accepts, so they're kept when the session changes.
+ */
+function belongsToSession(query: Query) {
+  return query.queryKey[0] !== 'invite'
+}
+
+/** Starts from a clean cache for the person who just logged in, signed up or accepted an invite. */
 function startSession(queryClient: QueryClient, me: Me) {
   // Nothing cached for someone else may show up on this person's pages.
-  queryClient.removeQueries()
+  queryClient.removeQueries({ predicate: belongsToSession })
   queryClient.setQueryData(meQueryOptions.queryKey, me)
 }
 
@@ -93,13 +110,21 @@ function useStartSession(path: '/api/signup' | '/api/login') {
   })
 }
 
-/** Logs out on the server, then on this device, and shows the login screen. */
-export function useLogout() {
+/**
+ * Logs out on the server, then on this device, and shows the login screen.
+ * With `stayHere`, the current page stays on screen instead: the invite page
+ * uses it so a logged-in visitor can carry on as the person invited.
+ */
+export function useLogout({ stayHere = false } = {}) {
   const queryClient = useQueryClient()
   const router = useRouter()
   return useMutation<void, ApiError, void>({
     mutationFn: () => apiFetch<void>('/api/logout', { method: 'POST' }),
-    onSuccess: () => endSession(queryClient, router),
+    onSuccess: () => {
+      if (!stayHere) return endSession(queryClient, router)
+      queryClient.setQueryData(meQueryOptions.queryKey, null)
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'me' && belongsToSession(query) })
+    },
   })
 }
 
@@ -122,6 +147,115 @@ export function useCreateFamily() {
       // cached Me is out of date. Drop it; the next page asks the server.
       if (err.status === 409) void queryClient.resetQueries({ queryKey: meQueryOptions.queryKey })
     },
+  })
+}
+
+/**
+ * Your family as the sidebar shows it: its members and, for parents, the
+ * invites nobody has accepted yet. It's a cheap request (no search credit),
+ * so unlike the widgets it's asked again whenever you come back to the tab:
+ * someone may have accepted an invite in another window meanwhile. (The type
+ * arguments say failures are ApiErrors, apiFetch's only kind, so the sidebar
+ * can show their message and hint.)
+ */
+export const familyQueryOptions = queryOptions<FamilyOverview, ApiError, FamilyOverview, readonly ['family']>({
+  queryKey: ['family'],
+  queryFn: ({ signal }) => apiFetch<FamilyOverview>('/api/me/family', { signal }),
+  refetchOnWindowFocus: true,
+})
+
+/** Your family's members and pending invites (see familyQueryOptions). */
+export function useFamily() {
+  return useQuery(familyQueryOptions)
+}
+
+/**
+ * Creates an invite link for someone to join the family (parents only).
+ * Call `mutate({ email, role })`; it resolves with the invite. Inviting an
+ * email that already has a pending invite gives back that same invite, with
+ * the new role; inviting a member, or anyone with an account, fails with a
+ * 409 ApiError ("Already a member.").
+ */
+export function useCreateInvite(familyId: number) {
+  const queryClient = useQueryClient()
+  return useMutation<PendingInvite, ApiError, CreateInviteInput>({
+    mutationFn: async (input) => {
+      const res = await apiFetch<InviteResponse>(`/api/families/${familyId}/invites`, { method: 'POST', body: input })
+      return res.invite
+    },
+    onSuccess: (invite) => {
+      // Show it in the pending list straight away: in place of the old copy
+      // if the email was invited before, otherwise at the end.
+      queryClient.setQueryData(familyQueryOptions.queryKey, (family) => {
+        if (!family) return family
+        const known = family.pendingInvites.some((i) => i.id === invite.id)
+        const pendingInvites = known
+          ? family.pendingInvites.map((i) => (i.id === invite.id ? invite : i))
+          : [...family.pendingInvites, invite]
+        return { ...family, pendingInvites }
+      })
+    },
+    // Then ask the server again, success or not: "Already a member" may mean
+    // they accepted an invite since the list was loaded.
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: familyQueryOptions.queryKey }),
+  })
+}
+
+/** Revokes a pending invite, so its link stops working (parents only). Call `mutate(inviteId)`. */
+export function useRevokeInvite(familyId: number) {
+  const queryClient = useQueryClient()
+  return useMutation<void, ApiError, number>({
+    mutationFn: (inviteId) =>
+      apiFetch<void>(`/api/families/${familyId}/invites/${inviteId}`, { method: 'DELETE' }),
+    onSuccess: (_nothing, inviteId) => {
+      queryClient.setQueryData(familyQueryOptions.queryKey, (family) =>
+        family ? { ...family, pendingInvites: family.pendingInvites.filter((i) => i.id !== inviteId) } : family,
+      )
+    },
+    // A 404 means it was accepted or revoked elsewhere meanwhile; the fresh
+    // list then drops it either way.
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: familyQueryOptions.queryKey }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Accepting an invite
+// ---------------------------------------------------------------------------
+
+/**
+ * Who an invite link is for, and from which family. Anyone holding the link
+ * can ask, logged in or not. An unknown or revoked link fails with a 404
+ * ApiError, and an expired or used one with a 410.
+ */
+export function inviteQueryOptions(token: string) {
+  return queryOptions<InviteDetails, ApiError, InviteDetails, readonly ['invite', string]>({
+    queryKey: ['invite', token],
+    queryFn: ({ signal }) => apiFetch<InviteDetails>(`/api/invites/${encodeURIComponent(token)}`, { signal }),
+    // The details don't change while the page is open (its loader asks
+    // afresh on each visit). A link that didn't work isn't asked about again
+    // just because the page re-renders.
+    staleTime: Infinity,
+    retryOnMount: false,
+  })
+}
+
+/** The invite behind a link (see inviteQueryOptions). */
+export function useInvite(token: string) {
+  return useQuery(inviteQueryOptions(token))
+}
+
+/**
+ * Accepts an invite: creates the account with the chosen password and logs
+ * it in. Call `mutate({ password })`; it resolves with the new member's Me.
+ * A link that was used or has expired meanwhile fails with a 410 ApiError,
+ * and an email that has signed up meanwhile with a 409.
+ */
+export function useAcceptInvite(token: string) {
+  const queryClient = useQueryClient()
+  return useMutation<Me, ApiError, AcceptInviteInput>({
+    mutationFn: (input) =>
+      apiFetch<Me>(`/api/invites/${encodeURIComponent(token)}/accept`, { method: 'POST', body: input }),
+    onSuccess: (me) => startSession(queryClient, me),
   })
 }
 

@@ -23,6 +23,7 @@ file is generated but committed, so `tsc -b` works on a fresh checkout — don't
 | `/login`         | `routes/login.tsx`            | logged out (logged in → `/`)                  |
 | `/signup`        | `routes/signup.tsx`           | logged out (logged in → `/`)                  |
 | `/create-family` | `routes/create-family.tsx`    | logged in, family not set up yet              |
+| `/invite/<token>` | `routes/invite.$token.tsx`   | anyone with an invite link (logged in → asked to log out first) |
 | `/`              | `routes/_authed/index.tsx`    | logged in with a family (guarded by `_authed.tsx`) |
 
 The guards only make the app feel right; the Go API checks the session on every private request.

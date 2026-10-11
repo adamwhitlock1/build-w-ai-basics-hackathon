@@ -23,11 +23,31 @@ func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
 		next.ServeHTTP(rec, r)
 		logger.Info("request",
 			"method", r.Method,
-			"path", r.URL.Path,
+			"path", loggedPath(r.URL.Path),
 			"status", rec.status,
 			"duration", time.Since(start).Round(time.Millisecond),
 		)
 	})
+}
+
+// invitePathPrefix starts every path that carries an invite token.
+const invitePathPrefix = "/api/invites/"
+
+// loggedPath is path as logRequests writes it to the log. An invite path
+// carries the invite's secret token, and anyone who could read the log
+// shouldn't be able to accept someone else's invite with it, so the token
+// is swapped for "<token>":
+//
+//	/api/invites/abc123/accept -> /api/invites/<token>/accept
+func loggedPath(path string) string {
+	rest, ok := strings.CutPrefix(path, invitePathPrefix)
+	if !ok || rest == "" {
+		return path
+	}
+	if _, after, found := strings.Cut(rest, "/"); found {
+		return invitePathPrefix + "<token>/" + after
+	}
+	return invitePathPrefix + "<token>"
 }
 
 // statusRecorder remembers the status code a handler wrote. Embedding
