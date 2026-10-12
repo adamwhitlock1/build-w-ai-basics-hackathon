@@ -46,7 +46,7 @@
 - [x] 7.1 Merge `origin/main` and resolve the conflicts in `curated.go`, `handler_test.go`, `WidgetCard.tsx` and `Custom.tsx`, keeping both sides. Show the marker in `CustomBlock`'s read-only (family member) branch. Verify that `go vet ./...`, `go test ./...` and `npm run build` pass.
 - [x] 7.2 `RefreshCustom` searches and shapes with `audienceFor(user)` and saves `kidSafe`. Verify with `TestRefreshCustomIsKidSafeForKids` (an old kid widget becomes kid-safe; a parent's doesn't).
 - [x] 7.3 `sendRemembered` treats a remembered result whose `kidSafe` doesn't match the audience as missing. Verify with `TestRememberedResultsMatchTheAudience` (all four combinations), and by checking that the freshness tests still pass with their rows seeded kid-safe.
-- [ ] 7.4 Re-run the live check with a kid who has a result remembered before this change. Verify that it's picked again with `safesearch=strict` and comes back `kidSafe: true`.
+- [x] 7.4 Re-run the live check with a kid who has a result remembered before this change. Verify that it's picked again with `safesearch=strict` and comes back `kidSafe: true`.
 
 ## 8. Wrap-up
 
