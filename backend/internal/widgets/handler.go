@@ -44,7 +44,7 @@ const RequestBudget = 100 * time.Second
 // Planner is the LLM half of the pipeline. *llm.Client satisfies it; tests
 // use a fake.
 type Planner interface {
-	PickWidgetSpec(ctx context.Context, prompt string, catalog llm.Catalog, aud sources.Audience) (llm.WidgetSpec, error)
+	PickWidgetSpec(ctx context.Context, prompt string, catalog llm.Catalog, aud sources.Audience, location string) (llm.WidgetSpec, error)
 	ShapeItems(ctx context.Context, prompt string, spec llm.WidgetSpec, results []sources.Result, aud sources.Audience) ([]llm.Item, error)
 }
 
@@ -75,18 +75,20 @@ type Layouts interface {
 
 // Handler serves the widget endpoints.
 type Handler struct {
-	planner Planner
-	sources SourceFinder
-	saved   WidgetStore
-	layouts Layouts
-	logger  *slog.Logger
+	planner  Planner
+	sources  SourceFinder
+	saved    WidgetStore
+	profiles ProfileStore
+	layouts  Layouts
+	logger   *slog.Logger
 }
 
-// NewHandler returns a Handler that builds widgets with planner and srcs,
-// keeps them in saved, and keeps the user's layout in step as widgets are
-// added and deleted.
-func NewHandler(planner Planner, srcs SourceFinder, saved WidgetStore, layouts Layouts, logger *slog.Logger) *Handler {
-	return &Handler{planner: planner, sources: srcs, saved: saved, layouts: layouts, logger: logger}
+// NewHandler returns a Handler that builds widgets with planner and srcs
+// (telling the planner where the member lives, from profiles), keeps them in
+// saved, and keeps the user's layout in step as widgets are added and
+// deleted.
+func NewHandler(planner Planner, srcs SourceFinder, saved WidgetStore, profiles ProfileStore, layouts Layouts, logger *slog.Logger) *Handler {
+	return &Handler{planner: planner, sources: srcs, saved: saved, profiles: profiles, layouts: layouts, logger: logger}
 }
 
 // Widget is a widget ready to draw: where its data came from, how to
@@ -160,7 +162,7 @@ func FromStore(cw store.CustomWidget, now time.Time) (SavedWidget, error) {
 			KidSafe:   spec.KidSafe,
 		},
 		CreatedAt: cw.CreatedAt.UTC(),
-		Freshness: freshness(updatedAt, now, CustomFreshFor),
+		Freshness: freshness(updatedAt, now, customFreshFor(cw.Source)),
 	}, nil
 }
 
@@ -188,11 +190,13 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	// before the server's WriteTimeout would cut the connection.
 	ctx, cancel := context.WithTimeout(r.Context(), RequestBudget)
 	defer cancel()
-	// The widget goes on the user's own page, so they decide what's suitable.
+	// The widget goes on the user's own page, so they decide what's suitable,
+	// and "weather" or "near me" means where they live.
 	aud := audienceFor(user)
+	location := h.savedLocation(ctx, user.ID)
 
 	// 1. Plan: which source, what query, which archetype.
-	spec, err := h.planner.PickWidgetSpec(ctx, prompt, h.sources, aud)
+	spec, err := h.planner.PickWidgetSpec(ctx, prompt, h.sources, aud, location)
 	if err != nil {
 		h.writeLLMError(w, r, err)
 		return
@@ -239,6 +243,21 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond.JSON(w, http.StatusCreated, saved)
+}
+
+// savedLocation returns the location in userID's profile, trimmed, or "" if
+// they have none. Most widgets don't need a place, so a failed read is
+// logged and treated as no location rather than failing the request.
+func (h *Handler) savedLocation(ctx context.Context, userID int64) string {
+	profile, err := h.profiles.GetMemberProfile(ctx, userID)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		return ""
+	case err != nil:
+		h.logger.WarnContext(ctx, "couldn't load the profile; planning without a location", "user_id", userID, "err", err)
+		return ""
+	}
+	return strings.TrimSpace(profile.Location)
 }
 
 // save stores widget, described as prompt, for userID and puts it at the
@@ -544,10 +563,25 @@ func (h *Handler) writeLLMError(w http.ResponseWriter, r *http.Request, err erro
 	}
 }
 
-// writeSearchError maps a search error to an HTTP response. It's a function
-// rather than a Handler method so the curated widgets can share it.
+// writeSearchError maps a search error, from Brave or the weather source, to
+// an HTTP response. It's a function rather than a Handler method so the
+// curated widgets can share it.
 func writeSearchError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) {
 	if writeIfCancelled(w, r, logger, err) {
+		return
+	}
+	switch {
+	// The weather errors come first: a weather timeout wraps both
+	// ErrForecastUnavailable and context.DeadlineExceeded, and must not read
+	// as a Brave one.
+	case errors.Is(err, sources.ErrPlaceNotFound):
+		logger.InfoContext(r.Context(), "weather place not found", "err", err)
+		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't find that place for the forecast.",
+			"Name a town, like “weather in Denver, CO”, or add your location to your profile.")
+		return
+	case errors.Is(err, sources.ErrForecastUnavailable):
+		logger.ErrorContext(r.Context(), "weather forecast failed", "err", err)
+		respond.Error(w, http.StatusBadGateway, "The weather service (Open-Meteo) isn't answering right now.", "Try again in a moment.")
 		return
 	}
 	logger.ErrorContext(r.Context(), "search failed", "err", err)

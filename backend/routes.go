@@ -23,7 +23,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	layoutHandler := layout.NewHandler(st, logger)
 	// New widgets go onto the member's saved layout, and deleted ones come
 	// off it, through layoutHandler.
-	widgetHandler := widgets.NewHandler(planner, srcs, st, layoutHandler, logger)
+	widgetHandler := widgets.NewHandler(planner, srcs, st, st, layoutHandler, logger)
 	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, st, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also

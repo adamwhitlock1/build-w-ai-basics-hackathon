@@ -32,11 +32,13 @@ type fakePlanner struct {
 	shapedSpec  llm.WidgetSpec     // the spec ShapeItems was given
 	hadDeadline bool               // whether PickWidgetSpec's context carried a deadline
 	auds        []sources.Audience // the audience of every call, in call order
+	locations   []string           // the location of every PickWidgetSpec call
 }
 
-func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog, aud sources.Audience) (llm.WidgetSpec, error) {
+func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog, aud sources.Audience, location string) (llm.WidgetSpec, error) {
 	_, f.hadDeadline = ctx.Deadline()
 	f.auds = append(f.auds, aud)
+	f.locations = append(f.locations, location)
 	return f.spec, f.specErr
 }
 
@@ -288,7 +290,7 @@ func TestFromPrompt(t *testing.T) {
 			tt.source.name = "events_search"
 			saved := &fakeWidgetStore{err: tt.saveErr}
 			layouts := &fakeLayouts{}
-			h := widgets.NewHandler(tt.planner, sources.NewRegistry(tt.source), saved, layouts, discardLogger)
+			h := widgets.NewHandler(tt.planner, sources.NewRegistry(tt.source), saved, fakeProfiles{}, layouts, discardLogger)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/widgets/from-prompt", strings.NewReader(tt.body))
 			if !tt.anonymous {
@@ -385,7 +387,7 @@ func TestFromPromptLayoutFailureIsNotFatal(t *testing.T) {
 	saved := &fakeWidgetStore{}
 	layouts := &fakeLayouts{err: errors.New("database is locked")}
 	h := widgets.NewHandler(&fakePlanner{spec: launchSpec, items: shapedItems},
-		sources.NewRegistry(fakeSource{name: "events_search", results: results}), saved, layouts, discardLogger)
+		sources.NewRegistry(fakeSource{name: "events_search", results: results}), saved, fakeProfiles{}, layouts, discardLogger)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/widgets/from-prompt", strings.NewReader(`{"prompt":"show me upcoming SpaceX launches"}`))
 	req = req.WithContext(auth.WithUser(req.Context(), alice))
@@ -420,7 +422,7 @@ func TestGetCustom(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, &fakeLayouts{}, discardLogger)
+			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, fakeProfiles{}, &fakeLayouts{}, discardLogger)
 
 			// Routing through a ServeMux fills in r.PathValue("id").
 			mux := http.NewServeMux()
@@ -478,7 +480,7 @@ func TestDeleteCustom(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, tt.layouts, discardLogger)
+			h := widgets.NewHandler(&fakePlanner{}, sources.NewRegistry(), tt.store, fakeProfiles{}, tt.layouts, discardLogger)
 
 			mux := http.NewServeMux()
 			mux.HandleFunc("DELETE /api/widgets/custom/{id}", h.DeleteCustom)

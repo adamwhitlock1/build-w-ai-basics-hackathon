@@ -40,6 +40,7 @@ const SOURCE_LABELS: Record<SourceName, string> = {
   news_search: 'a news search',
   events_search: 'an events search',
   web_search: 'a web search',
+  weather_forecast: 'a forecast',
 }
 
 // What a described widget says when its latest search found nothing (or
@@ -110,13 +111,44 @@ export function WidgetCard({
 
       {widget?.query && !loading && (
         <div className="mt-6 flex items-baseline gap-3 border-t border-line pt-4 text-xs text-ink-muted">
-          <p className="min-w-0 flex-1 truncate" title={widget.query}>
-            From {sourceLabel} for “{widget.query}”
-          </p>
+          {widget.source === 'weather_forecast' ? (
+            <WeatherCredit place={widget.query} />
+          ) : (
+            <p className="min-w-0 flex-1 truncate" title={widget.query}>
+              From {sourceLabel} for “{widget.query}”
+            </p>
+          )}
           {widget.updatedAt && <UpdatedAgo updatedAt={widget.updatedAt} />}
         </div>
       )}
     </article>
+  )
+}
+
+/**
+ * The footer of a weather card: the place it's for, and the credit
+ * Open-Meteo's CC BY 4.0 license asks for, linked to their site. The credit
+ * gets its own line so a narrow card never truncates it; only the place can
+ * be cut short.
+ */
+function WeatherCredit({ place }: { place: string }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <p className="truncate" title={place}>
+        Forecast for “{place}”
+      </p>
+      <p className="mt-0.5">
+        Weather data by{' '}
+        <a
+          href="https://open-meteo.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="whitespace-nowrap rounded-sm underline decoration-line underline-offset-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          Open-Meteo.com
+        </a>
+      </p>
+    </div>
   )
 }
 

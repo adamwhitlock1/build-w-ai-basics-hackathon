@@ -1,16 +1,30 @@
 package widgets
 
-import "time"
+import (
+	"time"
+
+	"porchlight/internal/sources"
+)
 
 // How long each kind of widget's results stay fresh. Older results are
 // still shown, but marked stale, and the page then asks for new ones in the
 // background. News moves faster than local events; described widgets sit in
-// between.
+// between, except weather, which changes by the hour.
 const (
 	ArticlesFreshFor = 3 * time.Hour
 	EventsFreshFor   = 12 * time.Hour
 	CustomFreshFor   = 6 * time.Hour
+	WeatherFreshFor  = time.Hour
 )
+
+// customFreshFor is how long a described widget's items stay fresh, by the
+// source they came from: a forecast changes faster than most searches.
+func customFreshFor(source string) time.Duration {
+	if source == sources.WeatherForecast {
+		return WeatherFreshFor
+	}
+	return CustomFreshFor
+}
 
 // refreshGuard is how recent a result must be for a refresh to hand it back
 // instead of searching again. It stops a double click, or the same page open

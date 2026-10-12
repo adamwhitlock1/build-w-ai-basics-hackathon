@@ -7,6 +7,7 @@ const EXAMPLES = [
   'upcoming SpaceX launches',
   'show me local farmers markets this weekend',
   'give me a quote of the day',
+  'this week’s weather',
 ]
 const EXAMPLE_INTERVAL_MS = 3500
 const MAX_PROMPT_LENGTH = 500

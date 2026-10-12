@@ -278,7 +278,7 @@ func TestKidGuidance(t *testing.T) {
 			return err
 		}},
 		{"pick widget spec", validSpec, func(c *llm.Client, aud sources.Audience) error {
-			_, err := c.PickWidgetSpec(context.Background(), "upcoming SpaceX launches", testCatalog, aud)
+			_, err := c.PickWidgetSpec(context.Background(), "upcoming SpaceX launches", testCatalog, aud, "")
 			return err
 		}},
 		{"shape items", shaped, func(c *llm.Client, aud sources.Audience) error {

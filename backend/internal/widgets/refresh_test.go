@@ -134,7 +134,7 @@ func TestRefreshCustom(t *testing.T) {
 			}
 			saved := &fakeWidgetStore{widgets: []store.CustomWidget{widget}}
 			src := &countingSource{fakeSource: fakeSource{name: "events_search", results: tt.results, err: tt.searchErr}}
-			h := widgets.NewHandler(tt.planner, sources.NewRegistry(src), saved, &fakeLayouts{}, discardLogger)
+			h := widgets.NewHandler(tt.planner, sources.NewRegistry(src), saved, fakeProfiles{}, &fakeLayouts{}, discardLogger)
 
 			mux := http.NewServeMux()
 			mux.HandleFunc("POST /api/widgets/custom/{id}/refresh", h.RefreshCustom)
