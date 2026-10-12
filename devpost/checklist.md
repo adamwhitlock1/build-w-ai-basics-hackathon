@@ -71,23 +71,24 @@ Build mode: fast
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — after slice 1: the describe-a-widget moment in the browser, while its look and output quality can still shape the curated widgets and the canvas. Feedback: switch to a faster, more accurate model (now `openai/gpt-4.1-mini`, about 4s per widget instead of about 25s, and the shaping fixes were committed). The learner expected more of the app; the remaining features are slices 2–6 as planned, with no reordering requested.
-- [ ] Final kick-the-tires exploration and feedback completed
+- [x] Final kick-the-tires exploration and feedback completed. The learner ran the full app. Dragging feels fine, and the Remove action stays. One bug: Quote of the Day showed the quote twice.
 
 ## Final Review
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Quote of the Day (hero card) shows the quote twice, as the headline and again as the detail line. Fix: drop a detail line that repeats the title, in the backend and in the card renderer. Fixed in `6ceecb0`, with Go and live checks, and the learner confirmed it.
+- [x] Final review complete — feedback resolved and learner confirms ready to ship ("fixed, the poc is ready")
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence:
-Route and stops:
-Edit outcome:
-Reflection:
-Activity mode:
+Activity and evidence: Guided Go route, tied to the learner's goal (Go for APIs and backends). The learner followed "describe a widget" through the Go backend, ending at the build moment where the date filtering moved from the model into Go (`before`, pinned by `TestShapeItems` "future_only drops items dated before today").
+Route and stops: (1) `backend/routes.go` `routes()`, the `POST /api/widgets/from-prompt` pattern and `private`/`RequireAuth` middleware; (2) `backend/internal/widgets/handler.go` `FromPrompt` and `type Planner interface` (fakes in `TestFromPrompt`); (3) `backend/internal/llm/items.go` `groundItems` and `before`. All three stops completed.
+Edit outcome: Kept. The learner renamed the Local Events card to "Happening near you" in `curated.go` and updated `curated_test.go`; `make check` passed. The visible heading is set by the frontend (`LocalEventsWidget.tsx`), so that line was aligned too ("Happening near you" / "Happening near them"). Build and lint pass, committed in `efeff4e`.
+Reflection: Offered and answered (recorded in the ignored learner profile).
+Activity mode: Live app and editor (the learner ran `make check` themselves). App map: `devpost/app-map.html`, a snapshot of `efeff4e`, checked in the browser pane.
 
 ## Revisions
 

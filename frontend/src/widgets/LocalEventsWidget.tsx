@@ -13,7 +13,7 @@ export function LocalEventsWidget() {
   return (
     <CuratedWidgetCard
       result={events}
-      title="Local events"
+      title={isYou ? 'Happening near you' : 'Happening near them'}
       noun="events"
       loadingMessage={isYou ? 'Looking for events near you…' : 'Looking for events near them…'}
       missing={{

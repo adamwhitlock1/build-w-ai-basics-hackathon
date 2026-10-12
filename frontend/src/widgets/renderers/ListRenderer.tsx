@@ -1,5 +1,5 @@
 import { ItemLink } from './ItemLink'
-import { metaLine, primaryText } from './itemText'
+import { detailText, metaLine, primaryText } from './itemText'
 import type { ItemsRendererProps } from './types'
 
 /**
@@ -18,8 +18,8 @@ export function ListRenderer({ items }: ItemsRendererProps) {
               {primaryText(item)}
             </ItemLink>
             {meta && <p className="mt-1 text-xs text-ink-muted">{meta}</p>}
-            {item.title && item.snippet && (
-              <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-soft">{item.snippet}</p>
+            {detailText(item) && (
+              <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-soft">{detailText(item)}</p>
             )}
           </li>
         )

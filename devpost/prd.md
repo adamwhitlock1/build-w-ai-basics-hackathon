@@ -257,3 +257,9 @@ Things this project will NOT do, each with a brief reason.
 ## Open Questions
 
 - **None blocking.** The PRD is internally consistent. Any remaining unknowns (e.g., specific LLM model, exact resize handle behavior) are 4-spec or 5-build decisions, not product decisions.
+
+## Post-PoC Additions
+
+Everything above describes the proof of concept as planned and built with the Devpost Learn skill pack, and is kept unchanged. The commit tagged `poc-complete` is that snapshot. Features added after it are planned and specified with OpenSpec: proposals in progress live in `openspec/changes/`, finished ones in `openspec/changes/archive/`, and the specs they produce in `openspec/specs/`.
+
+- None yet.

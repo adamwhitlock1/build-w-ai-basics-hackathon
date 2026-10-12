@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -136,6 +137,9 @@ func groundItems(shaped []shapedItem, results []sources.Result, cutoff string) (
 			Label:   strings.TrimSpace(s.Label),
 			Value:   strings.TrimSpace(s.Value),
 		}
+		if sameText(it.Snippet, it.Title) {
+			it.Snippet = "" // e.g. a quote repeated as its own "context"
+		}
 		if r, ok := byURL[it.URL]; ok && it.URL != "" {
 			it.Thumbnail = r.Thumbnail
 		} else {
@@ -150,6 +154,25 @@ func groundItems(shaped []shapedItem, results []sources.Result, cutoff string) (
 		}
 	}
 	return items, dropped
+}
+
+// sameText reports whether a and b say the same thing, ignoring case,
+// punctuation, quote marks and spacing. Two empty strings don't count.
+func sameText(a, b string) bool {
+	na, nb := normalizeText(a), normalizeText(b)
+	return na != "" && na == nb
+}
+
+// normalizeText keeps only letters and digits, lowercased, so "“Success is
+// liking yourself…”" and "success is liking yourself" compare equal.
+func normalizeText(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(unicode.ToLower(r))
+		}
+	}
+	return b.String()
 }
 
 // resultsByURL indexes results by their URL, so model output can be checked
@@ -231,12 +254,12 @@ Rules:
 - future_only is true when the request is about upcoming, next, scheduled, or future things. Then leave out anything dated before today, and order the rest soonest first.
 - Return at most ` + fmt.Sprint(MaxItems) + ` items, most relevant first. Leave out results that don't help answer the request. Return fewer items rather than padding.
 - url must be copied exactly from the result the item came from, or "" if there isn't one.
-- Use "" for any field you don't know.
+- Use "" for any field you don't know. Never repeat the title in the snippet.
 
 Which fields to fill, by archetype:
 - list: title, date, snippet, url.
 - cards: title, snippet, url.
-- hero: exactly one item. title = the featured text (e.g. the quote itself), snippet = brief context, label = the attribution (e.g. the author), url.
+- hero: exactly one item. title = the featured text in full (e.g. the quote's own words — never a page or article title), snippet = brief context that is NOT the featured text again (e.g. where or when it was said) or "", label = the attribution (e.g. the author), url.
 - key_value: label = what is measured, value = the short value (number, score, price); url if helpful.
 - table: title, date, label, value, url.
 

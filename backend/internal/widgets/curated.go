@@ -192,7 +192,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	widget := CuratedWidget{Widget: Widget{
-		Title:     "Local events",
+		Title:     "Happening near you",
 		Source:    eventsSourceName,
 		Archetype: llm.ArchetypeList,
 		Items:     []llm.Item{},

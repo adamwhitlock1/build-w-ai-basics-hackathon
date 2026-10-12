@@ -409,3 +409,9 @@ Decisions made in the spec interview:
 - **Puck version pinning.** Resolved: `@puckeditor/core` 0.23.0, which supports React 18.
 - **The "+" button placement in Puck.** Puck has a block library UI; we'll use that for adding `Custom` widgets, but we also need an entry point for the kernel prompt. The build will resolve the exact UX in the first pass.
 - **"Switch view" sidebar interaction.** Resolved: the URL carries `/?as=<memberId>`, and parent-only routes `GET /api/members/{id}/homepage`, `GET /api/members/{id}/widgets/articles|events` and `PUT /api/members/{id}/profile` reuse the `/api/me` handlers through a "subject user" in the request context (`auth.RequireMember` / `auth.SubjectFrom`). Parents can view another member's page and edit their interests and location, but not their layout or widgets.
+
+## Post-PoC Additions
+
+Everything above describes the proof of concept as planned and built with the Devpost Learn skill pack, and is kept unchanged. The commit tagged `poc-complete` is that snapshot. Features added after it are planned and specified with OpenSpec: proposals in progress live in `openspec/changes/`, finished ones in `openspec/changes/archive/`, and the specs they produce in `openspec/specs/`.
+
+- None yet.

@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Porchlight App Map</title>
+<meta name="description" content="A take-home map of the Porchlight proof of concept: how one action flows through the code, where to make common changes, and a practice to reuse.">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --ink: #2a2622;
+    --ink-soft: #4d4741;
+    --ink-muted: #756c63;
+    --line: #e7e2da;
+    --primary: #4f46e5;
+    --accent: #b45309;
+    --accent-soft: #fef3c7;
+    --code-bg: #f3f0ea;
+    --shadow: 0 1px 2px rgba(42, 38, 34, 0.06), 0 8px 24px rgba(42, 38, 34, 0.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171513;
+      --surface: #211e1b;
+      --ink: #f1ece6;
+      --ink-soft: #d6cfc6;
+      --ink-muted: #a69c91;
+      --line: #36312c;
+      --primary: #a5b4fc;
+      --accent: #fbbf24;
+      --accent-soft: #3a2f16;
+      --code-bg: #2a2622;
+      --shadow: none;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171513;
+    --surface: #211e1b;
+    --ink: #f1ece6;
+    --ink-soft: #d6cfc6;
+    --ink-muted: #a69c91;
+    --line: #36312c;
+    --primary: #a5b4fc;
+    --accent: #fbbf24;
+    --accent-soft: #3a2f16;
+    --code-bg: #2a2622;
+    --shadow: none;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; line-height: 1.2; }
+  h1 { font-size: 2.4rem; margin: 0 0 8px; }
+  h2 { font-size: 1.6rem; margin: 48px 0 12px; }
+  h3 { font-size: 1.15rem; margin: 0; }
+  p { margin: 0 0 12px; }
+  a { color: var(--primary); }
+  .kicker { color: var(--ink-muted); font-size: 0.9rem; margin-bottom: 4px; }
+  .lede { color: var(--ink-soft); font-size: 1.1rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+  pre { background: var(--code-bg); padding: 12px 14px; border-radius: 12px; overflow-x: auto; margin: 8px 0 12px; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .pieces { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 16px; }
+  .pieces .card p { margin: 6px 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* The flow diagram: one action, top to bottom. */
+  .flow { list-style: none; margin: 16px 0 0; padding: 0; counter-reset: step; }
+  .flow > li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 16px 14px 56px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+    counter-increment: step;
+  }
+  .flow > li::before {
+    content: counter(step);
+    position: absolute; left: 16px; top: 14px;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent);
+    font-weight: 600; font-size: 0.85rem;
+  }
+  .flow > li + li { margin-top: 22px; }
+  .flow > li + li::after {
+    content: "";
+    position: absolute; left: 28px; top: -22px;
+    width: 2px; height: 22px; background: var(--line);
+  }
+  .flow .where { color: var(--ink-muted); font-size: 0.9rem; }
+  .flow .ext {
+    display: inline-block; margin-top: 2px;
+    border: 1px dashed var(--accent); color: var(--accent);
+    border-radius: 999px; padding: 1px 10px; font-size: 0.82rem;
+  }
+  .flow .kernel { border-color: var(--accent); }
+
+  details { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); margin-top: 12px; }
+  details > summary {
+    cursor: pointer; padding: 14px 16px; list-style: none;
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸"; color: var(--accent); }
+  details[open] > summary::before { content: "▾"; }
+  details > summary:focus-visible, a:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 8px; }
+  details .body { padding: 0 16px 16px; color: var(--ink-soft); }
+  .tag { font-size: 0.8rem; color: var(--ink-muted); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.95rem; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 8px; border-top: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--ink-soft); width: 38%; }
+  .table-wrap { overflow-x: auto; }
+
+  .practice { border-left: 4px solid var(--accent); }
+  footer { margin-top: 48px; color: var(--ink-muted); font-size: 0.88rem; }
+  @media (max-width: 560px) {
+    h1 { font-size: 2rem; }
+    th { width: auto; }
+    th, td { display: block; padding: 6px 0; border-top: none; }
+    tr { display: block; border-top: 1px solid var(--line); padding: 8px 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <p class="kicker">Porchlight · App map</p>
+  <h1>How Porchlight fits together</h1>
+  <p class="lede">Porchlight gives each person in a family their own homepage, and every widget on it is AI-driven. You type a sentence like “show me upcoming SpaceX launches” and a live widget appears. Articles and local events pick themselves from your interests.</p>
+
+  <section aria-labelledby="pieces">
+    <h2 id="pieces">The main pieces</h2>
+    <div class="pieces">
+      <div class="card"><h3>React frontend</h3><p><code>frontend/src</code>. The pages, the widget cards, Arrange mode (Puck), and the family sidebar. It only talks to the Go API.</p></div>
+      <div class="card"><h3>Go API</h3><p><code>backend/</code>. Routes, sessions, the widget pipeline, and every call to the outside world. Your API keys stay here.</p></div>
+      <div class="card"><h3>SQLite</h3><p><code>backend/porchlight.db</code>. Accounts, families, invites, profiles, saved widgets and page layouts. The schema is in <code>backend/migrations/</code>.</p></div>
+      <div class="card"><h3>OpenRouter + Brave</h3><p>The LLM chooses what to search for and shapes the results. Brave Search supplies the live data.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="flow">
+    <h2 id="flow">One action, end to end: “describe a widget”</h2>
+    <p>What happens between pressing Enter in the <strong>+</strong> prompt and a new card appearing:</p>
+    <ol class="flow">
+      <li>
+        <strong>You type a sentence and press Enter</strong>
+        <span class="where"><code>frontend/src/widgets/DescribeWidgetPrompt.tsx</code> → <code>useCreateWidgetFromPrompt</code> in <code>frontend/src/api/hooks.ts</code> sends <code>POST /api/widgets/from-prompt</code></span>
+      </li>
+      <li>
+        <strong>The Go router matches the request and checks you’re logged in</strong>
+        <span class="where"><code>backend/routes.go</code> → <code>routes()</code>, the line <code>mux.Handle("POST /api/widgets/from-prompt", private(...))</code></span>
+      </li>
+      <li class="kernel">
+        <strong>The LLM plans the widget: title, data source, search query, display shape</strong>
+        <span class="where"><code>backend/internal/widgets/handler.go</code> → <code>FromPrompt</code> calls <code>PickWidgetSpec</code> (<code>backend/internal/llm/spec.go</code>)</span>
+        <span class="ext">OpenRouter</span>
+      </li>
+      <li>
+        <strong>Brave Search fetches live results</strong>
+        <span class="where"><code>src.Search</code>, via the registry in <code>backend/internal/sources/</code></span>
+        <span class="ext">Brave Search</span>
+      </li>
+      <li class="kernel">
+        <strong>The LLM shapes the results into items, and then Go checks them</strong>
+        <span class="where"><code>ShapeItems</code> → <code>groundItems</code> and <code>before</code> in <code>backend/internal/llm/items.go</code>: made-up links are blanked, past dates dropped, repeated text removed</span>
+        <span class="ext">OpenRouter</span>
+      </li>
+      <li>
+        <strong>The widget is saved and added to the end of your layout</strong>
+        <span class="where"><code>CreateCustomWidget</code> (<code>backend/internal/store/widgets.go</code>) and <code>AddCustomWidget</code> (<code>backend/internal/layout/handler.go</code>)</span>
+        <span class="ext">SQLite</span>
+      </li>
+      <li>
+        <strong>The card appears with the amber “fresh” border</strong>
+        <span class="where"><code>frontend/src/puck/LayoutView.tsx</code> → <code>WidgetCard</code> (<code>frontend/src/widgets/WidgetCard.tsx</code>) and one of the renderers in <code>frontend/src/widgets/renderers/</code></span>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="route">
+    <h2 id="route">The Go route you walked</h2>
+    <p>You followed these three stops during the wrap-up. Search for the anchor in your editor rather than relying on line numbers.</p>
+
+    <details open>
+      <summary><h3>1 · The router and its middleware</h3><span class="tag">backend/routes.go · search “POST /api/widgets/from-prompt”</span></summary>
+      <div class="body">
+        <p>Go 1.22’s standard <code>http.ServeMux</code> matches the method and the path in one pattern. A middleware is a function that takes a handler and returns a new one. <code>private(h)</code> wraps <code>h</code> in <code>RequireAuth</code>, so the handler only runs for a logged-in person.</p>
+<pre><code>mux.Handle("POST /api/widgets/from-prompt", private(widgetHandler.FromPrompt))</code></pre>
+      </div>
+    </details>
+
+    <details>
+      <summary><h3>2 · The kernel handler and the interface it declares</h3><span class="tag">backend/internal/widgets/handler.go · FromPrompt, type Planner interface</span></summary>
+      <div class="body">
+        <p><code>FromPrompt</code> runs the kernel in four steps: <code>decodePrompt</code>, then <code>PickWidgetSpec</code>, then <code>src.Search</code>, then <code>ShapeItems</code>. Errors are mapped to clear HTTP statuses: 422 when the LLM can’t pick a source, 502 when an outside service fails.</p>
+        <p><code>type Planner interface</code> is declared by the code that <em>uses</em> it. <code>*llm.Client</code> satisfies it without ever naming it. That’s why <code>TestFromPrompt</code> (<code>handler_test.go</code>) can pass in a fake planner and never touch the network.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><h3>3 · Go checks the model’s answer</h3><span class="tag">backend/internal/llm/items.go · groundItems, before</span></summary>
+      <div class="body">
+        <p>After the LLM answers, <code>groundItems</code> blanks any URL that wasn’t in the search results. When the request is about upcoming things, <code>before</code> drops items dated before today. The model only supplies a machine-readable <code>sort_date</code>; Go makes the comparison.</p>
+<pre><code>// Both sides are YYYY-MM-DD, so comparing the strings compares the dates.
+return d.Format(time.DateOnly) &lt; cutoff</code></pre>
+        <p>This is pinned by the test case <code>"future_only drops items dated before today"</code> in <code>backend/internal/llm/llm_test.go</code>.</p>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="change">
+    <h2 id="change">To change this, start here</h2>
+    <div class="table-wrap">
+    <table>
+      <tr><th>A card’s heading (e.g. “Happening near you”)</th><td>Both places: the Go title in <code>backend/internal/widgets/curated.go</code> (<code>Events</code> / <code>Articles</code>, plus the test in <code>curated_test.go</code>) <em>and</em> the frontend title in <code>frontend/src/widgets/LocalEventsWidget.tsx</code> / <code>ArticlesWidget.tsx</code>, which overrides it on screen.</td></tr>
+      <tr><th>How the LLM picks or shapes widgets</th><td><code>specSystemPrompt</code> in <code>backend/internal/llm/spec.go</code>; <code>shapeSystemPrompt</code> in <code>backend/internal/llm/items.go</code>. Run <code>make check</code> afterwards.</td></tr>
+      <tr><th>Which AI model is used</th><td><code>OPENROUTER_MODEL</code> in <code>backend/.env</code>. It’s checked at startup.</td></tr>
+      <tr><th>A new data source (e.g. weather, PredictHQ)</th><td>Implement the <code>Source</code> interface in <code>backend/internal/sources/sources.go</code> and add it to <code>NewRegistry</code> in <code>backend/main.go</code>. The LLM sees it automatically.</td></tr>
+      <tr><th>How cards look (list, cards, hero, table…)</th><td><code>frontend/src/widgets/renderers/</code>, with colours and fonts in <code>frontend/src/styles/index.css</code> (<code>@theme</code>).</td></tr>
+      <tr><th>Arrange mode (drag, resize, Remove)</th><td><code>frontend/src/puck/</code>: <code>config.tsx</code>, <code>ResizeHandle.tsx</code>, <code>BlockActionBar.tsx</code>. Server-side layout rules are in <code>backend/internal/layout/data.go</code>.</td></tr>
+      <tr><th>Invites and the family sidebar</th><td><code>backend/internal/family/invites.go</code> and <code>frontend/src/family/FamilySidebar.tsx</code>.</td></tr>
+      <tr><th>Who can see whose page</th><td><code>RequireMember</code> in <code>backend/internal/auth/subject.go</code>, wired up by <code>asParent</code> in <code>backend/routes.go</code>.</td></tr>
+      <tr><th>The database schema</th><td>Add a new numbered file in <code>backend/migrations/</code>. It runs once, at the next startup.</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="practice">
+    <h2 id="practice">A practice to reuse</h2>
+    <div class="card practice">
+      <h3>Let the model suggest; let code decide, and pin it with a test</h3>
+      <p><strong>What happened:</strong> after slice 1, the SpaceX widget kept listing launches that had already flown, even though the prompt gave the model today’s date. Rewording the prompt didn’t make it reliable.</p>
+      <p><strong>What fixed it:</strong> the model now returns a plain <code>sort_date</code> and a <code>future_only</code> flag, and Go’s <code>before</code> does the date comparison (<code>backend/internal/llm/items.go</code>). A table-test case in <code>llm_test.go</code> uses dates relative to today. Live runs then returned only upcoming launches, five times out of five. The same idea guards links (<code>groundItems</code>) and repeated text (the Quote of the Day fix).</p>
+      <p><strong>Use it again:</strong> on any backend that takes LLM output — dates, IDs, URLs, numbers, permissions — ask the model for structured data, then make the decision in your own code with a small table-driven test. A related lesson from your wrap-up edit: when the same text or rule lives in two places (Go title and frontend heading), a test on one copy won’t catch the other. Keep one source of truth, or test both.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="run">
+    <h2 id="run">Run it again</h2>
+<pre><code># Terminal 1: the Go API (needs backend/.env with your keys)
+cd backend
+make run
+
+# Terminal 2: the web app
+cd frontend
+npm install
+npm run dev</code></pre>
+    <p>Open <a href="http://localhost:5174">http://localhost:5174</a>. Run the Go tests with <code>cd backend &amp;&amp; make check</code>. The tests use fakes, so they spend no API credit.</p>
+  </section>
+
+  <footer>
+    <p>A snapshot of commit <code>efeff4e</code> (October 2026). The code will drift from this map as the project changes. Search for the anchors above rather than relying on line numbers. Plans and decisions are in <code>devpost/</code> (scope, PRD, spec, checklist).</p>
+  </footer>
+</main>
+</body>
+</html>

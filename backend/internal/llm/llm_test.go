@@ -326,6 +326,18 @@ func TestShapeItems(t *testing.T) {
 			},
 		},
 		{
+			// The model sometimes repeats a hero's quote as its own context.
+			name: "a snippet that repeats the title is dropped",
+			content: `{"items":[
+				{"title":"Success is liking yourself, liking what you do.","url":"","snippet":"“success is liking yourself — liking what you do”","date":"","label":"Maya Angelou","value":""},
+				{"title":"Artemis II","url":"","snippet":"Artemis II crew named","date":"","label":"","value":""}
+			]}`,
+			want: []llm.Item{
+				{Title: "Success is liking yourself, liking what you do.", Label: "Maya Angelou"},
+				{Title: "Artemis II", Snippet: "Artemis II crew named"},
+			},
+		},
+		{
 			name:    "nothing usable",
 			content: `{"items":[]}`,
 			wantErr: llm.ErrNoItems,

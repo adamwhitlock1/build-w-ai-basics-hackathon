@@ -1,4 +1,4 @@
-import { primaryText } from './itemText'
+import { heroText } from './itemText'
 import { safeUrl } from './safeUrl'
 import type { ItemsRendererProps } from './types'
 
@@ -8,8 +8,7 @@ import type { ItemsRendererProps } from './types'
  */
 export function HeroRenderer({ items }: ItemsRendererProps) {
   const [item] = items
-  const display = primaryText(item)
-  const snippet = item.title ? item.snippet : ''
+  const { display, detail: snippet } = heroText(item)
   // When there's no title or snippet, the label is already part of display.
   const attribution = item.title || item.snippet ? item.label : ''
   const href = safeUrl(item.url)
