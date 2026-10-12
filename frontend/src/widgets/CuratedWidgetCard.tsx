@@ -22,6 +22,8 @@ export interface MissingInfo {
 interface CuratedWidgetCardProps {
   /** useArticles() or useEvents(). */
   result: UseQueryResult<CuratedWidget, ApiError>
+  /** Gets new picks: useRefreshCuratedWidget() for the same widget. */
+  onRefresh: () => void
   /** The heading, e.g. "Articles for you" (or "Their articles" on a family member's page). */
   title: string
   /** What it shows, in the plural, for labels: "articles", "events". */
@@ -39,8 +41,8 @@ interface CuratedWidgetCardProps {
  * had nothing to go on. Refreshing keeps the current items up until the new
  * ones arrive.
  */
-export function CuratedWidgetCard({ result, title, noun, loadingMessage, missing }: CuratedWidgetCardProps) {
-  const { data, error, isFetching, isPending, refetch } = result
+export function CuratedWidgetCard({ result, onRefresh, title, noun, loadingMessage, missing }: CuratedWidgetCardProps) {
+  const { data, error, isFetching, isPending } = result
   const openEditor = useOpenInterestsEditor()
   const showKidSafe = useShowKidSafe(data)
   const refreshRef = useRef<HTMLButtonElement>(null)
@@ -59,8 +61,8 @@ export function CuratedWidgetCard({ result, title, noun, loadingMessage, missing
   function refresh() {
     // A click that lands before the spinner shows (a quick double-click)
     // joins the load already under way rather than starting a second,
-    // paid one.
-    void refetch({ cancelRefetch: false })
+    // paid one (see useRefreshCuratedWidget).
+    onRefresh()
   }
 
   function retry() {
@@ -114,7 +116,7 @@ interface LoadErrorProps {
 }
 
 /** A small inline error with a "Try again" button; the rest of the page carries on. */
-function LoadError({ noun, error, stale, onRetry }: LoadErrorProps) {
+export function LoadError({ noun, error, stale, onRetry }: LoadErrorProps) {
   return (
     <div
       role="status"

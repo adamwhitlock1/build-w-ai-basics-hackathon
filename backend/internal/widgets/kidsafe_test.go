@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"porchlight/internal/auth"
 	"porchlight/internal/llm"
@@ -80,7 +81,7 @@ func TestCuratedWidgetsAreKidSafeForKids(t *testing.T) {
 				news := &querySource{name: "news_search", results: found}
 				events := &querySource{name: "events_search", results: found}
 				h := widgets.NewCuratedHandler(curator, sources.NewRegistry(news, events),
-					fakeProfiles{profile: profile}, discardLogger)
+					fakeProfiles{profile: profile}, newMemResults(), discardLogger)
 
 				ctx := auth.WithUser(context.Background(), w.viewer)
 				if w.subject.ID != 0 {
@@ -154,7 +155,7 @@ func TestFromPromptIsKidSafeForKids(t *testing.T) {
 			if got.KidSafe != wantKidSafe {
 				t.Errorf("response kidSafe = %v, want %v", got.KidSafe, wantKidSafe)
 			}
-			back, err := widgets.FromStore(saved.widgets[0])
+			back, err := widgets.FromStore(saved.widgets[0], time.Now())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -170,7 +171,7 @@ func TestFromPromptIsKidSafeForKids(t *testing.T) {
 func TestFromStoreWithoutKidSafe(t *testing.T) {
 	cw := store.CustomWidget{ID: 3, UserID: kid.ID, Source: "news_search", Query: "q",
 		RenderSpec: []byte(`{"title":"Old Widget","archetype":"list","items":[]}`)}
-	got, err := widgets.FromStore(cw)
+	got, err := widgets.FromStore(cw, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}

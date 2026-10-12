@@ -35,11 +35,24 @@ export interface Widget {
 }
 
 /**
- * A widget saved to the signed-in person's page: what POST
- * /api/widgets/from-prompt and GET /api/widgets/custom/{id} return, and each
- * entry of Homepage.customWidgets.
+ * When a widget's items were last updated, and whether they're old enough
+ * to fetch new ones (`widgets.Freshness` in the Go backend). The server
+ * decides staleness, so freshness windows live in one place.
  */
-export interface SavedWidget extends Widget {
+export interface Freshness {
+  /** RFC 3339 timestamp, e.g. "2026-10-09T21:14:03Z". */
+  updatedAt: string
+  /** Past its freshness window: still shown, but due for a refresh. */
+  stale: boolean
+}
+
+/**
+ * A widget saved to the signed-in person's page: what POST
+ * /api/widgets/from-prompt, GET /api/widgets/custom/{id} and POST
+ * /api/widgets/custom/{id}/refresh return, and each entry of
+ * Homepage.customWidgets.
+ */
+export interface SavedWidget extends Widget, Freshness {
   id: number
   /** RFC 3339 timestamp, e.g. "2026-10-09T21:14:03Z". */
   createdAt: string
@@ -53,10 +66,11 @@ export type EmptyReason = '' | 'no_interests' | 'no_location'
 
 /**
  * A widget Porchlight picks for you from your interests and location: what
- * GET /api/widgets/articles and GET /api/widgets/events return. It's
- * recomputed on every request, so it has no id.
+ * GET /api/widgets/articles and GET /api/widgets/events return. The server
+ * remembers each person's latest one (so it has no id of its own) and picks
+ * again when asked with `?refresh=1` or when their interests change.
  */
-export interface CuratedWidget extends Widget {
+export interface CuratedWidget extends Widget, Freshness {
   emptyReason?: EmptyReason
 }
 

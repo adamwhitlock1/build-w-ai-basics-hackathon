@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -55,6 +56,19 @@ type ProfileStore interface {
 	GetMemberProfile(ctx context.Context, userID int64) (store.MemberProfile, error)
 }
 
+// ResultStore remembers each member's latest curated widgets. *store.Store
+// satisfies it.
+type ResultStore interface {
+	GetCuratedResult(ctx context.Context, userID int64, kind string) (store.CuratedResult, error)
+	PutCuratedResult(ctx context.Context, r store.CuratedResult) error
+}
+
+// The kinds of curated widget, as remembered in the ResultStore.
+const (
+	kindArticles = "articles"
+	kindEvents   = "events"
+)
+
 // EmptyReason says why a curated widget has no items, when it's something
 // the member can fix.
 type EmptyReason string
@@ -70,15 +84,19 @@ const (
 // versions). EmptyReason is "" unless the member has to fill something in
 // first; a widget that found nothing new has no reason.
 type CuratedWidget struct {
-	// Widget is embedded, so its fields are flattened into this object,
-	// as in SavedWidget.
+	// Widget and Freshness are embedded, so their fields are flattened into
+	// this object, as in SavedWidget.
 	Widget
+	Freshness
 	EmptyReason EmptyReason `json:"emptyReason"`
 }
 
 // CuratedHandler serves the Articles and Local Events widgets. They pick
-// their own searches from the member's interests and location, and are
-// worked out fresh on every request: nothing is cached or saved.
+// their own searches from the member's interests and location. Each
+// member's latest result is remembered and sent again, without searching,
+// until the member's interests or location change or the page asks for a
+// refresh (?refresh=1). A remembered result past its freshness window is
+// still sent, marked stale, and the page then asks for a refresh.
 //
 // The member is the request's subject (see auth.SubjectFrom): the logged-in
 // user on /api/widgets/..., or, on /api/members/{id}/widgets/..., the
@@ -88,19 +106,21 @@ type CuratedHandler struct {
 	news     sources.Source
 	events   sources.Source
 	profiles ProfileStore
+	results  ResultStore
 	logger   *slog.Logger
 }
 
 // NewCuratedHandler returns a CuratedHandler that plans with curator, reads
-// profiles from profiles, and searches the news_search and events_search
-// sources in srcs. It panics if either source is missing: that's a wiring
-// mistake, and panicking catches it at startup.
-func NewCuratedHandler(curator Curator, srcs SourceFinder, profiles ProfileStore, logger *slog.Logger) *CuratedHandler {
+// profiles from profiles, remembers results in results, and searches the
+// news_search and events_search sources in srcs. It panics if either source
+// is missing: that's a wiring mistake, and panicking catches it at startup.
+func NewCuratedHandler(curator Curator, srcs SourceFinder, profiles ProfileStore, results ResultStore, logger *slog.Logger) *CuratedHandler {
 	return &CuratedHandler{
 		curator:  curator,
 		news:     mustGetSource(srcs, newsSourceName),
 		events:   mustGetSource(srcs, eventsSourceName),
 		profiles: profiles,
+		results:  results,
 		logger:   logger,
 	}
 }
@@ -117,8 +137,8 @@ func mustGetSource(srcs SourceFinder, name string) sources.Source {
 // /api/members/{id}/widgets/articles): 3-5 recent news articles for the
 // member's interests. The LLM writes one news query per interest (or, if it
 // fails, the interests are split into queries), every query is searched at
-// once, and each query's best result is shown. It must sit behind
-// auth.RequireAuth.
+// once, and each query's best result is shown. The result is remembered
+// (see CuratedHandler). It must sit behind auth.RequireAuth.
 func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	viewer, member, profile, ok := h.loadProfile(w, r)
 	if !ok {
@@ -127,19 +147,26 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	// The member whose card this is decides what's suitable, even when a
 	// parent is the one looking.
 	aud := audienceFor(member)
+	now := timeNow()
 	widget := CuratedWidget{Widget: Widget{
 		Title:     "Articles for you",
 		Source:    newsSourceName,
 		Archetype: llm.ArchetypeCards,
 		Items:     []llm.Item{},
 		KidSafe:   aud == sources.Kids,
-	}}
+	}, Freshness: justUpdated(now)}
 
 	// Without interests there is nothing to search for; asking the LLM
 	// anyway would only spend credit.
 	if profile.Interests == "" {
 		widget.EmptyReason = EmptyNoInterests
 		respond.JSON(w, http.StatusOK, widget)
+		return
+	}
+
+	// Articles only depend on the interests, so a new location keeps them.
+	inputs := normalizeInput(profile.Interests)
+	if h.sendRemembered(w, r, member.ID, kindArticles, inputs, ArticlesFreshFor, now) {
 		return
 	}
 
@@ -171,6 +198,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	widget.Items = pickArticles(perQuery)
+	h.remember(r.Context(), member.ID, kindArticles, inputs, widget.Widget, now)
 
 	h.logger.InfoContext(ctx, "articles curated",
 		"user_id", member.ID, // whose card this is
@@ -190,29 +218,37 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 // writes 2-3 location- and month-anchored web queries (with a fixed
 // fallback, unless OpenRouter itself is turning calls away), every query is
 // searched at once, and the LLM picks dated events out of the merged
-// results. It must sit behind auth.RequireAuth.
+// results. The result is remembered (see CuratedHandler). It must sit
+// behind auth.RequireAuth.
 func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	viewer, member, profile, ok := h.loadProfile(w, r)
 	if !ok {
 		return
 	}
 	aud := audienceFor(member) // as in Articles
+	now := timeNow()
 	widget := CuratedWidget{Widget: Widget{
 		Title:     "Happening near you",
 		Source:    eventsSourceName,
 		Archetype: llm.ArchetypeList,
 		Items:     []llm.Item{},
 		KidSafe:   aud == sources.Kids,
-	}}
+	}, Freshness: justUpdated(now)}
 	if profile.Location == "" {
 		widget.EmptyReason = EmptyNoLocation
 		respond.JSON(w, http.StatusOK, widget)
 		return
 	}
 
+	// Events are picked for the location and the interests, so a change to
+	// either picks them again.
+	inputs := normalizeInput(profile.Interests) + "\n" + normalizeInput(profile.Location)
+	if h.sendRemembered(w, r, member.ID, kindEvents, inputs, EventsFreshFor, now) {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(r.Context(), RequestBudget)
 	defer cancel()
-	now := time.Now()
 
 	// 1. Plan the searches.
 	planCtx, cancelPlan := context.WithTimeout(ctx, planTimeout)
@@ -264,6 +300,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 			Thumbnail: e.Thumbnail,
 		})
 	}
+	h.remember(r.Context(), member.ID, kindEvents, inputs, widget.Widget, now)
 
 	h.logger.InfoContext(ctx, "events curated",
 		"user_id", member.ID,
@@ -298,6 +335,64 @@ func (h *CuratedHandler) loadProfile(w http.ResponseWriter, r *http.Request) (vi
 	profile.Interests = strings.TrimSpace(profile.Interests)
 	profile.Location = strings.TrimSpace(profile.Location)
 	return viewer, member, profile, true
+}
+
+// sendRemembered sends userID's remembered widget of kind, and reports true,
+// when there is one picked for inputs and the request doesn't need a new
+// one. A refresh (?refresh=1) needs a new one, unless the remembered one is
+// under a minute old (see refreshGuard). If nothing usable is remembered it
+// writes nothing and reports false, and the caller works the widget out.
+func (h *CuratedHandler) sendRemembered(w http.ResponseWriter, r *http.Request, userID int64, kind, inputs string, window time.Duration, now time.Time) bool {
+	ctx := r.Context()
+	remembered, err := h.results.GetCuratedResult(ctx, userID, kind)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		return false
+	case err != nil:
+		// Not worth failing the card over: working it out again still works.
+		h.logger.WarnContext(ctx, "couldn't load the remembered widget; picking again", "kind", kind, "user_id", userID, "err", err)
+		return false
+	case remembered.Inputs != inputs: // the member's profile has changed since
+		return false
+	case r.URL.Query().Get("refresh") == "1" && !recentlyUpdated(remembered.UpdatedAt, now):
+		return false
+	}
+
+	var widget Widget
+	if err := json.Unmarshal(remembered.Payload, &widget); err != nil {
+		h.logger.WarnContext(ctx, "couldn't read the remembered widget; picking again", "kind", kind, "user_id", userID, "err", err)
+		return false
+	}
+	if widget.Items == nil {
+		widget.Items = []llm.Item{}
+	}
+	respond.JSON(w, http.StatusOK, CuratedWidget{Widget: widget, Freshness: freshness(remembered.UpdatedAt, now, window)})
+	return true
+}
+
+// remember saves widget, worked out at now from inputs, as userID's latest
+// widget of kind. The searches are already paid for, so like Handler.save it
+// outlives the request's cancellation. A failure is only logged: the member
+// still gets their widget, and it's worked out again next time.
+func (h *CuratedHandler) remember(ctx context.Context, userID int64, kind, inputs string, widget Widget, now time.Time) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), saveTimeout)
+	defer cancel()
+	payload, err := json.Marshal(widget)
+	if err == nil {
+		err = h.results.PutCuratedResult(ctx, store.CuratedResult{
+			UserID: userID, Kind: kind, Inputs: inputs, Payload: payload, UpdatedAt: now,
+		})
+	}
+	if err != nil {
+		h.logger.WarnContext(ctx, "couldn't remember the widget", "kind", kind, "user_id", userID, "err", err)
+	}
+}
+
+// normalizeInput puts a profile field in the form remembered widgets are
+// matched on: lower case, with runs of spaces and line breaks made single
+// spaces, so retyping the same interests doesn't count as a change.
+func normalizeInput(s string) string {
+	return strings.ToLower(strings.Join(strings.Fields(s), " "))
 }
 
 // search runs every query on src at once, filtered for aud (see searchAll). A failed query is

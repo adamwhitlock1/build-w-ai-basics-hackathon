@@ -55,11 +55,12 @@ type SourceFinder interface {
 	Get(name string) (sources.Source, bool)
 }
 
-// WidgetStore saves, loads and deletes users' custom widgets. *store.Store
-// satisfies it.
+// WidgetStore saves, loads, refreshes and deletes users' custom widgets.
+// *store.Store satisfies it.
 type WidgetStore interface {
 	CreateCustomWidget(ctx context.Context, w store.CustomWidget) (store.CustomWidget, error)
 	GetCustomWidget(ctx context.Context, userID, widgetID int64) (store.CustomWidget, error)
+	UpdateCustomWidgetItems(ctx context.Context, userID, widgetID int64, renderSpec json.RawMessage, refreshedAt time.Time) (store.CustomWidget, error)
 	DeleteCustomWidget(ctx context.Context, userID, widgetID int64) error
 }
 
@@ -118,6 +119,9 @@ type SavedWidget struct {
 	// fields into this object: {"id", "title", ..., "items", "createdAt"}.
 	Widget
 	CreatedAt time.Time `json:"createdAt"` // encodes as RFC 3339
+	// Freshness says when the items were last refreshed (when the widget
+	// was built, if never) and whether they're due for a refresh.
+	Freshness
 }
 
 // renderSpec is the JSON kept in custom_widgets.render_spec: everything
@@ -131,14 +135,19 @@ type renderSpec struct {
 	KidSafe bool `json:"kidSafe,omitempty"`
 }
 
-// FromStore turns a saved custom widget back into a SavedWidget.
-func FromStore(cw store.CustomWidget) (SavedWidget, error) {
+// FromStore turns a saved custom widget back into a SavedWidget, with its
+// freshness as of now.
+func FromStore(cw store.CustomWidget, now time.Time) (SavedWidget, error) {
 	var spec renderSpec
 	if err := json.Unmarshal(cw.RenderSpec, &spec); err != nil {
 		return SavedWidget{}, fmt.Errorf("decode render spec of widget %d: %w", cw.ID, err)
 	}
 	if spec.Items == nil {
 		spec.Items = []llm.Item{}
+	}
+	updatedAt := cw.RefreshedAt
+	if updatedAt.IsZero() { // never refreshed: the items date from when it was built
+		updatedAt = cw.CreatedAt
 	}
 	return SavedWidget{
 		ID: cw.ID,
@@ -151,6 +160,7 @@ func FromStore(cw store.CustomWidget) (SavedWidget, error) {
 			KidSafe:   spec.KidSafe,
 		},
 		CreatedAt: cw.CreatedAt.UTC(),
+		Freshness: freshness(updatedAt, now, CustomFreshFor),
 	}, nil
 }
 
@@ -215,7 +225,7 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4. Save it for the user, and respond.
-	saved, err := h.save(r.Context(), user.ID, Widget{
+	saved, err := h.save(r.Context(), user.ID, prompt, Widget{
 		Title:     spec.Title,
 		Source:    spec.Source,
 		Query:     spec.Query,
@@ -231,15 +241,16 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusCreated, saved)
 }
 
-// save stores widget for userID and puts it at the end of their saved
-// layout.
+// save stores widget, described as prompt, for userID and puts it at the
+// end of their saved layout. The prompt is kept so a refresh can shape new
+// results the same way.
 //
 // By now the LLM and search calls are done and paid for, so the save uses
 // neither the pipeline's deadline (which may have just run out) nor the
 // request's cancellation (the browser tab may have closed): the widget will
 // be on the page next time. context.WithoutCancel keeps ctx's values but
 // drops its cancellation, and saveTimeout bounds the writes instead.
-func (h *Handler) save(ctx context.Context, userID int64, widget Widget) (SavedWidget, error) {
+func (h *Handler) save(ctx context.Context, userID int64, prompt string, widget Widget) (SavedWidget, error) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), saveTimeout)
 	defer cancel()
 
@@ -252,6 +263,7 @@ func (h *Handler) save(ctx context.Context, userID int64, widget Widget) (SavedW
 		Name:       widget.Title,
 		Source:     widget.Source,
 		Query:      widget.Query,
+		Prompt:     prompt,
 		RenderSpec: spec,
 	})
 	if err != nil {
@@ -264,7 +276,7 @@ func (h *Handler) save(ctx context.Context, userID int64, widget Widget) (SavedW
 	if err := h.layouts.AddCustomWidget(ctx, userID, cw.ID); err != nil {
 		h.logger.WarnContext(ctx, "couldn't add the new widget to the layout", "user_id", userID, "widget_id", cw.ID, "err", err)
 	}
-	return SavedWidget{ID: cw.ID, Widget: widget, CreatedAt: cw.CreatedAt.UTC()}, nil
+	return SavedWidget{ID: cw.ID, Widget: widget, CreatedAt: cw.CreatedAt.UTC(), Freshness: justUpdated(cw.CreatedAt)}, nil
 }
 
 // GetCustom handles GET /api/widgets/custom/{id}: one of the logged-in
@@ -293,12 +305,121 @@ func (h *Handler) GetCustom(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, "load widget", err)
 		return
 	}
-	saved, err := FromStore(cw)
+	saved, err := FromStore(cw, time.Now())
 	if err != nil {
 		h.serverError(w, r, "load widget", err)
 		return
 	}
 	respond.JSON(w, http.StatusOK, saved)
+}
+
+// RefreshCustom handles POST /api/widgets/custom/{id}/refresh: it gets new
+// items for one of the logged-in user's saved widgets by running its saved
+// search again and shaping the results for the sentence it was described
+// with, keeping its title and archetype, and responds 200 with the widget.
+// It must sit behind auth.RequireAuth.
+//
+// Whatever goes wrong, the saved items are only replaced by a successful
+// refresh: a failed search leaves them as they were (and answers with the
+// same errors as FromPrompt), and so does a search that finds nothing at
+// all. A widget refreshed under a minute ago is sent back as it is, so a
+// double click or a second tab doesn't pay twice. Another user's widget
+// gets the same 404 as a missing one.
+func (h *Handler) RefreshCustom(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFrom(r.Context())
+	if !ok {
+		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeWidgetNotFound(w)
+		return
+	}
+	cw, err := h.saved.GetCustomWidget(r.Context(), user.ID, id)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeWidgetNotFound(w)
+		return
+	case err != nil:
+		h.serverError(w, r, "load widget", err)
+		return
+	}
+	now := timeNow()
+	current, err := FromStore(cw, now)
+	if err != nil {
+		h.serverError(w, r, "load widget", err)
+		return
+	}
+	if recentlyUpdated(current.UpdatedAt, now) {
+		respond.JSON(w, http.StatusOK, current)
+		return
+	}
+	src, ok := h.sources.Get(cw.Source)
+	if !ok { // saved before a source was renamed or removed
+		h.logger.WarnContext(r.Context(), "saved widget has an unknown source", "widget_id", id, "source", cw.Source)
+		respond.Error(w, http.StatusUnprocessableEntity, "This widget's data source isn't available any more.", "Remove it and describe it again.")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), RequestBudget)
+	defer cancel()
+	// Only the owner refreshes their widget, so they decide what's suitable
+	// (as in FromPrompt). A kid's widget saved before kid-safe picks becomes
+	// kid-safe here.
+	aud := audienceFor(user)
+
+	// 1. Search again with the saved query.
+	results, err := src.Search(ctx, cw.Query, aud)
+	if err != nil {
+		writeSearchError(w, r, h.logger, err)
+		return
+	}
+	if len(results) == 0 {
+		// More likely a hiccup than the topic vanishing: keep what's there.
+		h.logger.InfoContext(ctx, "refresh found nothing; keeping the saved items", "widget_id", id, "query", cw.Query)
+		respond.JSON(w, http.StatusOK, current)
+		return
+	}
+
+	// 2. Shape the results the way the widget was first built. Widgets saved
+	// before prompts were kept use their title, which names what they show.
+	prompt := cw.Prompt
+	if prompt == "" {
+		prompt = current.Title
+	}
+	spec := llm.WidgetSpec{Title: current.Title, Source: cw.Source, Query: cw.Query, Archetype: current.Archetype}
+	items, err := h.planner.ShapeItems(ctx, prompt, spec, results, aud)
+	if err != nil {
+		h.logger.WarnContext(ctx, "shaping failed; using raw search results", "widget_id", id, "err", err)
+		items = itemsFromResults(results)
+	}
+
+	// 3. Save, past the request's cancellation like save does: the calls
+	// are paid for.
+	saveCtx, cancelSave := context.WithTimeout(context.WithoutCancel(r.Context()), saveTimeout)
+	defer cancelSave()
+	renderJSON, err := json.Marshal(renderSpec{Title: current.Title, Archetype: current.Archetype, Items: items, KidSafe: aud == sources.Kids})
+	if err != nil {
+		h.serverError(w, r, "encode refreshed widget", err)
+		return
+	}
+	updated, err := h.saved.UpdateCustomWidgetItems(saveCtx, user.ID, id, renderJSON, now)
+	switch {
+	case errors.Is(err, store.ErrNotFound): // deleted while it was refreshing
+		writeWidgetNotFound(w)
+		return
+	case err != nil:
+		h.serverError(w, r, "save refreshed widget", err)
+		return
+	}
+	refreshed, err := FromStore(updated, now)
+	if err != nil {
+		h.serverError(w, r, "load widget", err)
+		return
+	}
+	h.logger.InfoContext(ctx, "widget refreshed", "widget_id", id, "user_id", user.ID, "kid_safe", refreshed.KidSafe, "items", len(refreshed.Items))
+	respond.JSON(w, http.StatusOK, refreshed)
 }
 
 // DeleteCustom handles DELETE /api/widgets/custom/{id}: it deletes one of

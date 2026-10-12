@@ -12,6 +12,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"porchlight/internal/auth"
 	"porchlight/internal/respond"
@@ -93,8 +94,9 @@ func (h *Handler) Homepage(w http.ResponseWriter, r *http.Request) {
 		CustomWidgets: make([]widgets.SavedWidget, 0, len(saved)),
 	}
 	widgetIDs := make([]int64, 0, len(saved))
+	now := time.Now()
 	for _, cw := range saved {
-		widget, err := widgets.FromStore(cw)
+		widget, err := widgets.FromStore(cw, now)
 		if err != nil {
 			// One unreadable widget shouldn't take the whole page down.
 			h.logger.WarnContext(ctx, "skipping unreadable widget", "widget_id", cw.ID, "err", err)

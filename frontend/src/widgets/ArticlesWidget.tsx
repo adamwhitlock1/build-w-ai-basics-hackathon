@@ -1,4 +1,4 @@
-import { useArticles, usePageOwner } from '../api/hooks'
+import { useArticles, usePageOwner, useRefreshCuratedWidget } from '../api/hooks'
 import { CuratedWidgetCard } from './CuratedWidgetCard'
 
 /**
@@ -8,11 +8,13 @@ import { CuratedWidgetCard } from './CuratedWidgetCard'
  */
 export function ArticlesWidget() {
   const articles = useArticles()
+  const refresh = useRefreshCuratedWidget('articles')
   // On a family member's page, a parent reads it, so it speaks about them.
   const { isYou } = usePageOwner()
   return (
     <CuratedWidgetCard
       result={articles}
+      onRefresh={refresh}
       title={isYou ? 'Articles for you' : 'Their articles'}
       noun="articles"
       loadingMessage={isYou ? 'Finding articles for you…' : 'Finding articles for them…'}
