@@ -6,3 +6,6 @@ import "time"
 // export_test.go are compiled only by "go test", so this never ships, yet the
 // external llm_test package can still call it.
 func SetRetryDelay(c *Client, d time.Duration) { c.retryDelay = d }
+
+// KidGuidance is the under-18 block added to system prompts for kids.
+const KidGuidance = kidGuidance

@@ -52,7 +52,7 @@ type extractedEvents struct {
 // date is known and isn't before now's day, soonest first, at most
 // MaxEvents. Event URLs that don't match a result are blanked. Finding no
 // upcoming events is not an error: it returns an empty, non-nil slice.
-func (c *Client) ExtractEvents(ctx context.Context, interests, location string, results []sources.Result, now time.Time) ([]Event, error) {
+func (c *Client) ExtractEvents(ctx context.Context, interests, location string, results []sources.Result, now time.Time, aud sources.Audience) ([]Event, error) {
 	schema, err := listSchema(extractedEvents{}, "events", "extractedEvent")
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (c *Client) ExtractEvents(ctx context.Context, interests, location string, 
 		name:   "local_events",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: extractEventsSystemPrompt(now)},
+			{Role: openai.ChatMessageRoleSystem, Content: forAudience(extractEventsSystemPrompt(now), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: user},
 		},
 	}

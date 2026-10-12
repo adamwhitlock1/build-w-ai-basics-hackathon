@@ -2,6 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { useOpenInterestsEditor, type ProfileField } from '../account/interestsEditorContext'
 import type { ApiError, CuratedWidget, EmptyReason } from '../api/client'
+import { useShowKidSafe } from '../api/hooks'
 import { RefreshButton } from './RefreshButton'
 import { WidgetCard } from './WidgetCard'
 
@@ -43,6 +44,7 @@ interface CuratedWidgetCardProps {
 export function CuratedWidgetCard({ result, onRefresh, title, noun, loadingMessage, missing }: CuratedWidgetCardProps) {
   const { data, error, isFetching, isPending } = result
   const openEditor = useOpenInterestsEditor()
+  const showKidSafe = useShowKidSafe(data)
   const refreshRef = useRef<HTMLButtonElement>(null)
 
   const hasItems = (data?.items?.length ?? 0) > 0
@@ -80,6 +82,7 @@ export function CuratedWidgetCard({ result, onRefresh, title, noun, loadingMessa
     <WidgetCard
       widget={data}
       title={title}
+      showKidSafe={showKidSafe}
       loading={loading}
       loadingMessage={loadingMessage}
       emptyMessage={NOTHING_NEW}

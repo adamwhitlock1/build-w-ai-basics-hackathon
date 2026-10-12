@@ -26,9 +26,9 @@ type countingSource struct {
 	searches atomic.Int32
 }
 
-func (c *countingSource) Search(ctx context.Context, q string) ([]sources.Result, error) {
+func (c *countingSource) Search(ctx context.Context, q string, aud sources.Audience) ([]sources.Result, error) {
 	c.searches.Add(1)
-	return c.fakeSource.Search(ctx, q)
+	return c.fakeSource.Search(ctx, q, aud)
 }
 
 // oldLaunches is Alice's saved widget, built 7 hours ago (so stale) and

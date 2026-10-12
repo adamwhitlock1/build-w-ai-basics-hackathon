@@ -28,19 +28,22 @@ type fakePlanner struct {
 	items       []llm.Item
 	shapeErr    error
 	shapeCalled bool
-	shapedFor   string         // the prompt ShapeItems was given
-	shapedSpec  llm.WidgetSpec // the spec ShapeItems was given
-	hadDeadline bool           // whether PickWidgetSpec's context carried a deadline
+	shapedFor   string             // the prompt ShapeItems was given
+	shapedSpec  llm.WidgetSpec     // the spec ShapeItems was given
+	hadDeadline bool               // whether PickWidgetSpec's context carried a deadline
+	auds        []sources.Audience // the audience of every call, in call order
 }
 
-func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog) (llm.WidgetSpec, error) {
+func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog, aud sources.Audience) (llm.WidgetSpec, error) {
 	_, f.hadDeadline = ctx.Deadline()
+	f.auds = append(f.auds, aud)
 	return f.spec, f.specErr
 }
 
-func (f *fakePlanner) ShapeItems(_ context.Context, prompt string, spec llm.WidgetSpec, _ []sources.Result) ([]llm.Item, error) {
+func (f *fakePlanner) ShapeItems(_ context.Context, prompt string, spec llm.WidgetSpec, _ []sources.Result, aud sources.Audience) ([]llm.Item, error) {
 	f.shapeCalled = true
 	f.shapedFor, f.shapedSpec = prompt, spec
+	f.auds = append(f.auds, aud)
 	return f.items, f.shapeErr
 }
 
@@ -53,7 +56,7 @@ type fakeSource struct {
 
 func (f fakeSource) Name() string  { return f.name }
 func (f fakeSource) Shape() string { return "test results" }
-func (f fakeSource) Search(context.Context, string) ([]sources.Result, error) {
+func (f fakeSource) Search(context.Context, string, sources.Audience) ([]sources.Result, error) {
 	return f.results, f.err
 }
 

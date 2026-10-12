@@ -9,6 +9,8 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+
+	"porchlight/internal/sources"
 )
 
 // Limits on the search queries the curated widgets run. Every query is one
@@ -33,9 +35,10 @@ type searchQueries struct {
 // deduplicated, and capped at MaxArticleQueries. Failures talking to
 // OpenRouter are returned as *UpstreamError; an answer with no usable
 // queries wraps ErrNoQueries. Either way, callers can fall back to
-// FallbackArticleQueries.
-func (c *Client) CurateArticles(ctx context.Context, interests string) ([]string, error) {
-	queries, err := c.searchQueries(ctx, "article_queries", articlesSystemPrompt(time.Now()),
+// FallbackArticleQueries. For sources.Kids the model is told the member is
+// under 18.
+func (c *Client) CurateArticles(ctx context.Context, interests string, aud sources.Audience) ([]string, error) {
+	queries, err := c.searchQueries(ctx, "article_queries", forAudience(articlesSystemPrompt(time.Now()), aud),
 		"Interests: "+interests, MaxArticleQueries)
 	if err != nil {
 		return nil, fmt.Errorf("curate articles: %w", err)
@@ -47,9 +50,9 @@ func (c *Client) CurateArticles(ctx context.Context, interests string) ([]string
 // events near location, anchored to the month and year of now and matched
 // to interests (which may be empty). Errors are reported as for
 // CurateArticles; the fallback is FallbackEventQueries.
-func (c *Client) CurateEvents(ctx context.Context, interests, location string, now time.Time) ([]string, error) {
+func (c *Client) CurateEvents(ctx context.Context, interests, location string, now time.Time, aud sources.Audience) ([]string, error) {
 	user := "Location: " + location + "\nInterests: " + orNone(interests)
-	queries, err := c.searchQueries(ctx, "event_queries", eventsSystemPrompt(now), user, MaxEventQueries)
+	queries, err := c.searchQueries(ctx, "event_queries", forAudience(eventsSystemPrompt(now), aud), user, MaxEventQueries)
 	if err != nil {
 		return nil, fmt.Errorf("curate events: %w", err)
 	}

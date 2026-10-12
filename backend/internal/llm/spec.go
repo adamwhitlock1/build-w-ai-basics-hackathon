@@ -11,6 +11,8 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+
+	"porchlight/internal/sources"
 )
 
 // Archetype names a way to display a widget's items.
@@ -55,7 +57,7 @@ type Catalog interface {
 // the sources in catalog. If the model's answer is invalid even after one
 // retry, the error wraps ErrInvalidSpec. Failures talking to OpenRouter are
 // returned as *UpstreamError.
-func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Catalog) (WidgetSpec, error) {
+func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Catalog, aud sources.Audience) (WidgetSpec, error) {
 	names := catalog.Names()
 	schema, err := specSchema(names)
 	if err != nil {
@@ -66,7 +68,7 @@ func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Cata
 		name:   "widget_spec",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: specSystemPrompt(catalog.Describe(), time.Now())},
+			{Role: openai.ChatMessageRoleSystem, Content: forAudience(specSystemPrompt(catalog.Describe(), time.Now()), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
 	}

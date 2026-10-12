@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { SavedWidget } from '../../api/client'
-import { usePageHomepage, usePageOwner, useRefreshCustomWidget } from '../../api/hooks'
+import { usePageHomepage, usePageOwner, useRefreshCustomWidget, useShowKidSafe } from '../../api/hooks'
 import { LoadError } from '../../widgets/CuratedWidgetCard'
 import { RefreshButton } from '../../widgets/RefreshButton'
 import { WidgetCard } from '../../widgets/WidgetCard'
@@ -30,6 +30,7 @@ export function CustomBlock({ widgetId, fresh = false }: CustomBlockProps) {
   const page = usePageHomepage()
   const { isYou } = usePageOwner()
   const widget = page.customWidgets.find((w) => w.id === widgetId)
+  const showKidSafe = useShowKidSafe(widget)
 
   if (!widget) {
     // The layout mentions a widget this page doesn't have (the server tidies
@@ -40,7 +41,9 @@ export function CustomBlock({ widgetId, fresh = false }: CustomBlockProps) {
       </div>
     )
   }
-  if (!isYou) return <WidgetCard widget={widget} fresh={fresh} />
+  // Someone else's page is a parent looking at a family member's, the only
+  // place the Kid-safe marker shows (see useShowKidSafe).
+  if (!isYou) return <WidgetCard widget={widget} fresh={fresh} showKidSafe={showKidSafe} />
   return <OwnCustomWidget widget={widget} fresh={fresh} />
 }
 

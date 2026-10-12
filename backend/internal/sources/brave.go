@@ -103,16 +103,16 @@ func (s *BraveSource) Name() string { return s.name }
 func (s *BraveSource) Shape() string { return s.shape }
 
 // Search implements Source.
-func (s *BraveSource) Search(ctx context.Context, query string) ([]Result, error) {
+func (s *BraveSource) Search(ctx context.Context, query string, aud Audience) ([]Result, error) {
 	var (
 		raw []braveResult
 		err error
 	)
 	switch s.vertical {
 	case newsVertical:
-		raw, err = s.client.news(ctx, query)
+		raw, err = s.client.news(ctx, query, aud)
 	default:
-		raw, err = s.client.web(ctx, query, s.freshness)
+		raw, err = s.client.web(ctx, query, s.freshness, aud)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", s.name, err)
@@ -125,9 +125,18 @@ func (s *BraveSource) Search(ctx context.Context, query string) ([]Result, error
 	return results, nil
 }
 
+// setSafeSearch asks Brave to filter adult content strictly for kids. For
+// everyone else it leaves the parameter out, so Brave uses its default.
+func setSafeSearch(params url.Values, aud Audience) {
+	if aud == Kids {
+		params.Set("safesearch", "strict")
+	}
+}
+
 // news calls GET /news/search. News results sit at the top level of the body.
-func (c *BraveClient) news(ctx context.Context, query string) ([]braveResult, error) {
+func (c *BraveClient) news(ctx context.Context, query string, aud Audience) ([]braveResult, error) {
 	params := url.Values{"q": {query}, "count": {strconv.Itoa(resultCount)}}
+	setSafeSearch(params, aud)
 	var body struct {
 		Results []braveResult `json:"results"`
 	}
@@ -138,7 +147,7 @@ func (c *BraveClient) news(ctx context.Context, query string) ([]braveResult, er
 }
 
 // web calls GET /web/search. Web results are nested under "web".
-func (c *BraveClient) web(ctx context.Context, query, freshness string) ([]braveResult, error) {
+func (c *BraveClient) web(ctx context.Context, query, freshness string, aud Audience) ([]braveResult, error) {
 	params := url.Values{
 		"q":              {query},
 		"count":          {strconv.Itoa(resultCount)},
@@ -147,6 +156,7 @@ func (c *BraveClient) web(ctx context.Context, query, freshness string) ([]brave
 	if freshness != "" {
 		params.Set("freshness", freshness)
 	}
+	setSafeSearch(params, aud)
 	var body struct {
 		Web struct {
 			Results []braveResult `json:"results"`

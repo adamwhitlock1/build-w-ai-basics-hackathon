@@ -26,6 +26,12 @@ export interface Widget {
   archetype: Archetype
   /** May be empty when the search found nothing. */
   items: WidgetItem[]
+  /**
+   * Searched with strict safe-search and chosen for someone under 18,
+   * because the member it's for is a kid. Widgets saved before this existed
+   * say false.
+   */
+  kidSafe: boolean
 }
 
 /**
