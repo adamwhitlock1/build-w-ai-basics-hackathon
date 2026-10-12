@@ -51,7 +51,7 @@ func TestCurateArticles(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fake, client := newFake(t, tt.replies...)
 
-			got, err := client.CurateArticles(context.Background(), "space exploration, soccer")
+			got, err := client.CurateArticles(context.Background(), "space exploration, soccer", sources.Everyone)
 
 			if n := len(fake.reqs); n != tt.wantCalls {
 				t.Errorf("made %d calls, want %d", n, tt.wantCalls)
@@ -89,7 +89,7 @@ func TestCurateEvents(t *testing.T) {
 	fake, client := newFake(t, ok(`{"queries":["Denver indie concerts October 2026","Denver soccer games October 2026",
 		"Denver science museum events October 2026","Denver farmers markets October 2026"]}`))
 
-	got, err := client.CurateEvents(context.Background(), "", "Denver, CO", now)
+	got, err := client.CurateEvents(context.Background(), "", "Denver, CO", now, sources.Everyone)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestExtractEvents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fake, client := newFake(t, tt.reply)
 
-			events, err := client.ExtractEvents(context.Background(), "indie music", "Denver, CO", results, time.Now())
+			events, err := client.ExtractEvents(context.Background(), "indie music", "Denver, CO", results, time.Now(), sources.Everyone)
 
 			var upstream *llm.UpstreamError
 			if tt.wantUpstream {
@@ -250,5 +250,68 @@ func TestExtractEvents(t *testing.T) {
 				t.Error("user message should include the search results")
 			}
 		})
+	}
+}
+
+// TestKidGuidance checks that every model call adds the under-18 guidance
+// to its system prompt for kids, and only for kids.
+func TestKidGuidance(t *testing.T) {
+	results := []sources.Result{{Title: "Launch schedule", URL: "https://example.com/schedule"}}
+	spec := llm.WidgetSpec{Title: "SpaceX Launches", Source: "events_search", Query: "q", Archetype: llm.ArchetypeList}
+	shaped := `{"future_only":false,"items":[{"title":"Launch","url":"","snippet":"","date":"","label":"","value":"","sort_date":""}]}`
+
+	calls := []struct {
+		name  string
+		reply string
+		call  func(*llm.Client, sources.Audience) error
+	}{
+		{"curate articles", `{"queries":["space news"]}`, func(c *llm.Client, aud sources.Audience) error {
+			_, err := c.CurateArticles(context.Background(), "space", aud)
+			return err
+		}},
+		{"curate events", `{"queries":["Denver events"]}`, func(c *llm.Client, aud sources.Audience) error {
+			_, err := c.CurateEvents(context.Background(), "", "Denver, CO", time.Now(), aud)
+			return err
+		}},
+		{"extract events", `{"events":[]}`, func(c *llm.Client, aud sources.Audience) error {
+			_, err := c.ExtractEvents(context.Background(), "", "Denver, CO", results, time.Now(), aud)
+			return err
+		}},
+		{"pick widget spec", validSpec, func(c *llm.Client, aud sources.Audience) error {
+			_, err := c.PickWidgetSpec(context.Background(), "upcoming SpaceX launches", testCatalog, aud)
+			return err
+		}},
+		{"shape items", shaped, func(c *llm.Client, aud sources.Audience) error {
+			_, err := c.ShapeItems(context.Background(), "upcoming SpaceX launches", spec, results, aud)
+			return err
+		}},
+	}
+	audiences := []struct {
+		name string
+		aud  sources.Audience
+		want bool
+	}{
+		{"kids", sources.Kids, true},
+		{"everyone", sources.Everyone, false},
+	}
+	for _, c := range calls {
+		for _, a := range audiences {
+			t.Run(c.name+"/"+a.name, func(t *testing.T) {
+				fake, client := newFake(t, ok(c.reply))
+				if err := c.call(client, a.aud); err != nil {
+					t.Fatalf("call: %v", err)
+				}
+				if len(fake.reqs) != 1 || len(fake.reqs[0].Messages) == 0 {
+					t.Fatalf("got %d requests, want 1 with messages", len(fake.reqs))
+				}
+				system := fake.reqs[0].Messages[0]
+				if system.Role != "system" {
+					t.Fatalf("first message role = %q, want system", system.Role)
+				}
+				if got := strings.Contains(system.Content, llm.KidGuidance); got != a.want {
+					t.Errorf("system prompt has kid guidance = %v, want %v", got, a.want)
+				}
+			})
+		}
 	}
 }

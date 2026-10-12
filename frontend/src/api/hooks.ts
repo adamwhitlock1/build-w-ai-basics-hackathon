@@ -29,6 +29,7 @@ import {
   type Profile,
   type ProfileResponse,
   type SavedWidget,
+  type Widget,
 } from './client'
 import { ViewedMemberContext, type PageOwner } from './pageOwner'
 
@@ -370,6 +371,16 @@ async function fetchPage(
 /** A family member's page (see memberHomepageQueryOptions), with its loading and error states. */
 export function useMemberHomepage(memberId: number) {
   return useQuery(memberHomepageQueryOptions(memberId))
+}
+
+/**
+ * Whether a card should show its "Kid-safe" marker: only to parents, on
+ * content made for a kid. A kid isn't shown it; it tells them nothing they
+ * can act on.
+ */
+export function useShowKidSafe(widget: Widget | undefined): boolean {
+  const { data: me } = useMe()
+  return Boolean(widget?.kidSafe && me?.user.isAdmin)
 }
 
 /**

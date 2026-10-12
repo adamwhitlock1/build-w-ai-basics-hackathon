@@ -44,8 +44,8 @@ const RequestBudget = 100 * time.Second
 // Planner is the LLM half of the pipeline. *llm.Client satisfies it; tests
 // use a fake.
 type Planner interface {
-	PickWidgetSpec(ctx context.Context, prompt string, catalog llm.Catalog) (llm.WidgetSpec, error)
-	ShapeItems(ctx context.Context, prompt string, spec llm.WidgetSpec, results []sources.Result) ([]llm.Item, error)
+	PickWidgetSpec(ctx context.Context, prompt string, catalog llm.Catalog, aud sources.Audience) (llm.WidgetSpec, error)
+	ShapeItems(ctx context.Context, prompt string, spec llm.WidgetSpec, results []sources.Result, aud sources.Audience) ([]llm.Item, error)
 }
 
 // SourceFinder lists sources for the LLM and looks one up by name.
@@ -96,6 +96,18 @@ type Widget struct {
 	Query     string        `json:"query"`
 	Archetype llm.Archetype `json:"archetype"`
 	Items     []llm.Item    `json:"items"` // never nil, so it encodes as [] not null
+	// KidSafe is true when the content was searched and chosen for a kid
+	// (see audienceFor).
+	KidSafe bool `json:"kidSafe"`
+}
+
+// audienceFor says who content made for member is for: everyone who isn't a
+// parent is a kid.
+func audienceFor(member store.User) sources.Audience {
+	if member.IsAdmin {
+		return sources.Everyone
+	}
+	return sources.Kids
 }
 
 // SavedWidget is a Widget that belongs to a user. It's the response body of
@@ -114,6 +126,9 @@ type renderSpec struct {
 	Title     string        `json:"title"`
 	Archetype llm.Archetype `json:"archetype"`
 	Items     []llm.Item    `json:"items"`
+	// KidSafe is left out when false, so widgets saved before it existed
+	// read the same as ones made for a parent.
+	KidSafe bool `json:"kidSafe,omitempty"`
 }
 
 // FromStore turns a saved custom widget back into a SavedWidget.
@@ -133,6 +148,7 @@ func FromStore(cw store.CustomWidget) (SavedWidget, error) {
 			Query:     cw.Query,
 			Archetype: spec.Archetype,
 			Items:     spec.Items,
+			KidSafe:   spec.KidSafe,
 		},
 		CreatedAt: cw.CreatedAt.UTC(),
 	}, nil
@@ -162,9 +178,11 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	// before the server's WriteTimeout would cut the connection.
 	ctx, cancel := context.WithTimeout(r.Context(), RequestBudget)
 	defer cancel()
+	// The widget goes on the user's own page, so they decide what's suitable.
+	aud := audienceFor(user)
 
 	// 1. Plan: which source, what query, which archetype.
-	spec, err := h.planner.PickWidgetSpec(ctx, prompt, h.sources)
+	spec, err := h.planner.PickWidgetSpec(ctx, prompt, h.sources, aud)
 	if err != nil {
 		h.writeLLMError(w, r, err)
 		return
@@ -175,10 +193,10 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a widget.", "Couldn't pick a source for that prompt — try rephrasing")
 		return
 	}
-	h.logger.InfoContext(ctx, "widget planned", "source", spec.Source, "query", spec.Query, "archetype", spec.Archetype)
+	h.logger.InfoContext(ctx, "widget planned", "source", spec.Source, "query", spec.Query, "archetype", spec.Archetype, "kid_safe", aud == sources.Kids)
 
 	// 2. Search.
-	results, err := src.Search(ctx, spec.Query)
+	results, err := src.Search(ctx, spec.Query, aud)
 	if err != nil {
 		writeSearchError(w, r, h.logger, err)
 		return
@@ -187,7 +205,7 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	// 3. Shape results into items, falling back to the raw results.
 	items := []llm.Item{}
 	if len(results) > 0 {
-		shaped, err := h.planner.ShapeItems(ctx, prompt, spec, results)
+		shaped, err := h.planner.ShapeItems(ctx, prompt, spec, results, aud)
 		if err != nil {
 			h.logger.WarnContext(ctx, "shaping failed; using raw search results", "err", err)
 			items = itemsFromResults(results)
@@ -203,6 +221,7 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 		Query:     spec.Query,
 		Archetype: spec.Archetype,
 		Items:     items,
+		KidSafe:   aud == sources.Kids,
 	})
 	if err != nil {
 		h.logger.ErrorContext(ctx, "save widget", "user_id", user.ID, "err", err)
@@ -224,7 +243,7 @@ func (h *Handler) save(ctx context.Context, userID int64, widget Widget) (SavedW
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), saveTimeout)
 	defer cancel()
 
-	spec, err := json.Marshal(renderSpec{Title: widget.Title, Archetype: widget.Archetype, Items: widget.Items})
+	spec, err := json.Marshal(renderSpec{Title: widget.Title, Archetype: widget.Archetype, Items: widget.Items, KidSafe: widget.KidSafe})
 	if err != nil {
 		return SavedWidget{}, fmt.Errorf("encode render spec: %w", err)
 	}

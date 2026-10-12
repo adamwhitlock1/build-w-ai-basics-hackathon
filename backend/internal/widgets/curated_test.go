@@ -37,17 +37,20 @@ type fakeCurator struct {
 	planTimeLeft  time.Duration    // how long the planning call was given
 	interests     string           // what the last planning call was given
 	location      string
+	auds          []sources.Audience // the audience of every call, in call order
 }
 
-func (f *fakeCurator) CurateArticles(ctx context.Context, interests string) ([]string, error) {
+func (f *fakeCurator) CurateArticles(ctx context.Context, interests string, aud sources.Audience) ([]string, error) {
 	f.called = append(f.called, "CurateArticles")
+	f.auds = append(f.auds, aud)
 	f.notePlanDeadline(ctx)
 	f.interests = interests
 	return f.articleQueries, f.articleErr
 }
 
-func (f *fakeCurator) CurateEvents(ctx context.Context, interests, location string, _ time.Time) ([]string, error) {
+func (f *fakeCurator) CurateEvents(ctx context.Context, interests, location string, _ time.Time, aud sources.Audience) ([]string, error) {
 	f.called = append(f.called, "CurateEvents")
+	f.auds = append(f.auds, aud)
 	f.notePlanDeadline(ctx)
 	f.interests, f.location = interests, location
 	return f.eventQueries, f.eventErr
@@ -59,8 +62,9 @@ func (f *fakeCurator) notePlanDeadline(ctx context.Context) {
 	}
 }
 
-func (f *fakeCurator) ExtractEvents(_ context.Context, _, _ string, results []sources.Result, _ time.Time) ([]llm.Event, error) {
+func (f *fakeCurator) ExtractEvents(_ context.Context, _, _ string, results []sources.Result, _ time.Time, aud sources.Audience) ([]llm.Event, error) {
 	f.called = append(f.called, "ExtractEvents")
+	f.auds = append(f.auds, aud)
 	f.extractedFrom = results
 	return f.events, f.extractErr
 }
@@ -74,14 +78,16 @@ type querySource struct {
 
 	mu    sync.Mutex
 	asked []string
+	auds  []sources.Audience // the audience of every search, in no particular order
 }
 
 func (s *querySource) Name() string  { return s.name }
 func (s *querySource) Shape() string { return "test results" }
 
-func (s *querySource) Search(_ context.Context, query string) ([]sources.Result, error) {
+func (s *querySource) Search(_ context.Context, query string, aud sources.Audience) ([]sources.Result, error) {
 	s.mu.Lock()
 	s.asked = append(s.asked, query)
+	s.auds = append(s.auds, aud)
 	s.mu.Unlock()
 	return s.results[query], s.errs[query]
 }
@@ -637,7 +643,7 @@ func newBarrierSource(name string, n int) *barrierSource {
 func (s *barrierSource) Name() string  { return s.name }
 func (s *barrierSource) Shape() string { return "test results" }
 
-func (s *barrierSource) Search(ctx context.Context, query string) ([]sources.Result, error) {
+func (s *barrierSource) Search(ctx context.Context, query string, _ sources.Audience) ([]sources.Result, error) {
 	s.mu.Lock()
 	s.started++
 	if s.started == s.n {

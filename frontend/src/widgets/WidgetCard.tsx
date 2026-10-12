@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { SourceName, Widget } from '../api/client'
+import { ShieldIcon } from './icons'
 import { WidgetItems } from './renderers/WidgetItems'
 
 interface WidgetCardProps {
@@ -18,6 +19,8 @@ interface WidgetCardProps {
   fresh?: boolean
   /** A small control beside the heading, such as a refresh button. */
   headerAction?: ReactNode
+  /** Show the "Kid-safe" marker by the heading (see useShowKidSafe). */
+  showKidSafe?: boolean
   /** What to say when the widget has no items. */
   emptyMessage?: string
   /** The first load is under way: soft placeholder rows instead of items. */
@@ -51,6 +54,7 @@ export function WidgetCard({
   title,
   fresh = false,
   headerAction,
+  showKidSafe = false,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
   loading = false,
   loadingMessage = 'Loading…',
@@ -76,7 +80,10 @@ export function WidgetCard({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{title || widget?.title}</h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{title || widget?.title}</h2>
+          {showKidSafe && <KidSafeTag />}
+        </div>
         {headerAction && <div className="-mt-1 -mr-2 shrink-0">{headerAction}</div>}
       </div>
 
@@ -105,6 +112,19 @@ export function WidgetCard({
         </p>
       )}
     </article>
+  )
+}
+
+/** Tells a parent this card was searched and chosen for their kid. */
+function KidSafeTag() {
+  return (
+    <span
+      title="Searched with strict safe-search and chosen for under-18s"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-bg px-2 py-0.5 text-xs font-medium text-ink-soft ring-1 ring-line"
+    >
+      <ShieldIcon className="size-3.5" />
+      Kid-safe
+    </span>
   )
 }
 

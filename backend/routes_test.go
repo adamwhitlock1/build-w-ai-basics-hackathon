@@ -37,11 +37,11 @@ import (
 // fakePlanner always plans the same widget.
 type fakePlanner struct{}
 
-func (fakePlanner) PickWidgetSpec(context.Context, string, llm.Catalog) (llm.WidgetSpec, error) {
+func (fakePlanner) PickWidgetSpec(context.Context, string, llm.Catalog, sources.Audience) (llm.WidgetSpec, error) {
 	return llm.WidgetSpec{Title: "SpaceX Launches", Source: "events_search", Query: "upcoming SpaceX launches", Archetype: llm.ArchetypeList}, nil
 }
 
-func (fakePlanner) ShapeItems(context.Context, string, llm.WidgetSpec, []sources.Result) ([]llm.Item, error) {
+func (fakePlanner) ShapeItems(context.Context, string, llm.WidgetSpec, []sources.Result, sources.Audience) ([]llm.Item, error) {
 	return []llm.Item{{Title: "Starlink 10-12", URL: "https://example.com/launch", Date: "Oct 12"}}, nil
 }
 
@@ -50,7 +50,7 @@ type fakeSource struct{}
 
 func (fakeSource) Name() string  { return "events_search" }
 func (fakeSource) Shape() string { return "test results" }
-func (fakeSource) Search(context.Context, string) ([]sources.Result, error) {
+func (fakeSource) Search(context.Context, string, sources.Audience) ([]sources.Result, error) {
 	return []sources.Result{{Title: "Launch schedule", URL: "https://example.com/launch"}}, nil
 }
 
@@ -59,7 +59,7 @@ type fakeNews struct{}
 
 func (fakeNews) Name() string  { return "news_search" }
 func (fakeNews) Shape() string { return "test news" }
-func (fakeNews) Search(_ context.Context, query string) ([]sources.Result, error) {
+func (fakeNews) Search(_ context.Context, query string, _ sources.Audience) ([]sources.Result, error) {
 	return []sources.Result{{
 		Title: "News about " + query,
 		URL:   "https://news.example.com/" + url.PathEscape(query),
@@ -71,15 +71,15 @@ func (fakeNews) Search(_ context.Context, query string) ([]sources.Result, error
 // profile, and finds one event tomorrow in the first result.
 type fakeCurator struct{}
 
-func (fakeCurator) CurateArticles(_ context.Context, interests string) ([]string, error) {
+func (fakeCurator) CurateArticles(_ context.Context, interests string, _ sources.Audience) ([]string, error) {
 	return llm.FallbackArticleQueries(interests), nil
 }
 
-func (fakeCurator) CurateEvents(_ context.Context, _, location string, now time.Time) ([]string, error) {
+func (fakeCurator) CurateEvents(_ context.Context, _, location string, now time.Time, _ sources.Audience) ([]string, error) {
 	return llm.FallbackEventQueries(location, now), nil
 }
 
-func (fakeCurator) ExtractEvents(_ context.Context, _, _ string, results []sources.Result, now time.Time) ([]llm.Event, error) {
+func (fakeCurator) ExtractEvents(_ context.Context, _, _ string, results []sources.Result, now time.Time, _ sources.Audience) ([]llm.Event, error) {
 	tomorrow := now.AddDate(0, 0, 1)
 	return []llm.Event{{
 		Name: "Fall Festival", Date: tomorrow.Format("Mon, Jan 2"), SortDate: tomorrow.Format(time.DateOnly),

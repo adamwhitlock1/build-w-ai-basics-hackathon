@@ -16,6 +16,20 @@ export function CloseIcon({ className = 'size-5' }: { className?: string }) {
   )
 }
 
+export function ShieldIcon({ className = 'size-5' }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={className}>
+      <path
+        d="M10 2.5l6 2.25v4.5c0 3.9-2.55 6.9-6 8.25-3.45-1.35-6-4.35-6-8.25v-4.5L10 2.5z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <path d="M7.25 10l2 2 3.5-3.75" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function RefreshIcon({ className = 'size-5' }: { className?: string }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className}>

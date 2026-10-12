@@ -197,7 +197,7 @@ func TestPickWidgetSpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fake, client := newFake(t, tt.replies...)
 
-			spec, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog)
+			spec, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone)
 
 			if got := len(fake.reqs); got != tt.wantCalls {
 				t.Errorf("made %d calls, want %d", got, tt.wantCalls)
@@ -232,7 +232,7 @@ func TestPickWidgetSpec(t *testing.T) {
 // sends only the corrective user message.
 func TestRetryAfterEmptyReply(t *testing.T) {
 	fake, client := newFake(t, ok(""), ok(validSpec))
-	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog); err != nil {
+	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone); err != nil {
 		t.Fatal(err)
 	}
 	if len(fake.reqs) != 2 {
@@ -247,7 +247,7 @@ func TestRetryAfterEmptyReply(t *testing.T) {
 
 func TestPickWidgetSpecRequest(t *testing.T) {
 	fake, client := newFake(t, ok(validSpec))
-	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog); err != nil {
+	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone); err != nil {
 		t.Fatal(err)
 	}
 
@@ -347,7 +347,7 @@ func TestShapeItems(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fake, client := newFake(t, ok(tt.content))
 
-			items, err := client.ShapeItems(context.Background(), "upcoming SpaceX launches", spec, results)
+			items, err := client.ShapeItems(context.Background(), "upcoming SpaceX launches", spec, results, sources.Everyone)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)

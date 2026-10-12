@@ -28,16 +28,19 @@ type fakePlanner struct {
 	items       []llm.Item
 	shapeErr    error
 	shapeCalled bool
-	hadDeadline bool // whether PickWidgetSpec's context carried a deadline
+	hadDeadline bool               // whether PickWidgetSpec's context carried a deadline
+	auds        []sources.Audience // the audience of every call, in call order
 }
 
-func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog) (llm.WidgetSpec, error) {
+func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog, aud sources.Audience) (llm.WidgetSpec, error) {
 	_, f.hadDeadline = ctx.Deadline()
+	f.auds = append(f.auds, aud)
 	return f.spec, f.specErr
 }
 
-func (f *fakePlanner) ShapeItems(context.Context, string, llm.WidgetSpec, []sources.Result) ([]llm.Item, error) {
+func (f *fakePlanner) ShapeItems(_ context.Context, _ string, _ llm.WidgetSpec, _ []sources.Result, aud sources.Audience) ([]llm.Item, error) {
 	f.shapeCalled = true
+	f.auds = append(f.auds, aud)
 	return f.items, f.shapeErr
 }
 
@@ -50,7 +53,7 @@ type fakeSource struct {
 
 func (f fakeSource) Name() string  { return f.name }
 func (f fakeSource) Shape() string { return "test results" }
-func (f fakeSource) Search(context.Context, string) ([]sources.Result, error) {
+func (f fakeSource) Search(context.Context, string, sources.Audience) ([]sources.Result, error) {
 	return f.results, f.err
 }
 

@@ -259,3 +259,39 @@ func TestMemberRoutesRejectCrossSite(t *testing.T) {
 		t.Errorf("kid's interests = %q after a cross-site PUT, want unchanged", me.Profile.Interests)
 	}
 }
+
+// A kid's cards and described widgets are kid-safe, whether the kid or a
+// parent is looking; a parent's own are not.
+func TestKidSafePicks(t *testing.T) {
+	f := newTestFamily(t)
+	alice, kid, kidMe := f.alice, f.kid, f.kidMe
+	alice.do("PUT", memberPath(kidMe.User.ID, "/profile"),
+		map[string]string{"interests": "minecraft", "location": "Denver, CO"}, http.StatusOK, nil)
+
+	for _, kind := range []string{"articles", "events"} {
+		var kidsOwn, parentSees, parentsOwn widgets.CuratedWidget
+		kid.do("GET", "/api/widgets/"+kind, nil, http.StatusOK, &kidsOwn)
+		alice.do("GET", memberPath(kidMe.User.ID, "/widgets/"+kind), nil, http.StatusOK, &parentSees)
+		alice.do("GET", "/api/widgets/"+kind, nil, http.StatusOK, &parentsOwn)
+		if !kidsOwn.KidSafe || !parentSees.KidSafe || parentsOwn.KidSafe {
+			t.Errorf("%s kidSafe: kid's own %v, parent viewing kid %v, parent's own %v; want true, true, false",
+				kind, kidsOwn.KidSafe, parentSees.KidSafe, parentsOwn.KidSafe)
+		}
+	}
+
+	kidWidget, aliceWidget := kid.addWidget(), alice.addWidget()
+	if !kidWidget.KidSafe || aliceWidget.KidSafe {
+		t.Errorf("new widget kidSafe: kid's %v, alice's %v; want true, false", kidWidget.KidSafe, aliceWidget.KidSafe)
+	}
+	// The saved widget keeps it, on the kid's page and when a parent looks.
+	var seen layout.Homepage
+	alice.do("GET", memberPath(kidMe.User.ID, "/homepage"), nil, http.StatusOK, &seen)
+	for _, page := range []layout.Homepage{kid.homepage(), seen} {
+		if len(page.CustomWidgets) != 1 || !page.CustomWidgets[0].KidSafe {
+			t.Errorf("kid's saved widgets = %+v, want one with kidSafe", page.CustomWidgets)
+		}
+	}
+	if mine := alice.homepage(); len(mine.CustomWidgets) != 1 || mine.CustomWidgets[0].KidSafe {
+		t.Errorf("alice's saved widgets = %+v, want one without kidSafe", mine.CustomWidgets)
+	}
+}

@@ -44,9 +44,9 @@ const (
 // Curator is the LLM half of the curated widgets. *llm.Client satisfies it;
 // tests use a fake.
 type Curator interface {
-	CurateArticles(ctx context.Context, interests string) ([]string, error)
-	CurateEvents(ctx context.Context, interests, location string, now time.Time) ([]string, error)
-	ExtractEvents(ctx context.Context, interests, location string, results []sources.Result, now time.Time) ([]llm.Event, error)
+	CurateArticles(ctx context.Context, interests string, aud sources.Audience) ([]string, error)
+	CurateEvents(ctx context.Context, interests, location string, now time.Time, aud sources.Audience) ([]string, error)
+	ExtractEvents(ctx context.Context, interests, location string, results []sources.Result, now time.Time, aud sources.Audience) ([]llm.Event, error)
 }
 
 // ProfileStore loads a member's interests and location. *store.Store
@@ -124,11 +124,15 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// The member whose card this is decides what's suitable, even when a
+	// parent is the one looking.
+	aud := audienceFor(member)
 	widget := CuratedWidget{Widget: Widget{
 		Title:     "Articles for you",
 		Source:    newsSourceName,
 		Archetype: llm.ArchetypeCards,
 		Items:     []llm.Item{},
+		KidSafe:   aud == sources.Kids,
 	}}
 
 	// Without interests there is nothing to search for; asking the LLM
@@ -144,7 +148,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Plan the searches. The widget still works without the LLM.
 	planCtx, cancelPlan := context.WithTimeout(ctx, planTimeout)
-	queries, err := h.curator.CurateArticles(planCtx, profile.Interests)
+	queries, err := h.curator.CurateArticles(planCtx, profile.Interests, aud)
 	cancelPlan() // release the timer now rather than at the end of the request
 	fromLLM := err == nil
 	if err != nil {
@@ -162,7 +166,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	widget.Query = strings.Join(queries, querySeparator)
 
 	// 2. Search, then 3. pick the best result per query.
-	perQuery, ok := h.search(ctx, w, r, h.news, queries)
+	perQuery, ok := h.search(ctx, w, r, h.news, queries, aud)
 	if !ok {
 		return
 	}
@@ -173,6 +177,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 		"viewer_id", viewer.ID, // who asked: a parent, if not the member
 		"queries", widget.Query,
 		"from_llm", fromLLM,
+		"kid_safe", widget.KidSafe,
 		"results", countResults(perQuery),
 		"items", len(widget.Items),
 	)
@@ -191,11 +196,13 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	aud := audienceFor(member) // as in Articles
 	widget := CuratedWidget{Widget: Widget{
 		Title:     "Happening near you",
 		Source:    eventsSourceName,
 		Archetype: llm.ArchetypeList,
 		Items:     []llm.Item{},
+		KidSafe:   aud == sources.Kids,
 	}}
 	if profile.Location == "" {
 		widget.EmptyReason = EmptyNoLocation
@@ -209,7 +216,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Plan the searches.
 	planCtx, cancelPlan := context.WithTimeout(ctx, planTimeout)
-	queries, err := h.curator.CurateEvents(planCtx, profile.Interests, profile.Location, now)
+	queries, err := h.curator.CurateEvents(planCtx, profile.Interests, profile.Location, now, aud)
 	cancelPlan()
 	fromLLM := err == nil
 	if err != nil {
@@ -231,7 +238,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Search, and mix the queries' results together, taking one from
 	// each query in turn, so every query is represented under the cap.
-	perQuery, ok := h.search(ctx, w, r, h.events, queries)
+	perQuery, ok := h.search(ctx, w, r, h.events, queries, aud)
 	if !ok {
 		return
 	}
@@ -241,7 +248,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	// unlike the custom widgets there's no raw-results fallback.
 	var events []llm.Event
 	if len(results) > 0 {
-		events, err = h.curator.ExtractEvents(ctx, profile.Interests, profile.Location, results, now)
+		events, err = h.curator.ExtractEvents(ctx, profile.Interests, profile.Location, results, now, aud)
 		if err != nil {
 			h.writeLLMError(w, r, "event extraction", err)
 			return
@@ -263,6 +270,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 		"viewer_id", viewer.ID,
 		"queries", widget.Query,
 		"from_llm", fromLLM,
+		"kid_safe", widget.KidSafe,
 		"results", len(results),
 		"items", len(widget.Items),
 	)
@@ -292,11 +300,11 @@ func (h *CuratedHandler) loadProfile(w http.ResponseWriter, r *http.Request) (vi
 	return viewer, member, profile, true
 }
 
-// search runs every query on src at once (see searchAll). A failed query is
+// search runs every query on src at once, filtered for aud (see searchAll). A failed query is
 // logged and skipped; if every one fails, search writes the error response
 // and returns ok == false.
-func (h *CuratedHandler) search(ctx context.Context, w http.ResponseWriter, r *http.Request, src sources.Source, queries []string) (perQuery [][]sources.Result, ok bool) {
-	perQuery, errs := searchAll(ctx, src, queries)
+func (h *CuratedHandler) search(ctx context.Context, w http.ResponseWriter, r *http.Request, src sources.Source, queries []string, aud sources.Audience) (perQuery [][]sources.Result, ok bool) {
+	perQuery, errs := searchAll(ctx, src, queries, aud)
 	// If the client has gone, every search was cancelled: that's not worth a
 	// warning each, and writeSearchError logs it once.
 	clientGone := r.Context().Err() != nil
@@ -318,10 +326,10 @@ func (h *CuratedHandler) search(ctx context.Context, w http.ResponseWriter, r *h
 	return perQuery, true
 }
 
-// searchAll searches src for every query at the same time and waits for all
+// searchAll searches src (filtered for aud) for every query at the same time and waits for all
 // of them. results[i] and errs[i] belong to queries[i], whatever order the
 // searches finish in.
-func searchAll(ctx context.Context, src sources.Source, queries []string) (results [][]sources.Result, errs []error) {
+func searchAll(ctx context.Context, src sources.Source, queries []string, aud sources.Audience) (results [][]sources.Result, errs []error) {
 	results = make([][]sources.Result, len(queries))
 	errs = make([]error, len(queries))
 
@@ -337,7 +345,7 @@ func searchAll(ctx context.Context, src sources.Source, queries []string) (resul
 			defer wg.Done()
 			// Each goroutine writes only its own slot of the slices, so no two
 			// goroutines touch the same memory and no mutex is needed.
-			results[i], errs[i] = src.Search(ctx, q)
+			results[i], errs[i] = src.Search(ctx, q, aud)
 		}()
 	}
 	wg.Wait()

@@ -55,7 +55,7 @@ type shapedItems struct {
 // items dated before today are dropped. It returns ErrNoItems if nothing
 // usable comes back, so callers can fall back to the raw results — but an
 // empty, non-nil slice when everything found had already happened.
-func (c *Client) ShapeItems(ctx context.Context, prompt string, spec WidgetSpec, results []sources.Result) ([]Item, error) {
+func (c *Client) ShapeItems(ctx context.Context, prompt string, spec WidgetSpec, results []sources.Result, aud sources.Audience) ([]Item, error) {
 	schema, err := itemsSchema()
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (c *Client) ShapeItems(ctx context.Context, prompt string, spec WidgetSpec,
 		name:   "widget_items",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: shapeSystemPrompt(now)},
+			{Role: openai.ChatMessageRoleSystem, Content: forAudience(shapeSystemPrompt(now), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: user},
 		},
 	}

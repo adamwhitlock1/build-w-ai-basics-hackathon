@@ -15,12 +15,22 @@ type Source interface {
 	// Name is the stable identifier the LLM uses to pick this source,
 	// e.g. "news_search".
 	Name() string
-	// Search runs query against the source and returns normalized results.
-	Search(ctx context.Context, query string) ([]Result, error)
+	// Search runs query against the source and returns normalized results,
+	// filtered for aud.
+	Search(ctx context.Context, query string, aud Audience) ([]Result, error)
 	// Shape is a one-line hint for the LLM describing what this source
 	// returns and what it is good for.
 	Shape() string
 }
+
+// Audience says who search results are for. Everyone is the zero value, so
+// an Audience left unset means "no extra filtering".
+type Audience int
+
+const (
+	Everyone Audience = iota // a parent: results as the provider returns them
+	Kids                     // a kid: the provider's strictest safe-search
+)
 
 // Result is one search hit, normalized across providers. Empty strings mean
 // the provider did not supply that field.

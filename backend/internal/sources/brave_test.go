@@ -115,7 +115,7 @@ func TestBraveSearch(t *testing.T) {
 			defer srv.Close()
 
 			src := tt.source(NewBraveClient("test-key", srv.URL))
-			got, err := src.Search(context.Background(), "spacex launches")
+			got, err := src.Search(context.Background(), "spacex launches", Everyone)
 			if err != nil {
 				t.Fatalf("Search: %v", err)
 			}
@@ -126,6 +126,47 @@ func TestBraveSearch(t *testing.T) {
 				t.Errorf("result mismatch\n got: %+v\nwant: %+v", got[0], tt.want)
 			}
 		})
+	}
+}
+
+func TestBraveSafeSearch(t *testing.T) {
+	sources := []struct {
+		name   string
+		source func(*BraveClient) *BraveSource
+	}{
+		{"news", (*BraveClient).News},
+		{"web", (*BraveClient).Web},
+		{"events", (*BraveClient).Events},
+	}
+	audiences := []struct {
+		name string
+		aud  Audience
+		want string // "" = the param must be absent
+	}{
+		{"kids get strict", Kids, "strict"},
+		{"everyone gets Brave's default", Everyone, ""},
+	}
+	for _, src := range sources {
+		for _, a := range audiences {
+			t.Run(src.name+"/"+a.name, func(t *testing.T) {
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					q := r.URL.Query()
+					if got := q.Get("safesearch"); got != a.want || q.Has("safesearch") != (a.want != "") {
+						t.Errorf("safesearch = %q (present: %v), want %q", got, q.Has("safesearch"), a.want)
+					}
+					if r.URL.Path == "/news/search" {
+						w.Write([]byte(newsBody))
+					} else {
+						w.Write([]byte(webBody))
+					}
+				}))
+				defer srv.Close()
+
+				if _, err := src.source(NewBraveClient("test-key", srv.URL)).Search(context.Background(), "q", a.aud); err != nil {
+					t.Fatalf("Search: %v", err)
+				}
+			})
+		}
 	}
 }
 
@@ -175,7 +216,7 @@ func TestBraveRetriesRateLimitOnce(t *testing.T) {
 
 			c := NewBraveClient("test-key", srv.URL)
 			c.retryDelay = time.Millisecond
-			_, err := c.News().Search(context.Background(), "q")
+			_, err := c.News().Search(context.Background(), "q", Everyone)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("err = %v, want %v", err, tt.wantErr)
