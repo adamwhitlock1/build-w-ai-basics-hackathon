@@ -51,12 +51,14 @@ func newFreshnessRig(profiles widgets.ProfileStore) *freshnessRig {
 }
 
 // remember stores a result for userID as if it had been picked age ago.
+// Alice and the kid in these tests aren't parents, so it's stored kid-safe,
+// as their real results are (see kidsafe_test.go for the other cases).
 func (rig *freshnessRig) remember(userID int64, kind, inputs string, age time.Duration, titles ...string) time.Time {
 	items := make([]llm.Item, len(titles))
 	for i, title := range titles {
 		items[i] = llm.Item{Title: title, URL: "https://example.com/" + title}
 	}
-	payload, _ := json.Marshal(widgets.Widget{Title: "Remembered", Source: "news_search", Archetype: llm.ArchetypeCards, Items: items})
+	payload, _ := json.Marshal(widgets.Widget{Title: "Remembered", Source: "news_search", Archetype: llm.ArchetypeCards, Items: items, KidSafe: true})
 	at := time.Now().Add(-age).Truncate(time.Second)
 	rig.results.rows[resultKey(userID, kind)] = store.CuratedResult{UserID: userID, Kind: kind, Inputs: inputs, Payload: payload, UpdatedAt: at}
 	return at

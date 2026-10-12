@@ -179,3 +179,116 @@ func TestFromStoreWithoutKidSafe(t *testing.T) {
 		t.Error("kidSafe = true, want false for a widget saved before the field existed")
 	}
 }
+
+// A remembered curated result is only sent again to someone it was picked
+// for: a kid's result picked before kid-safe picks existed is picked again,
+// kid-safe, and so is a parent's result that was picked kid-safe.
+func TestRememberedResultsMatchTheAudience(t *testing.T) {
+	tests := []struct {
+		name           string
+		member         store.User
+		rememberedSafe bool
+		wantPicked     bool
+	}{
+		{"kid, remembered before kid-safe picks", kid, false, true},
+		{"kid, remembered kid-safe", kid, true, false},
+		{"parent, remembered for a parent", parent, false, false},
+		{"parent, remembered kid-safe", parent, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rig := newFreshnessRig(profilesByUser{tt.member.ID: {Interests: "space"}})
+			payload, _ := json.Marshal(widgets.Widget{Title: "Remembered", Source: "news_search", Archetype: llm.ArchetypeCards,
+				Items: []llm.Item{{Title: "Old story"}}, KidSafe: tt.rememberedSafe})
+			rig.results.rows[resultKey(tt.member.ID, "articles")] = store.CuratedResult{UserID: tt.member.ID, Kind: "articles",
+				Inputs: "space", Payload: payload, UpdatedAt: time.Now().Add(-time.Minute * 10)}
+
+			req := httptest.NewRequest(http.MethodGet, "/api/widgets/articles", nil)
+			req = req.WithContext(auth.WithUser(req.Context(), tt.member))
+			rec := httptest.NewRecorder()
+			rig.h.Articles(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body)
+			}
+			var got widgets.CuratedWidget
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+
+			wantSafe := tt.member.ID == kid.ID
+			if picked := len(rig.news.auds) > 0; picked != tt.wantPicked {
+				t.Fatalf("searched = %v, want %v", picked, tt.wantPicked)
+			}
+			if got.KidSafe != wantSafe {
+				t.Errorf("kidSafe = %v, want %v", got.KidSafe, wantSafe)
+			}
+			if !tt.wantPicked {
+				return
+			}
+			if want := audienceFor(tt.member); !allAre(rig.news.auds, want) || !allAre(rig.curator.auds, want) {
+				t.Errorf("picked with search audiences %v and curator audiences %v, want all %v", rig.news.auds, rig.curator.auds, want)
+			}
+			var row widgets.Widget
+			if err := json.Unmarshal(rig.results.rows[resultKey(tt.member.ID, "articles")].Payload, &row); err != nil || row.KidSafe != wantSafe {
+				t.Errorf("remembered kidSafe = %v (err %v), want %v", row.KidSafe, err, wantSafe)
+			}
+		})
+	}
+}
+
+// Refreshing a described widget searches and shapes for its owner: a kid's
+// widget, even one saved before kid-safe picks, comes back kid-safe.
+func TestRefreshCustomIsKidSafeForKids(t *testing.T) {
+	tests := []struct {
+		name  string
+		owner store.User
+		want  sources.Audience
+	}{
+		{"kid's widget from before kid-safe picks", kid, sources.Kids},
+		{"parent's widget", parent, sources.Everyone},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			old := oldLaunches("upcoming SpaceX launches") // no kidSafe in its render spec
+			old.UserID = tt.owner.ID
+			saved := &fakeWidgetStore{widgets: []store.CustomWidget{old}}
+			planner := &fakePlanner{items: shapedItems}
+			src := &querySource{name: "events_search", results: map[string][]sources.Result{old.Query: results}}
+			h := widgets.NewHandler(planner, sources.NewRegistry(src), saved, &fakeLayouts{}, discardLogger)
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /api/widgets/custom/{id}/refresh", h.RefreshCustom)
+			req := httptest.NewRequest(http.MethodPost, "/api/widgets/custom/1/refresh", nil)
+			req = req.WithContext(auth.WithUser(req.Context(), tt.owner))
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body)
+			}
+			if !allAre(src.auds, tt.want) || !allAre(planner.auds, tt.want) {
+				t.Errorf("search audiences %v, planner audiences %v; want all %v", src.auds, planner.auds, tt.want)
+			}
+			wantSafe := tt.want == sources.Kids
+			var got widgets.SavedWidget
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			back, err := widgets.FromStore(saved.widgets[0], time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.KidSafe != wantSafe || back.KidSafe != wantSafe {
+				t.Errorf("kidSafe in response %v, after loading %v; want %v", got.KidSafe, back.KidSafe, wantSafe)
+			}
+		})
+	}
+}
+
+// audienceFor mirrors the handlers' rule, for the tests' expectations.
+func audienceFor(u store.User) sources.Audience {
+	if u.IsAdmin {
+		return sources.Everyone
+	}
+	return sources.Kids
+}

@@ -34,4 +34,4 @@ None. `openspec/specs/` is empty, because the PoC was specified in `devpost/` ra
 - **Data:** `kidSafe` is stored inside the existing `custom_widgets.render_spec` JSON, so no migration is needed. Widgets saved before this change read as not kid-safe.
 - **Frontend:** `WidgetCard` shows a "Kid-safe" pill to parents. The `Widget` types in `api/client.ts` gain `kidSafe`.
 - **Docs:** when the change is archived, add one line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
-- **Roadmap neighbor:** roadmap item 1 ("Fresh, fast widgets") caches results per member. If the two changes overlap, the cache key must include the audience (see design.md).
+- **Fresh, fast widgets** (merged first): remembered curated results are reused only in the mode they were made in, and refreshing a described widget is kid-safe for kids (see design.md, decision 7).

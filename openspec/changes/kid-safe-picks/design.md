@@ -21,7 +21,7 @@ What the code does today:
 
 **Non-Goals:**
 - **Age tiers:** there is no age field. One "under 18" standard covers the ~12- and ~15-year-olds in scope.
-- **Re-filtering old saved widgets:** they keep their content and read as `kidSafe: false`. Roadmap item 1's refresh would re-run them in kid-safe mode.
+- **Re-filtering old saved widgets right away:** they keep their content and read as `kidSafe: false` until they're refreshed (see decision 7).
 - **A parent-controlled setting to turn kid-safe mode off.**
 - **Moderating what a kid types into "describe a widget"** beyond the AI guidance and strict search.
 - **Describing a widget on someone else's page:** there is no route for it today.
@@ -82,12 +82,18 @@ This needs no migration and no store change. A new `custom_widgets.kid_safe` col
 - its two callers, `CuratedWidgetCard` and `puck/blocks/Custom.tsx`, call the hook and pass the result to `WidgetCard`'s `showKidSafe` prop;
 - `WidgetCard` then draws a "Kid-safe" pill with a shield icon beside the heading. It uses the kid `RoleTag` style and has the tooltip "Searched with strict safe-search and chosen for under-18s". Kids never see the marker, because a teen would find it patronizing and it tells them nothing they can act on.
 
+### 7. Reuse remembered results only in the mode they were made in
+Fresh, fast widgets (merged first) remembers one curated result per member and card, and reuses it while the profile inputs match. `sendRemembered` now also requires the remembered widget's `kidSafe` to match the member's audience. Without that, a kid would be sent a result remembered before this change.
+- *Alternative: add the audience to the cache's `inputs` key.* Rejected: on deploy it would change every key, including parents', and every family would pay for a fresh round of searches. Comparing `kidSafe` invalidates only the rows that are actually wrong. The flag is already part of the remembered payload, because the whole `Widget` is stored.
+
+`RefreshCustom` searches and shapes with `audienceFor(user)`. Only owners refresh their own widgets, so the owner is the right audience. It also writes `kidSafe` into the new render spec, so an old kid widget becomes kid-safe at its first refresh, and stale widgets refresh in the background.
+
 ## Risks / Trade-offs
 
 - **[The LLM misses something]** → Strict safe-search is the main filter and the AI guidance is a second layer. That's defense in depth, not a guarantee. The product copy says "kid-safe", not "guaranteed safe".
 - **[Fallback paths skip the AI filter]** → Raw-result fallbacks (`itemsFromResults`, `Fallback*Queries`) still use strict search. The other option, an error card for kids, was rejected because it would make kids' pages break more often than parents'.
 - **[Kid-typed prompts]** → A kid could describe a widget for unsuitable content. Strict search plus the guidance should produce safe or empty results. The existing defense against prompt injection, member text treated as data, stays as it is (`prd.md` explicitly declines adversarial hardening).
-- **[Clash with roadmap item 1's per-member cache]** → A member's role decides their audience. Item 1's cache is keyed per member, which is correct today, but it should also include the audience or be cleared when the role changes. Whichever change merges second must check this.
+- **[Old kid results in the cache]** → Kids' remembered results from before this change were made without filtering. Decision 7 picks them again on the kid's next visit.
 - **[Interface churn]** → Changing `Source.Search` and the `Curator`/`Planner` signatures touches every fake (`curated_test.go`, `handler_test.go`, `routes_test.go`). It's mechanical, and the compiler finds every one.
 
 ## Migration Plan

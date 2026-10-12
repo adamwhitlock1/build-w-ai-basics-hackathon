@@ -47,7 +47,7 @@ Whether content is kid-safe SHALL depend on the member the content is for, not o
 - **THEN** their cards are produced in kid-safe mode
 
 ### Requirement: Widget responses report kid-safety
-Every curated widget response and saved widget response SHALL include a boolean `kidSafe`. It SHALL be true only if the content was produced in kid-safe mode. A saved widget SHALL keep the `kidSafe` value it was created with. Widgets saved before this change SHALL report `kidSafe: false`.
+Every curated widget response and saved widget response SHALL include a boolean `kidSafe`. It SHALL be true only if the content was produced in kid-safe mode. A saved widget SHALL keep the `kidSafe` value of its latest build or refresh. Widgets saved before this change SHALL report `kidSafe: false` until they are refreshed.
 
 #### Scenario: Curated card for a kid
 - **WHEN** a kid's Articles card is returned
@@ -62,7 +62,7 @@ Every curated widget response and saved widget response SHALL include a boolean 
 - **THEN** both the create response and the later response have `kidSafe: true`
 
 #### Scenario: Widget saved before the feature
-- **WHEN** a widget saved before this change is loaded
+- **WHEN** a widget saved before this change is loaded, and it hasn't been refreshed since
 - **THEN** its response has `kidSafe: false`
 
 ### Requirement: Parents see a kid-safe marker
@@ -79,3 +79,29 @@ When the viewer is a parent, a card whose content is kid-safe SHALL show a visib
 #### Scenario: Old unfiltered widget has no marker
 - **WHEN** a parent views a kid's page that includes a widget saved before this change
 - **THEN** that widget shows no "Kid-safe" marker
+
+### Requirement: Remembered results respect kid-safety
+A remembered (cached) curated result SHALL be sent again only to a member it was produced for: in kid-safe mode for a kid, and not in kid-safe mode for a parent. Any other remembered result SHALL be treated as missing and picked again in the member's mode. This includes results remembered before this change, which were not produced in kid-safe mode.
+
+#### Scenario: Kid's result remembered before the feature
+- **WHEN** a kid loads a curated card whose remembered result was produced before this change
+- **THEN** the card is picked again in kid-safe mode, and that result is remembered in place of the old one
+
+#### Scenario: Kid's kid-safe result is reused
+- **WHEN** a kid loads a curated card whose remembered result was produced in kid-safe mode and is still usable
+- **THEN** it is sent without searching again
+
+#### Scenario: Parent's result is reused
+- **WHEN** a parent loads a curated card whose remembered result was produced for them and is still usable
+- **THEN** it is sent without searching again
+
+### Requirement: Refreshing a kid's widget is kid-safe
+Refreshing a described widget SHALL produce its new items in the mode of the widget's owner. After a kid's widget is refreshed, it SHALL report `kidSafe: true`, even if it was saved before this change.
+
+#### Scenario: Kid refreshes an old widget
+- **WHEN** a kid refreshes a widget they saved before this change
+- **THEN** its search is made with strict safe-search, its items are shaped with the under-18 guidance, and it now reports `kidSafe: true`
+
+#### Scenario: Parent refreshes their widget
+- **WHEN** a parent refreshes their own widget
+- **THEN** it is refreshed exactly as before this change and reports `kidSafe: false`

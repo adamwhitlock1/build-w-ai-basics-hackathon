@@ -166,7 +166,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 
 	// Articles only depend on the interests, so a new location keeps them.
 	inputs := normalizeInput(profile.Interests)
-	if h.sendRemembered(w, r, member.ID, kindArticles, inputs, ArticlesFreshFor, now) {
+	if h.sendRemembered(w, r, member.ID, kindArticles, inputs, aud, ArticlesFreshFor, now) {
 		return
 	}
 
@@ -243,7 +243,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	// Events are picked for the location and the interests, so a change to
 	// either picks them again.
 	inputs := normalizeInput(profile.Interests) + "\n" + normalizeInput(profile.Location)
-	if h.sendRemembered(w, r, member.ID, kindEvents, inputs, EventsFreshFor, now) {
+	if h.sendRemembered(w, r, member.ID, kindEvents, inputs, aud, EventsFreshFor, now) {
 		return
 	}
 
@@ -338,11 +338,11 @@ func (h *CuratedHandler) loadProfile(w http.ResponseWriter, r *http.Request) (vi
 }
 
 // sendRemembered sends userID's remembered widget of kind, and reports true,
-// when there is one picked for inputs and the request doesn't need a new
-// one. A refresh (?refresh=1) needs a new one, unless the remembered one is
-// under a minute old (see refreshGuard). If nothing usable is remembered it
-// writes nothing and reports false, and the caller works the widget out.
-func (h *CuratedHandler) sendRemembered(w http.ResponseWriter, r *http.Request, userID int64, kind, inputs string, window time.Duration, now time.Time) bool {
+// when there is one picked for inputs and aud and the request doesn't need a
+// new one. A refresh (?refresh=1) needs a new one, unless the remembered one
+// is under a minute old (see refreshGuard). If nothing usable is remembered
+// it writes nothing and reports false, and the caller works the widget out.
+func (h *CuratedHandler) sendRemembered(w http.ResponseWriter, r *http.Request, userID int64, kind, inputs string, aud sources.Audience, window time.Duration, now time.Time) bool {
 	ctx := r.Context()
 	remembered, err := h.results.GetCuratedResult(ctx, userID, kind)
 	switch {
@@ -361,6 +361,13 @@ func (h *CuratedHandler) sendRemembered(w http.ResponseWriter, r *http.Request, 
 	var widget Widget
 	if err := json.Unmarshal(remembered.Payload, &widget); err != nil {
 		h.logger.WarnContext(ctx, "couldn't read the remembered widget; picking again", "kind", kind, "user_id", userID, "err", err)
+		return false
+	}
+	// A kid must never be sent a result picked without kid-safe filtering,
+	// such as one remembered before kid-safe picks existed. (Results picked
+	// for a kid are filtered more than a parent needs, so they're picked
+	// again too.)
+	if widget.KidSafe != (aud == sources.Kids) {
 		return false
 	}
 	if widget.Items == nil {
