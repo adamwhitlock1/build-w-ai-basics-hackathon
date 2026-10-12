@@ -50,4 +50,4 @@
 
 ## 8. Wrap-up
 
-- [ ] 8.1 After archiving, add one line about kid-safe picks to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`. Verify with `git diff devpost/` that only those two lines were added.
+- [x] 8.1 After archiving, add one line about kid-safe picks to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`. Verify with `git diff devpost/` that only those two lines were added.
