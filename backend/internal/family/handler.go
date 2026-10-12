@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"porchlight/internal/auth"
+	"porchlight/internal/calendar"
 	"porchlight/internal/respond"
 	"porchlight/internal/store"
 )
@@ -42,6 +43,7 @@ type Store interface {
 	GetFamily(ctx context.Context, id int64) (store.Family, error)
 	GetMemberProfile(ctx context.Context, userID int64) (store.MemberProfile, error)
 	UpsertMemberProfile(ctx context.Context, p store.MemberProfile) error
+	GetCalendarLink(ctx context.Context, userID int64) (string, error)
 	CompleteFamilySetup(ctx context.Context, setup store.FamilySetup) error
 	ListFamilyMembers(ctx context.Context, familyID int64) ([]store.User, error)
 	ListPendingInvites(ctx context.Context, familyID int64) ([]store.Invite, error)
@@ -93,10 +95,13 @@ type MeFamily struct {
 	Name string `json:"name"`
 }
 
-// MeProfile is the user's interests and location.
+// MeProfile is the user's interests and location, and whether they have a
+// calendar connected. The calendar link itself is a secret and is never
+// sent: Calendar only says which service it's from.
 type MeProfile struct {
-	Interests string `json:"interests"`
-	Location  string `json:"location"`
+	Interests string           `json:"interests"`
+	Location  string           `json:"location"`
+	Calendar  calendar.Summary `json:"calendar"`
 }
 
 type credentials struct {
@@ -342,6 +347,14 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, "save profile", err)
 		return
 	}
+	// The calendar isn't part of this request, but the response describes
+	// the whole profile, so the page doesn't think it was disconnected.
+	link, err := h.store.GetCalendarLink(ctx, member.ID)
+	if err != nil {
+		h.serverError(w, r, "load calendar link", err)
+		return
+	}
+	profile.Calendar = calendar.Summarize(link)
 	// user_id is whose profile changed; viewer_id is who changed it (the
 	// same id unless a parent set a family member's).
 	viewer, _ := auth.UserFrom(ctx)
@@ -363,11 +376,17 @@ func (h *Handler) writeMe(w http.ResponseWriter, r *http.Request, status int, us
 		return
 	}
 
+	link, err := h.store.GetCalendarLink(ctx, user.ID)
+	if err != nil {
+		h.serverError(w, r, "load calendar link", err)
+		return
+	}
+
 	respond.JSON(w, status, Me{
 		User:             MeUser{ID: user.ID, Email: user.Email, IsAdmin: user.IsAdmin},
 		Family:           MeFamily{ID: family.ID, Name: family.Name},
 		NeedsFamilySetup: family.Name == "",
-		Profile:          MeProfile{Interests: profile.Interests, Location: profile.Location},
+		Profile:          MeProfile{Interests: profile.Interests, Location: profile.Location, Calendar: calendar.Summarize(link)},
 	})
 }
 

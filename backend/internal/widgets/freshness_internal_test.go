@@ -22,6 +22,8 @@ func TestFreshnessWindows(t *testing.T) {
 		{"events past", 12*time.Hour + time.Second, EventsFreshFor, true},
 		{"custom inside", 6*time.Hour - time.Minute, CustomFreshFor, false},
 		{"custom past", 7 * time.Hour, CustomFreshFor, true},
+		{"today after 10 minutes", 10 * time.Minute, TodayFreshFor, false},
+		{"today after 20 minutes", 20 * time.Minute, TodayFreshFor, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

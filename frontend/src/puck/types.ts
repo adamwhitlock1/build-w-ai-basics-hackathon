@@ -6,6 +6,7 @@ import type { Span } from '../api/client'
  * gives every card. These match LayoutBlock in api/client.ts.
  */
 export interface BlockPropsMap {
+  Today: { span: Span }
   Articles: { span: Span }
   LocalEvents: { span: Span }
   Custom: { span: Span; widgetId: number }

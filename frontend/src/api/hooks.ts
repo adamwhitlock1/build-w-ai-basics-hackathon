@@ -10,10 +10,12 @@ import {
 import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
 import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
+import { useNow } from '../widgets/updatedAgo'
 import {
   ApiError,
   apiFetch,
   type AcceptInviteInput,
+  type CalendarResponse,
   type CreateFamilyInput,
   type CreateInviteInput,
   type Credentials,
@@ -25,10 +27,12 @@ import {
   type Layout,
   type LayoutResponse,
   type Me,
+  type MemberProfile,
   type PendingInvite,
   type Profile,
   type ProfileResponse,
   type SavedWidget,
+  type TodayWidget,
   type Widget,
 } from './client'
 import { ViewedMemberContext, type PageOwner } from './pageOwner'
@@ -412,7 +416,7 @@ export function usePageHomepage(): Homepage {
  * filled from the old copy would save the old values back over theirs. The
  * cached profile is returned until the fresh one arrives.
  */
-export function useFreshPageProfile(): Profile {
+export function useFreshPageProfile(): MemberProfile {
   const owner = usePageOwner()
   const options = owner.isYou ? homepageQueryOptions : memberHomepageQueryOptions(owner.userId)
   return useSuspenseQuery({ ...options, refetchOnMount: 'always' }).data.profile
@@ -700,6 +704,131 @@ export function useRefreshCuratedWidget(kind: CuratedKind) {
 function refreshCuratedWidget(queryClient: QueryClient, queryKey: CuratedWidgetKey) {
   if (queryClient.isFetching({ queryKey, exact: true }) === 0) refreshRequested.add(inFlightKey(queryKey))
   return queryClient.refetchQueries({ queryKey, exact: true }, { cancelRefetch: false })
+}
+
+// ---------------------------------------------------------------------------
+// Today (the calendar card)
+// ---------------------------------------------------------------------------
+
+/**
+ * Query key of one person's Today card on one local day: ['widgets',
+ * 'today', userId, date] for yours, ['members', memberId, 'widgets',
+ * 'today', date] for a family member's. The date is part of the key, so a
+ * page left open past midnight asks for the new day.
+ */
+type TodayKey =
+  | readonly ['widgets', 'today', number | undefined, string]
+  | readonly ['members', number, 'widgets', 'today', string]
+
+/** Today queries whose next fetch should get fresh events (`?refresh=1`). */
+const todayRefreshRequested = new Set<string>()
+
+/** Stale Today results already refreshed in the background, as "<key>@<updatedAt>". */
+const todayStaleRefreshed = new Set<string>()
+
+/** The browser's time zone, e.g. "America/Denver": the person's "today". */
+export function browserTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+}
+
+/** The local date of `now` as YYYY-MM-DD. */
+function localDate(now: number): string {
+  const d = new Date(now)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function todayQueryOptions(owner: PageOwner, date: string) {
+  const queryKey: TodayKey = owner.isYou
+    ? ['widgets', 'today', owner.userId, date]
+    : ['members', owner.userId, 'widgets', 'today', date]
+  const path = owner.isYou ? '/api/widgets/today' : `/api/members/${owner.userId}/widgets/today`
+  return queryOptions<TodayWidget, ApiError, TodayWidget, TodayKey>({
+    queryKey,
+    queryFn: () => {
+      const params = new URLSearchParams({ tz: browserTimeZone() })
+      if (todayRefreshRequested.delete(JSON.stringify(queryKey))) params.set('refresh', '1')
+      return apiFetch<TodayWidget>(`${path}?${params}`, { cache: 'no-store' })
+    },
+    enabled: owner.userId !== undefined,
+    // Like the curated cards: loaded once per visit, then only when asked
+    // (the refresh button, a background refresh of stale events, a new day,
+    // or a calendar being connected or removed).
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+}
+
+/**
+ * The Today card of the page it's on: that person's events for today and
+ * tomorrow, in this browser's time zone. Stale events stay on screen while
+ * fresh ones load in the background, once per stale result.
+ */
+export function useToday() {
+  const queryClient = useQueryClient()
+  const date = localDate(useNow(60_000))
+  const options = todayQueryOptions(usePageOwner(), date)
+  const query = useQuery({
+    ...options,
+    // Across midnight the key changes; keep yesterday's card up until
+    // today's arrives, rather than flashing the loading state.
+    placeholderData: (previous) => previous,
+  })
+  const keyText = JSON.stringify(options.queryKey)
+  const staleSince = query.data?.stale && !query.isPlaceholderData ? query.data.updatedAt : undefined
+  useEffect(() => {
+    if (!staleSince) return
+    const once = `${keyText}@${staleSince}`
+    if (todayStaleRefreshed.has(once)) return
+    todayStaleRefreshed.add(once)
+    void refreshToday(queryClient, JSON.parse(keyText) as TodayKey)
+  }, [queryClient, keyText, staleSince])
+  return query
+}
+
+/** Returns a function that fetches the page's calendar again: the Today card's refresh button. */
+export function useRefreshToday() {
+  const queryClient = useQueryClient()
+  const { queryKey } = todayQueryOptions(usePageOwner(), localDate(useNow(60_000)))
+  return () => void refreshToday(queryClient, queryKey)
+}
+
+function refreshToday(queryClient: QueryClient, queryKey: TodayKey) {
+  if (queryClient.isFetching({ queryKey, exact: true }) === 0) todayRefreshRequested.add(JSON.stringify(queryKey))
+  return queryClient.refetchQueries({ queryKey, exact: true }, { cancelRefetch: false })
+}
+
+/** Every Today query of one person, whatever the day. */
+function todayPrefix(owner: PageOwner) {
+  return owner.isYou ? ['widgets', 'today', owner.userId] : ['members', owner.userId, 'widgets', 'today']
+}
+
+/**
+ * Connects or removes the calendar of the page it's on: yours, or (for a
+ * parent) the family member's. `mutate(url)` connects one (the server
+ * fetches it first and refuses anything that isn't a calendar);
+ * `mutate(null)` removes it. On success the page's profile says what's
+ * connected, and the Today card loads again.
+ */
+export function useSetCalendar() {
+  const queryClient = useQueryClient()
+  const owner = usePageOwner()
+  const base = owner.isYou ? '/api/me/calendar' : `/api/members/${owner.userId}/calendar`
+  const pageKey = owner.isYou ? homepageQueryOptions.queryKey : memberHomepageQueryOptions(owner.userId).queryKey
+  return useMutation<CalendarResponse, ApiError, string | null>({
+    mutationFn: (url) =>
+      url === null
+        ? apiFetch<CalendarResponse>(base, { method: 'DELETE' })
+        : apiFetch<CalendarResponse>(base, { method: 'PUT', body: { url } }),
+    onSuccess: ({ calendar }) => {
+      queryClient.setQueryData(pageKey, (page) => (page ? { ...page, profile: { ...page.profile, calendar } } : page))
+      if (owner.isYou) {
+        queryClient.setQueryData(meQueryOptions.queryKey, (me) => (me ? { ...me, profile: { ...me.profile, calendar } } : me))
+      }
+      void queryClient.invalidateQueries({ queryKey: todayPrefix(owner) })
+    },
+  })
 }
 
 // ---------------------------------------------------------------------------

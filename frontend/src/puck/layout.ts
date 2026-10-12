@@ -30,11 +30,13 @@ export function layoutWith(blocks: LayoutBlock[]): Layout {
 }
 
 /**
- * The page anyone starts with (the server builds the same one): Articles and
- * Local Events side by side, then each saved widget, oldest first.
+ * The page anyone starts with (the server builds the same one): Today across
+ * the top, Articles and Local Events side by side, then each saved widget,
+ * oldest first.
  */
 export function defaultLayout(widgets: SavedWidget[]): Layout {
   return layoutWith([
+    { type: 'Today', props: { id: 'today', span: 4 } },
     { type: 'Articles', props: { id: 'articles', span: 2 } },
     { type: 'LocalEvents', props: { id: 'events', span: 2 } },
     ...widgets.map((w) => customBlock(w.id)),

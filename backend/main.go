@@ -19,11 +19,15 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	// Imported for its side effect: the time zone database is built into the
+	// binary, so members' time zones work on hosts that don't ship one.
+	_ "time/tzdata"
 
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/joho/godotenv"
 
 	"porchlight/internal/auth"
+	"porchlight/internal/calendar"
 	"porchlight/internal/llm"
 	"porchlight/internal/sources"
 	"porchlight/internal/store"
@@ -133,7 +137,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	sessions := auth.NewSessionManager(sessionStore, logger)
 
 	srv := &http.Server{
-		Handler:           routes(logger, st, sessions, llmClient, llmClient, registry),
+		Handler:           routes(logger, st, sessions, llmClient, llmClient, registry, calendar.NewFetcher()),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,

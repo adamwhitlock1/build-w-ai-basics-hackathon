@@ -82,9 +82,66 @@ export interface Profile {
   location: string
 }
 
+/**
+ * Whether a member has a calendar connected, and from which service. The
+ * calendar link itself is a secret the server never sends back.
+ */
+export interface CalendarSummary {
+  connected: boolean
+  /** e.g. "Google Calendar", "iCloud", "Outlook", or the link's host; "" when not connected. */
+  provider: string
+}
+
+/** A Profile as the server sends it: plus whether a calendar is connected. */
+export interface MemberProfile extends Profile {
+  calendar: CalendarSummary
+}
+
 /** Response of PUT /api/me/profile (whose body is a Profile). */
 export interface ProfileResponse {
-  profile: Profile
+  profile: MemberProfile
+}
+
+/** Response of PUT and DELETE /api/me/calendar (and /api/members/{id}/calendar). */
+export interface CalendarResponse {
+  calendar: CalendarSummary
+}
+
+/** One event on the Today card. */
+export interface TodayEvent {
+  title: string
+  /** "" when the calendar doesn't say. */
+  location: string
+  /** RFC 3339 with the member's time-zone offset. An all-day event starts at midnight. */
+  start: string
+  /** Exclusive. */
+  end: string
+  allDay: boolean
+}
+
+/**
+ * Why the Today card has no events to show, besides there being none:
+ * no calendar connected, or the link stopped working. "" otherwise.
+ */
+export type TodayEmptyReason = '' | 'no_calendar' | 'calendar_gone'
+
+/**
+ * GET /api/widgets/today?tz=…: today's and tomorrow's events from the
+ * person's calendar, in time zone `timeZone`. The page shows tomorrow's
+ * from 6 pm.
+ */
+export interface TodayWidget extends Freshness {
+  emptyReason: TodayEmptyReason
+  /** e.g. "Google Calendar"; "" with no calendar. */
+  provider: string
+  /** Today in `timeZone`, YYYY-MM-DD. */
+  date: string
+  timeZone: string
+  today: TodayEvent[]
+  /** How many more events today has than `today` lists. */
+  moreToday: number
+  tomorrow: TodayEvent[]
+  moreTomorrow: number
 }
 
 /** Response of GET /api/me (and of signup, login, create-family and accepting an invite). */
@@ -93,7 +150,7 @@ export interface Me {
   family: { id: number; name: string }
   /** True until the create-family intro is done (the family has no name yet). */
   needsFamilySetup: boolean
-  profile: Profile
+  profile: MemberProfile
 }
 
 /** Body of POST /api/signup and POST /api/login. */
@@ -183,7 +240,7 @@ export type Span = 1 | 2 | 3 | 4
 
 /** What every card on the page carries. */
 interface BlockProps {
-  /** Stable and unique on the page: "articles", "events" or "custom-<widgetId>". */
+  /** Stable and unique on the page: "today", "articles", "events" or "custom-<widgetId>". */
   id: string
   span: Span
 }
@@ -193,11 +250,12 @@ interface BlockProps {
  * says which saved widget (SavedWidget.id) it is.
  */
 export type LayoutBlock =
+  | { type: 'Today'; props: BlockProps }
   | { type: 'Articles'; props: BlockProps }
   | { type: 'LocalEvents'; props: BlockProps }
   | { type: 'Custom'; props: BlockProps & { widgetId: number } }
 
-/** The kinds of card a page can hold: 'Articles', 'LocalEvents' or 'Custom'. */
+/** The kinds of card a page can hold: 'Today', 'Articles', 'LocalEvents' or 'Custom'. */
 export type BlockType = LayoutBlock['type']
 
 /**
@@ -213,7 +271,7 @@ export interface Layout {
 
 /** Response of GET /api/me/homepage. */
 export interface Homepage {
-  profile: Profile
+  profile: MemberProfile
   /**
    * The cards and their order and widths. Never null: the server builds a
    * default for a page that hasn't been arranged yet.

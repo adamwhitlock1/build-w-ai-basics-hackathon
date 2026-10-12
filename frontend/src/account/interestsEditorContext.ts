@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 
 /** A field of the interests editor that can take focus when it opens. */
-export type ProfileField = 'interests' | 'location'
+export type ProfileField = 'interests' | 'location' | 'calendar'
 
 /** Opens the interests editor with the cursor in `field` (interests by default). */
 export type OpenInterestsEditor = (field?: ProfileField) => void

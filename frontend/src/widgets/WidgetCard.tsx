@@ -34,6 +34,16 @@ interface WidgetCardProps {
    * missing before anything can show. It replaces the empty message.
    */
   notice?: ReactNode
+  /**
+   * The card's own body, for a card that isn't a list of widget items (the
+   * Today card's events). It replaces the items and the empty message, and
+   * shows below `notice`.
+   */
+  children?: ReactNode
+  /** The footer's left side, for a card with `children`, e.g. "From your Google Calendar". */
+  footerNote?: ReactNode
+  /** When a card with `children` was last updated (RFC 3339), for "Updated … ago". */
+  updatedAt?: string
 }
 
 const SOURCE_LABELS: Record<SourceName, string> = {
@@ -62,6 +72,9 @@ export function WidgetCard({
   loading = false,
   loadingMessage = 'Loading…',
   notice,
+  children,
+  footerNote,
+  updatedAt = widget?.updatedAt,
 }: WidgetCardProps) {
   const items = widget?.items ?? []
   const sourceLabel = widget ? (SOURCE_LABELS[widget.source] ?? 'a search') : ''
@@ -96,7 +109,9 @@ export function WidgetCard({
         ) : (
           <>
             {notice}
-            {widget && items.length > 0 ? (
+            {children !== undefined ? (
+              children && <div className={notice ? 'mt-4' : undefined}>{children}</div>
+            ) : widget && items.length > 0 ? (
               <div className={notice ? 'mt-4' : undefined}>
                 <WidgetItems archetype={widget.archetype} items={items} />
               </div>
@@ -109,16 +124,18 @@ export function WidgetCard({
         )}
       </div>
 
-      {widget?.query && !loading && (
+      {(widget?.query || footerNote) && !loading && (
         <div className="mt-6 flex items-baseline gap-3 border-t border-line pt-4 text-xs text-ink-muted">
-          {widget.source === 'weather_forecast' ? (
+          {footerNote ? (
+            <p className="min-w-0 flex-1 truncate">{footerNote}</p>
+          ) : widget?.source === 'weather_forecast' ? (
             <WeatherCredit place={widget.query} />
           ) : (
-            <p className="min-w-0 flex-1 truncate" title={widget.query}>
-              From {sourceLabel} for “{widget.query}”
+            <p className="min-w-0 flex-1 truncate" title={widget?.query}>
+              From {sourceLabel} for “{widget?.query}”
             </p>
           )}
-          {widget.updatedAt && <UpdatedAgo updatedAt={widget.updatedAt} />}
+          {updatedAt && <UpdatedAgo updatedAt={updatedAt} />}
         </div>
       )}
     </article>

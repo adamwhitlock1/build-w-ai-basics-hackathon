@@ -3,6 +3,7 @@ import type { Layout, LayoutBlock, Span } from '../api/client'
 import { ArticlesBlock } from './blocks/Articles'
 import { CustomBlock } from './blocks/Custom'
 import { LocalEventsBlock } from './blocks/LocalEvents'
+import { TodayBlock } from './blocks/Today'
 import { columnsLeftInLastRow } from './layout'
 
 interface LayoutViewProps {
@@ -73,6 +74,8 @@ export function LayoutView({ layout, freshWidgetId = null, top, addTile }: Layou
 /** The card a layout block stands for. */
 function BlockContent({ block, freshWidgetId }: { block: LayoutBlock; freshWidgetId: number | null }) {
   switch (block.type) {
+    case 'Today':
+      return <TodayBlock />
     case 'Articles':
       return <ArticlesBlock />
     case 'LocalEvents':
@@ -80,7 +83,7 @@ function BlockContent({ block, freshWidgetId }: { block: LayoutBlock; freshWidge
     case 'Custom':
       return <CustomBlock widgetId={block.props.widgetId} fresh={block.props.widgetId === freshWidgetId} />
     default:
-      // The server only stores these three kinds, but this runs on live
+      // The server only stores these four kinds, but this runs on live
       // data: skip anything else rather than break the page.
       return null
   }

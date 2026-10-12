@@ -5,8 +5,10 @@ go 1.22.0
 require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.8.0
+	github.com/arran4/golang-ical v0.3.7
 	github.com/joho/godotenv v1.5.1
 	github.com/sashabaranov/go-openai v1.43.0
+	github.com/teambition/rrule-go v1.8.2
 	golang.org/x/crypto v0.33.0
 	modernc.org/sqlite v1.36.1
 )

@@ -69,6 +69,17 @@ For trying things out locally, `make seed` (run in `backend/`) adds a test famil
 
 It writes to `porchlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
 
+## Calendars
+
+The Today card at the top of each page lists that day's events from a calendar link the member (or a parent, for them) pastes into "Your interests":
+
+- **Google Calendar:** the calendar's settings → "Integrate calendar" → "Secret address in iCal format".
+- **iCloud:** share the calendar as a public calendar and copy its `webcal://` link.
+
+A calendar link is a secret: anyone who has it can read the calendar. Porchlight keeps it on the server, never sends it back to a browser or to the AI, and never logs it. The page only learns that a calendar is connected and which service it's from. The server fetches links over `https` only, and never from private or local network addresses.
+
+Google can take a few hours to publish changes to its iCal link, so a newly added event may not show up straight away.
+
 ## Tests
 
 ```sh
@@ -76,7 +87,7 @@ cd backend
 make check   # go vet + go test + go build
 ```
 
-The tests replace OpenRouter, Brave and Open-Meteo with fakes, so they need no keys, spend no credit and make no network calls.
+The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (calendar tests read sample feeds in `backend/internal/calendar/testdata/`), so they need no keys, spend no credit and make no network calls.
 
 ## How it was planned
 

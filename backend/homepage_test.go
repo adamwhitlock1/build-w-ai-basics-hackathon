@@ -100,6 +100,7 @@ func TestHomepageLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantDefault := `{"root":{"props":{"blocks":[` +
+		`{"type":"Today","props":{"id":"today","span":4}},` +
 		`{"type":"Articles","props":{"id":"articles","span":2}},` +
 		`{"type":"LocalEvents","props":{"id":"events","span":2}}` +
 		`]}},"content":[],"zones":{}}`
@@ -110,7 +111,7 @@ func TestHomepageLayout(t *testing.T) {
 	// A widget added before the page was ever arranged shows up through the
 	// default layout; nothing is saved yet.
 	first := c.addWidget()
-	want := []string{"Articles articles 2", "LocalEvents events 2", customCard(first.ID, 2)}
+	want := []string{"Today today 4", "Articles articles 2", "LocalEvents events 2", customCard(first.ID, 2)}
 	if got := cards(c.homepage().Layout); !slices.Equal(got, want) {
 		t.Errorf("after the first widget: layout = %q, want %q", got, want)
 	}
@@ -118,16 +119,17 @@ func TestHomepageLayout(t *testing.T) {
 		t.Errorf("a layout was saved before the page was arranged (err = %v)", err)
 	}
 
-	// Arrange: reorder and resize. The response and the next GET both give
-	// back exactly what was saved.
+	// Arrange: reorder and resize, Today included. The response and the
+	// next GET both give back exactly what was saved.
 	arranged := blocks(
 		custom(first.ID, "custom-"+strconv.FormatInt(first.ID, 10), 4),
 		card("LocalEvents", "events", 1),
+		card("Today", "today", 2),
 		card("Articles", "articles", 3),
 	)
 	var saved layout.SaveResponse
 	c.do("PUT", "/api/me/homepage", map[string]any{"layout": arranged}, http.StatusOK, &saved)
-	want = []string{customCard(first.ID, 4), "LocalEvents events 1", "Articles articles 3"}
+	want = []string{customCard(first.ID, 4), "LocalEvents events 1", "Today today 2", "Articles articles 3"}
 	if got := cards(saved.Layout); !slices.Equal(got, want) {
 		t.Errorf("PUT response layout = %q, want %q", got, want)
 	}
@@ -155,11 +157,13 @@ func TestHomepageLayout(t *testing.T) {
 	}
 
 	// A member can save a page without some cards (here, the curated ones).
+	// Today comes back at the top: the page can't remove it, so a layout
+	// without it was saved before it existed.
 	c.do("PUT", "/api/me/homepage", map[string]any{"layout": blocks(
 		custom(second.ID, "s", 1),
 		custom(first.ID, "f", 2),
 	)}, http.StatusOK, nil)
-	want = []string{fmt.Sprintf("Custom s 1 #%d", second.ID), fmt.Sprintf("Custom f 2 #%d", first.ID)}
+	want = []string{"Today today 4", fmt.Sprintf("Custom s 1 #%d", second.ID), fmt.Sprintf("Custom f 2 #%d", first.ID)}
 	if got := cards(c.homepage().Layout); !slices.Equal(got, want) {
 		t.Errorf("without curated cards: layout = %q, want %q", got, want)
 	}
@@ -198,7 +202,7 @@ func TestHomepageLayoutHeals(t *testing.T) {
 	page := c.homepage()
 	// The gone widget's card is dropped, the orphan gets one at the end, and
 	// Local Events (removed by the member) is not put back.
-	want := []string{fmt.Sprintf("Custom kept 3 #%d", kept.ID), "Articles articles 2", customCard(orphan.ID, 2)}
+	want := []string{"Today today 4", fmt.Sprintf("Custom kept 3 #%d", kept.ID), "Articles articles 2", customCard(orphan.ID, 2)}
 	if got := cards(page.Layout); !slices.Equal(got, want) {
 		t.Errorf("healed layout = %q, want %q", got, want)
 	}
@@ -213,7 +217,7 @@ func TestHomepageLayoutHeals(t *testing.T) {
 	if err := st.UpsertLayout(ctx, me.User.ID, json.RawMessage(`{"root": "not a layout"}`)); err != nil {
 		t.Fatal(err)
 	}
-	want = []string{"Articles articles 2", "LocalEvents events 2", customCard(kept.ID, 2), customCard(orphan.ID, 2)}
+	want = []string{"Today today 4", "Articles articles 2", "LocalEvents events 2", customCard(kept.ID, 2), customCard(orphan.ID, 2)}
 	if got := cards(c.homepage().Layout); !slices.Equal(got, want) {
 		t.Errorf("unreadable layout: got %q, want the default %q", got, want)
 	}
@@ -324,7 +328,7 @@ func TestDeleteWidget(t *testing.T) {
 
 	// The widget and its card are gone, from the stored layout too, and the
 	// rest of the page is as it was.
-	want := []string{"Articles articles 1", customCard(second.ID, 2)}
+	want := []string{"Today today 4", "Articles articles 1", customCard(second.ID, 2)}
 	page := c.homepage()
 	if got := cards(page.Layout); !slices.Equal(got, want) {
 		t.Errorf("after the delete: layout = %q, want %q", got, want)
@@ -358,7 +362,7 @@ func TestDeleteWidget(t *testing.T) {
 	// no stored layout to change, and the default one leaves it out.
 	bobs := bob.addWidget()
 	bob.do("DELETE", path(bobs.ID), nil, http.StatusNoContent, nil)
-	if got, want := cards(bob.homepage().Layout), []string{"Articles articles 2", "LocalEvents events 2"}; !slices.Equal(got, want) {
+	if got, want := cards(bob.homepage().Layout), []string{"Today today 4", "Articles articles 2", "LocalEvents events 2"}; !slices.Equal(got, want) {
 		t.Errorf("bob's layout after his delete = %q, want %q", got, want)
 	}
 }

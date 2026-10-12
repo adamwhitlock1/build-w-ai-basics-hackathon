@@ -25,6 +25,7 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 
 	"porchlight/internal/auth"
+	"porchlight/internal/calendar"
 	"porchlight/internal/family"
 	"porchlight/internal/layout"
 	"porchlight/internal/llm"
@@ -52,6 +53,20 @@ func (fakeSource) Name() string  { return "events_search" }
 func (fakeSource) Shape() string { return "test results" }
 func (fakeSource) Search(context.Context, string, sources.Audience) ([]sources.Result, error) {
 	return []sources.Result{{Title: "Launch schedule", URL: "https://example.com/launch"}}, nil
+}
+
+// fakeCalendars serves calendar feeds without the network. A link ending
+// in "/page.html" isn't a calendar; any other link is a calendar with an
+// all-day "Family day" every day.
+type fakeCalendars struct{}
+
+const everyDayFeed = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:family-day\r\nDTSTART;VALUE=DATE:20200101\r\nRRULE:FREQ=DAILY\r\nSUMMARY:Family day\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+
+func (fakeCalendars) Fetch(_ context.Context, link string) ([]byte, error) {
+	if strings.HasSuffix(link, "/page.html") {
+		return nil, calendar.ErrNotCalendar
+	}
+	return []byte(everyDayFeed), nil
 }
 
 // fakeNews finds one article per query, titled after the query.
@@ -97,7 +112,7 @@ func startServer(t *testing.T, dbPath string) (*httptest.Server, *store.Store) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// A cleanup interval of 0 means no background goroutine to stop.
 	sessions := auth.NewSessionManager(sqlite3store.NewWithCleanupInterval(st.DB(), 0), logger)
-	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, sources.NewRegistry(fakeNews{}, fakeSource{})))
+	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, sources.NewRegistry(fakeNews{}, fakeSource{}), fakeCalendars{}))
 	// Cleanups run last-in, first-out: the server stops before the store closes.
 	t.Cleanup(func() { st.Close() })
 	t.Cleanup(srv.Close)
@@ -551,7 +566,7 @@ func TestWidgetsAreSavedPerUser(t *testing.T) {
 	}
 	// Alice never arranged her page, so she gets the default layout, which
 	// includes her new widget.
-	wantCards := []string{"Articles articles 2", "LocalEvents events 2", fmt.Sprintf("Custom custom-%d 2 #%d", widget.ID, widget.ID)}
+	wantCards := []string{"Today today 4", "Articles articles 2", "LocalEvents events 2", fmt.Sprintf("Custom custom-%d 2 #%d", widget.ID, widget.ID)}
 	if got := cards(page.Layout); !slices.Equal(got, wantCards) {
 		t.Errorf("layout = %q, want %q", got, wantCards)
 	}
@@ -723,7 +738,7 @@ func TestDataSurvivesRestart(t *testing.T) {
 	if len(page.CustomWidgets) != 1 {
 		t.Errorf("after restart: %d widgets, want 1", len(page.CustomWidgets))
 	}
-	want := []string{fmt.Sprintf("Custom custom-%d 4 #%d", widget.ID, widget.ID), "LocalEvents events 1", "Articles articles 3"}
+	want := []string{"Today today 4", fmt.Sprintf("Custom custom-%d 4 #%d", widget.ID, widget.ID), "LocalEvents events 1", "Articles articles 3"}
 	if got := cards(page.Layout); !slices.Equal(got, want) {
 		t.Errorf("after restart: layout = %q, want %q", got, want)
 	}
