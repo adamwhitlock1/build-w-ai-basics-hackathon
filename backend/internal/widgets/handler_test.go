@@ -28,7 +28,9 @@ type fakePlanner struct {
 	items       []llm.Item
 	shapeErr    error
 	shapeCalled bool
-	hadDeadline bool // whether PickWidgetSpec's context carried a deadline
+	shapedFor   string         // the prompt ShapeItems was given
+	shapedSpec  llm.WidgetSpec // the spec ShapeItems was given
+	hadDeadline bool           // whether PickWidgetSpec's context carried a deadline
 }
 
 func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalog) (llm.WidgetSpec, error) {
@@ -36,8 +38,9 @@ func (f *fakePlanner) PickWidgetSpec(ctx context.Context, _ string, _ llm.Catalo
 	return f.spec, f.specErr
 }
 
-func (f *fakePlanner) ShapeItems(context.Context, string, llm.WidgetSpec, []sources.Result) ([]llm.Item, error) {
+func (f *fakePlanner) ShapeItems(_ context.Context, prompt string, spec llm.WidgetSpec, _ []sources.Result) ([]llm.Item, error) {
 	f.shapeCalled = true
+	f.shapedFor, f.shapedSpec = prompt, spec
 	return f.items, f.shapeErr
 }
 
@@ -79,6 +82,19 @@ func (f *fakeWidgetStore) GetCustomWidget(_ context.Context, userID, widgetID in
 	for _, w := range f.widgets {
 		if w.ID == widgetID && w.UserID == userID {
 			return w, nil
+		}
+	}
+	return store.CustomWidget{}, store.ErrNotFound
+}
+
+func (f *fakeWidgetStore) UpdateCustomWidgetItems(_ context.Context, userID, widgetID int64, renderSpec json.RawMessage, refreshedAt time.Time) (store.CustomWidget, error) {
+	if f.err != nil {
+		return store.CustomWidget{}, f.err
+	}
+	for i, w := range f.widgets {
+		if w.ID == widgetID && w.UserID == userID {
+			f.widgets[i].RenderSpec, f.widgets[i].RefreshedAt = renderSpec, refreshedAt
+			return f.widgets[i], nil
 		}
 	}
 	return store.CustomWidget{}, store.ErrNotFound
@@ -341,11 +357,15 @@ func TestFromPrompt(t *testing.T) {
 			if stored.UserID != alice.ID || stored.Name != launchSpec.Title || stored.Source != launchSpec.Source || stored.Query != launchSpec.Query {
 				t.Errorf("stored widget = %+v", stored)
 			}
+			// The prompt is kept, trimmed, for refreshing later.
+			if stored.Prompt != "show me upcoming SpaceX launches" {
+				t.Errorf("stored prompt = %q, want the trimmed prompt", stored.Prompt)
+			}
 			// ...and it was put on their layout.
 			if !slices.Equal(layouts.added, []int64{got.ID}) || layouts.user != alice.ID {
 				t.Errorf("layout additions = %v for user %d, want [%d] for user %d", layouts.added, layouts.user, got.ID, alice.ID)
 			}
-			back, err := widgets.FromStore(stored)
+			back, err := widgets.FromStore(stored, time.Now())
 			if err != nil {
 				t.Fatal(err)
 			}

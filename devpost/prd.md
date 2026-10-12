@@ -262,4 +262,4 @@ Things this project will NOT do, each with a brief reason.
 
 Everything above describes the proof of concept as planned and built with the Devpost Learn skill pack, and is kept unchanged. The commit tagged `poc-complete` is that snapshot. Features added after it are planned and specified with OpenSpec: proposals in progress live in `openspec/changes/`, finished ones in `openspec/changes/archive/`, and the specs they produce in `openspec/specs/`.
 
-- None yet.
+- **Fresh, fast widgets** (2026-10-11): widgets remember their results, so pages open instantly. Stale ones refresh in the background (Articles 3h, Local Events 12h, described widgets 6h), described widgets gain a refresh button, and every card shows "Updated … ago". Spec: `openspec/specs/widget-freshness/spec.md`; change: `openspec/changes/archive/2026-10-11-fresh-fast-widgets/`.

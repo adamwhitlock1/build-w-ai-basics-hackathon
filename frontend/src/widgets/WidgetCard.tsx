@@ -1,13 +1,15 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import type { SourceName, Widget } from '../api/client'
+import type { Freshness, SourceName, Widget } from '../api/client'
 import { WidgetItems } from './renderers/WidgetItems'
+import { formatUpdatedAgo, useNow } from './updatedAgo'
 
 interface WidgetCardProps {
   /**
    * What to show. It can be left out while `loading`, or when a `notice`
-   * explains why there's nothing yet.
+   * explains why there's nothing yet. With an `updatedAt`, the footer says
+   * how long ago its items were updated.
    */
-  widget?: Widget
+  widget?: Widget & Partial<Freshness>
   /**
    * The heading, e.g. "Articles for you". Left out, it's the widget's own
    * title. (The curated cards always set it, so on a family member's page
@@ -37,9 +39,9 @@ const SOURCE_LABELS: Record<SourceName, string> = {
   web_search: 'a web search',
 }
 
-// Saved custom widgets can't be refreshed yet (their content is kept as it
-// was built), so by default point to what works now: describing it again.
-const DEFAULT_EMPTY_MESSAGE = 'Nothing turned up for that just now — try describing it a little differently.'
+// What a described widget says when its latest search found nothing (or
+// only things that have already happened). Refreshing can turn up more.
+const DEFAULT_EMPTY_MESSAGE = 'Nothing turned up just now — try refreshing later.'
 
 /**
  * A widget on the page. Purely presentational: it renders a Widget (or its
@@ -100,11 +102,29 @@ export function WidgetCard({
       </div>
 
       {widget?.query && !loading && (
-        <p className="mt-6 truncate border-t border-line pt-4 text-xs text-ink-muted" title={widget.query}>
-          From {sourceLabel} for “{widget.query}”
-        </p>
+        <div className="mt-6 flex items-baseline gap-3 border-t border-line pt-4 text-xs text-ink-muted">
+          <p className="min-w-0 flex-1 truncate" title={widget.query}>
+            From {sourceLabel} for “{widget.query}”
+          </p>
+          {widget.updatedAt && <UpdatedAgo updatedAt={widget.updatedAt} />}
+        </div>
       )}
     </article>
+  )
+}
+
+/**
+ * "Updated 2h ago", kept current while the page stays open. It's its own
+ * component so the minute tick re-renders only this label, not the card.
+ */
+function UpdatedAgo({ updatedAt }: { updatedAt: string }) {
+  const now = useNow(60_000)
+  const ago = formatUpdatedAgo(updatedAt, now)
+  if (!ago) return null
+  return (
+    <time dateTime={updatedAt} title={new Date(updatedAt).toLocaleString()} className="shrink-0">
+      Updated {ago}
+    </time>
   )
 }
 
