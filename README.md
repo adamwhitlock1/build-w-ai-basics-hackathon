@@ -59,3 +59,9 @@ make check   # go vet + go test + go build
 ```
 
 The tests replace OpenRouter and Brave with fakes, so they need no keys and spend no credit.
+
+## How it was planned
+
+The proof of concept was planned and built with the [Devpost Learn skill pack](https://github.com/challengepost/learn-ai-basics). Its planning documents are in `devpost/`: `scope.md`, `prd.md`, `spec.md` and the build `checklist.md`. The git tag `poc-complete` marks the finished proof of concept.
+
+Features added after that are planned with [OpenSpec](https://github.com/Fission-AI/OpenSpec), in `openspec/`, so the original planning documents stay as they were. Each feature starts as a proposal in `openspec/changes/` and, once built, is archived into `openspec/specs/`. In Claude Code, `/opsx:propose` starts one, `/opsx:apply` builds it and `/opsx:archive` finishes it.

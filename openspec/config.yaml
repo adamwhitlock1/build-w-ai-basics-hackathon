@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Porchlight is a Devpost "Build With AI: Basics" hackathon entry. The proof of
+  concept was planned and built with the Devpost Learn skill pack; the commit
+  tagged `poc-complete` is that snapshot. OpenSpec plans every feature added after it.
+  - Never rewrite devpost/scope.md, devpost/prd.md, devpost/spec.md or
+    devpost/checklist.md. Judges check them as proof the skill pack was used.
+    The only allowed edit is the "Post-PoC Additions" list at the end of
+    prd.md and spec.md: add one line per archived change.
+  - Never edit the vendored Devpost Learn skills (.claude/skills/1-start ...
+    6-ship, .agents/skills, agent/) or skills-lock.json.
+  - Hard deadline: Devpost submission closes 2026-10-26 5:00 pm ET. A feature
+    must work reliably end to end before it is demoed. Prefer small, polished
+    changes that strengthen the core story (family homepage, AI-driven widgets)
+    over broad new systems.
+  - The user is learning backend and API development in Go through this
+    project. Keep the backend idiomatic Go and explain new Go concepts briefly.
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
