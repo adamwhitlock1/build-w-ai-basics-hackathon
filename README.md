@@ -58,6 +58,17 @@ The Makefile sets `CGO_ENABLED=0` for every Go command. On this Mac, Go 1.22.0 b
 - **[Brave Search](https://brave.com/search/api/)**: news, web and events searches. Needs `BRAVE_API_KEY`.
 - **[Open-Meteo](https://open-meteo.com/)**: weather widgets (the place lookup and the 7-day forecast). It needs no key. Its free API is for non-commercial use only and its data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), so every weather card says "Weather data by Open-Meteo.com". A commercial Porchlight would need Open-Meteo's paid plan.
 
+## Local test accounts
+
+For trying things out locally, `make seed` (run in `backend/`) adds a test family to your database:
+
+| Who | Email | Password |
+| --- | --- | --- |
+| Parent | `contact.codestuff@gmail.com` | `password1` |
+| Kid | `contact.codestuff+kid@gmail.com` | `password1` |
+
+It writes to `porchlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
+
 ## Tests
 
 ```sh
