@@ -54,10 +54,12 @@ type Catalog interface {
 }
 
 // PickWidgetSpec asks the model to turn prompt into a WidgetSpec using one of
-// the sources in catalog. If the model's answer is invalid even after one
-// retry, the error wraps ErrInvalidSpec. Failures talking to OpenRouter are
-// returned as *UpstreamError.
-func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Catalog, aud sources.Audience) (WidgetSpec, error) {
+// the sources in catalog. location is the member's saved location ("" if
+// none); the model uses it when the prompt needs a place but names none. If
+// the model's answer is invalid even after one retry, the error wraps
+// ErrInvalidSpec. Failures talking to OpenRouter are returned as
+// *UpstreamError.
+func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Catalog, aud sources.Audience, location string) (WidgetSpec, error) {
 	names := catalog.Names()
 	schema, err := specSchema(names)
 	if err != nil {
@@ -68,7 +70,7 @@ func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Cata
 		name:   "widget_spec",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: forAudience(specSystemPrompt(catalog.Describe(), time.Now()), aud)},
+			{Role: openai.ChatMessageRoleSystem, Content: forAudience(specSystemPrompt(catalog.Describe(), location, time.Now()), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
 	}
@@ -134,8 +136,10 @@ func setEnum(schema *jsonschema.Definition, property string, values []string) {
 }
 
 // specSystemPrompt explains the job, the sources, and the archetypes. It
-// includes today's date so the model can make "upcoming" queries concrete.
-func specSystemPrompt(sourceList string, now time.Time) string {
+// includes today's date so the model can make "upcoming" queries concrete,
+// and the member's saved location, when there is one, so "weather" or "near
+// me" can name a place.
+func specSystemPrompt(sourceList, location string, now time.Time) string {
 	return `You design small widgets for Porchlight, a family homepage. A family member describes a widget in one sentence; you decide where its data comes from and how it looks.
 
 Today is ` + now.Format("Monday, January 2, 2006") + `.
@@ -150,6 +154,16 @@ Pick exactly one display archetype:
 - table: columns of title, date, label, and value. Good for comparing several things across a few attributes.
 
 Write the query the way a person would type it into a search engine. Add the current year when timeliness matters (e.g. "upcoming SpaceX launches ` + strconv.Itoa(now.Year()) + `").
-Give the widget a short Title Case title of 2-5 words.
+Give the widget a short Title Case title of 2-5 words.` + locationRule(location) + `
 Reply only with JSON that matches the schema.`
+}
+
+// locationRule tells the model where the member lives, or returns "" when
+// they haven't said. The location is quoted with %q so stray quotes or line
+// breaks in it can't change the instructions around it.
+func locationRule(location string) string {
+	if location == "" {
+		return ""
+	}
+	return fmt.Sprintf("\nThe member's saved location is %q. When the request needs a place and names none (\"weather\", \"near me\"), use this location in the query. A place named in the request wins.", location)
 }

@@ -115,7 +115,9 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	// The Brave key is not checked at startup: every Brave call costs credit.
 	brave := sources.NewBraveClient(cfg.braveKey, cfg.braveBaseURL)
-	registry := sources.NewRegistry(brave.News(), brave.Events(), brave.Web())
+	// Open-Meteo is free and needs no key.
+	openMeteo := sources.NewOpenMeteoClient("", "")
+	registry := sources.NewRegistry(brave.News(), brave.Events(), brave.Web(), openMeteo.Forecast())
 
 	st, err := store.Open(ctx, cfg.dbPath)
 	if err != nil {

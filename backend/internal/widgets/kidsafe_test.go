@@ -130,7 +130,7 @@ func TestFromPromptIsKidSafeForKids(t *testing.T) {
 			planner := &fakePlanner{spec: launchSpec, items: shapedItems, shapeErr: tt.shape}
 			src := &querySource{name: "events_search", results: map[string][]sources.Result{launchSpec.Query: results}}
 			saved := &fakeWidgetStore{}
-			h := widgets.NewHandler(planner, sources.NewRegistry(src), saved, &fakeLayouts{}, discardLogger)
+			h := widgets.NewHandler(planner, sources.NewRegistry(src), saved, fakeProfiles{}, &fakeLayouts{}, discardLogger)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/widgets/from-prompt", strings.NewReader(`{"prompt":"upcoming SpaceX launches"}`))
 			req = req.WithContext(auth.WithUser(req.Context(), tt.user))
@@ -254,7 +254,7 @@ func TestRefreshCustomIsKidSafeForKids(t *testing.T) {
 			saved := &fakeWidgetStore{widgets: []store.CustomWidget{old}}
 			planner := &fakePlanner{items: shapedItems}
 			src := &querySource{name: "events_search", results: map[string][]sources.Result{old.Query: results}}
-			h := widgets.NewHandler(planner, sources.NewRegistry(src), saved, &fakeLayouts{}, discardLogger)
+			h := widgets.NewHandler(planner, sources.NewRegistry(src), saved, fakeProfiles{}, &fakeLayouts{}, discardLogger)
 
 			mux := http.NewServeMux()
 			mux.HandleFunc("POST /api/widgets/custom/{id}/refresh", h.RefreshCustom)

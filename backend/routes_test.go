@@ -37,7 +37,7 @@ import (
 // fakePlanner always plans the same widget.
 type fakePlanner struct{}
 
-func (fakePlanner) PickWidgetSpec(context.Context, string, llm.Catalog, sources.Audience) (llm.WidgetSpec, error) {
+func (fakePlanner) PickWidgetSpec(context.Context, string, llm.Catalog, sources.Audience, string) (llm.WidgetSpec, error) {
 	return llm.WidgetSpec{Title: "SpaceX Launches", Source: "events_search", Query: "upcoming SpaceX launches", Archetype: llm.ArchetypeList}, nil
 }
 

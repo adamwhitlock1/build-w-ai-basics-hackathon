@@ -53,6 +53,11 @@ Accounts, families, saved widgets and page layouts live in a SQLite file, `backe
 
 The Makefile sets `CGO_ENABLED=0` for every Go command. On this Mac, Go 1.22.0 binaries linked with cgo crash at launch with `dyld: missing LC_UUID`. Porchlight is pure Go, and so is its SQLite driver (modernc.org/sqlite), so turning cgo off costs nothing. The Makefile also sets `GOTOOLCHAIN=local` so Go never downloads a different toolchain. To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...`.
 
+## Data sources
+
+- **[Brave Search](https://brave.com/search/api/)**: news, web and events searches. Needs `BRAVE_API_KEY`.
+- **[Open-Meteo](https://open-meteo.com/)**: weather widgets (the place lookup and the 7-day forecast). It needs no key. Its free API is for non-commercial use only and its data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), so every weather card says "Weather data by Open-Meteo.com". A commercial Porchlight would need Open-Meteo's paid plan.
+
 ## Tests
 
 ```sh
@@ -60,7 +65,7 @@ cd backend
 make check   # go vet + go test + go build
 ```
 
-The tests replace OpenRouter and Brave with fakes, so they need no keys and spend no credit.
+The tests replace OpenRouter, Brave and Open-Meteo with fakes, so they need no keys, spend no credit and make no network calls.
 
 ## How it was planned
 

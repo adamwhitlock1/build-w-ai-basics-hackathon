@@ -4,8 +4,8 @@
 /** How a widget lays out its items. Mirrors the backend contract. */
 export type Archetype = 'list' | 'cards' | 'hero' | 'key_value' | 'table'
 
-/** Which search vertical the backend used to fill the widget. */
-export type SourceName = 'news_search' | 'events_search' | 'web_search'
+/** Which source the backend used to fill the widget: a search vertical, or the weather forecast. */
+export type SourceName = 'news_search' | 'events_search' | 'web_search' | 'weather_forecast'
 
 /** One row of widget content. Every field is always a string ("" when unknown). */
 export interface WidgetItem {

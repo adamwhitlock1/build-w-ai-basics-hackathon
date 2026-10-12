@@ -70,3 +70,29 @@ func TestFromStoreFreshness(t *testing.T) {
 		t.Errorf("refreshed 1h ago: updatedAt %v, stale %v; want %v, false", got.UpdatedAt, got.Stale, refreshed)
 	}
 }
+
+// TestWeatherFreshness checks that a forecast goes stale after an hour,
+// while other described widgets keep the 6-hour window.
+func TestWeatherFreshness(t *testing.T) {
+	now := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	spec := []byte(`{"title":"Weather","archetype":"table","items":[]}`)
+	tests := []struct {
+		source string
+		age    time.Duration
+		stale  bool
+	}{
+		{"weather_forecast", 90 * time.Minute, true},
+		{"web_search", 90 * time.Minute, false},
+		{"weather_forecast", 30 * time.Minute, false},
+	}
+	for _, tt := range tests {
+		cw := store.CustomWidget{ID: 1, Source: tt.source, RenderSpec: spec, CreatedAt: now.Add(-tt.age)}
+		got, err := FromStore(cw, now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Stale != tt.stale {
+			t.Errorf("%s updated %v ago: stale = %v, want %v", tt.source, tt.age, got.Stale, tt.stale)
+		}
+	}
+}

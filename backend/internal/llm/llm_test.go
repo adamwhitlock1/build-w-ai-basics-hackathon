@@ -197,7 +197,7 @@ func TestPickWidgetSpec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fake, client := newFake(t, tt.replies...)
 
-			spec, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone)
+			spec, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone, "")
 
 			if got := len(fake.reqs); got != tt.wantCalls {
 				t.Errorf("made %d calls, want %d", got, tt.wantCalls)
@@ -232,7 +232,7 @@ func TestPickWidgetSpec(t *testing.T) {
 // sends only the corrective user message.
 func TestRetryAfterEmptyReply(t *testing.T) {
 	fake, client := newFake(t, ok(""), ok(validSpec))
-	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone); err != nil {
+	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone, ""); err != nil {
 		t.Fatal(err)
 	}
 	if len(fake.reqs) != 2 {
@@ -245,9 +245,43 @@ func TestRetryAfterEmptyReply(t *testing.T) {
 	}
 }
 
+// TestPickWidgetSpecLocation checks that the member's saved location, and
+// the rule for using it, reach the system prompt only when there is one.
+func TestPickWidgetSpecLocation(t *testing.T) {
+	const rule = "When the request needs a place and names none"
+	tests := []struct {
+		name     string
+		location string
+		want     []string // substrings the system prompt must have
+		wantNot  []string // and must not have
+	}{
+		{"saved location", "Austin, TX", []string{`saved location is "Austin, TX"`, rule}, nil},
+		{"no location", "", nil, []string{"saved location", rule}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake, client := newFake(t, ok(validSpec))
+			if _, err := client.PickWidgetSpec(context.Background(), "this week's weather", testCatalog, sources.Everyone, tt.location); err != nil {
+				t.Fatal(err)
+			}
+			system := fake.reqs[0].Messages[0].Content
+			for _, s := range tt.want {
+				if !strings.Contains(system, s) {
+					t.Errorf("system prompt is missing %q", s)
+				}
+			}
+			for _, s := range tt.wantNot {
+				if strings.Contains(system, s) {
+					t.Errorf("system prompt has %q, want it absent", s)
+				}
+			}
+		})
+	}
+}
+
 func TestPickWidgetSpecRequest(t *testing.T) {
 	fake, client := newFake(t, ok(validSpec))
-	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone); err != nil {
+	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone, ""); err != nil {
 		t.Fatal(err)
 	}
 
