@@ -8,7 +8,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
-import { useContext } from 'react'
+import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import {
   ApiError,
@@ -467,6 +467,32 @@ export function useCreateWidgetFromPrompt({ onCreated }: CreateWidgetOptions = {
 }
 
 /**
+ * Gets new items for one of your saved widgets: the server runs its saved
+ * search again and keeps its title and look. Call `mutate()`. On success the
+ * refreshed widget replaces the old one in your cached page, so its card
+ * updates in place. Like the other mutations here, the cache update runs
+ * even if the card has unmounted meanwhile.
+ */
+export function useRefreshCustomWidget(widgetId: number) {
+  const queryClient = useQueryClient()
+  return useMutation<SavedWidget, ApiError, void, { userId: number | undefined }>({
+    onMutate: () => ({ userId: queryClient.getQueryData(meQueryOptions.queryKey)?.user.id }),
+    mutationFn: () => apiFetch<SavedWidget>(`/api/widgets/custom/${widgetId}/refresh`, { method: 'POST' }),
+    onSuccess: (widget, _input, { userId }) => {
+      // Someone else logged in on this device while it refreshed.
+      if (queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== userId) return
+      queryClient.setQueryData(homepageQueryOptions.queryKey, (page) =>
+        page ? { ...page, customWidgets: page.customWidgets.map((w) => (w.id === widget.id ? widget : w)) } : page,
+      )
+    },
+    onError: (err) => {
+      // Deleted in another tab: ask for the page again, and the card goes.
+      if (err.status === 404) void queryClient.invalidateQueries({ queryKey: homepageQueryOptions.queryKey })
+    },
+  })
+}
+
+/**
  * Deletes one of your saved widgets for good. Call `mutateAsync(widgetId)`.
  * The server also takes its card off your saved layout; on success the
  * widget and its card leave the cached page too.
@@ -539,12 +565,26 @@ function inFlightKey(queryKey: CuratedWidgetKey) {
 }
 
 /**
+ * Curated queries whose next fetch should ask the server for new picks
+ * (`?refresh=1`) rather than the remembered ones. Keyed like curatedInFlight.
+ */
+const refreshRequested = new Set<string>()
+
+/**
+ * Stale results already sent off for a background refresh, as
+ * "<key>@<updatedAt>", so each one is refreshed once: a refresh that fails
+ * leaves the same stale result behind, and mustn't retry in a loop.
+ */
+const staleRefreshed = new Set<string>()
+
+/**
  * One person's Articles or Local Events widget: yours, or a family member's
- * while a parent looks at their page. The server asks the LLM and searches
- * afresh on every request, and each one spends search credit, so it loads
- * once per visit (a full reload loads it again) and after that only when
- * asked: the card's refresh button, or saving new interests. The person's id
- * in the key keeps one person's picks off anyone else's page.
+ * while a parent looks at their page. The server remembers each person's
+ * latest picks and sends them back without searching, so it loads once per
+ * visit (a full reload loads it again, cheaply) and after that only when
+ * asked: the card's refresh button, a background refresh of stale picks
+ * (see useCuratedWidget), or saving new interests. The person's id in the
+ * key keeps one person's picks off anyone else's page.
  */
 export function curatedWidgetQueryOptions(kind: CuratedKind, owner: PageOwner) {
   // Your picks come from /api/widgets/..., and a member's from the
@@ -566,10 +606,12 @@ export function curatedWidgetQueryOptions(kind: CuratedKind, owner: PageOwner) {
     // Only a reseed aborts it, through this request's own controller.
     queryFn: async () => {
       const key = inFlightKey(queryKey)
+      // Asked by refreshCuratedWidget: get new picks, not the remembered ones.
+      const refresh = refreshRequested.delete(key)
       const controller = new AbortController()
       curatedInFlight.set(key, controller)
       try {
-        return await apiFetch<CuratedWidget>(path, {
+        return await apiFetch<CuratedWidget>(refresh ? `${path}?refresh=1` : path, {
           signal: controller.signal,
           // Skip the HTTP cache: otherwise the browser holds a newer request
           // for the same URL until an older one still running finishes.
@@ -606,8 +648,47 @@ export function useEvents() {
   return useCuratedWidget('events')
 }
 
+/**
+ * One curated widget of the page it's on. When the server says its picks
+ * are stale, they stay on screen while new ones load in the background,
+ * once per stale result.
+ */
 function useCuratedWidget(kind: CuratedKind) {
-  return useQuery(curatedWidgetQueryOptions(kind, usePageOwner()))
+  const queryClient = useQueryClient()
+  const options = curatedWidgetQueryOptions(kind, usePageOwner())
+  const query = useQuery(options)
+  // The key's array is new each render; its JSON text only changes when the
+  // page's person does, so the effect depends on that.
+  const keyText = inFlightKey(options.queryKey)
+  const staleSince = query.data?.stale ? query.data.updatedAt : undefined
+  useEffect(() => {
+    if (!staleSince) return
+    const once = `${keyText}@${staleSince}`
+    if (staleRefreshed.has(once)) return
+    staleRefreshed.add(once)
+    void refreshCuratedWidget(queryClient, JSON.parse(keyText) as CuratedWidgetKey)
+  }, [queryClient, keyText, staleSince])
+  return query
+}
+
+/**
+ * Returns a function that gets new picks for one curated widget of the page
+ * it's on, even if the remembered ones are still fresh: its refresh button.
+ */
+export function useRefreshCuratedWidget(kind: CuratedKind) {
+  const queryClient = useQueryClient()
+  const { queryKey } = curatedWidgetQueryOptions(kind, usePageOwner())
+  return () => void refreshCuratedWidget(queryClient, queryKey)
+}
+
+/**
+ * Loads new picks for a curated widget, keeping the current ones on screen
+ * meanwhile. A click that lands while a load is already under way (a quick
+ * double-click, say) joins it rather than starting a second, paid one.
+ */
+function refreshCuratedWidget(queryClient: QueryClient, queryKey: CuratedWidgetKey) {
+  if (queryClient.isFetching({ queryKey, exact: true }) === 0) refreshRequested.add(inFlightKey(queryKey))
+  return queryClient.refetchQueries({ queryKey, exact: true }, { cancelRefetch: false })
 }
 
 // ---------------------------------------------------------------------------
@@ -716,6 +797,8 @@ async function reseedCuratedWidgets(queryClient: QueryClient, kinds: CuratedKind
       // so the query never sees the abort as an error.
       const cancelled = queryClient.cancelQueries({ queryKey })
       curatedInFlight.get(inFlightKey(queryKey))?.abort()
+      // The server picks again for new interests anyway.
+      refreshRequested.delete(inFlightKey(queryKey))
       await cancelled
       // Refetches it now if a card is showing it, or on the card's next mount.
       await queryClient.invalidateQueries({ queryKey })

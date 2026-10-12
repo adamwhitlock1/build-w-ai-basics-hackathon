@@ -1,4 +1,4 @@
-import { useEvents, usePageOwner } from '../api/hooks'
+import { useEvents, usePageOwner, useRefreshCuratedWidget } from '../api/hooks'
 import { CuratedWidgetCard } from './CuratedWidgetCard'
 
 /**
@@ -8,11 +8,13 @@ import { CuratedWidgetCard } from './CuratedWidgetCard'
  */
 export function LocalEventsWidget() {
   const events = useEvents()
+  const refresh = useRefreshCuratedWidget('events')
   // On a family member's page, a parent reads it, so it speaks about them.
   const { isYou } = usePageOwner()
   return (
     <CuratedWidgetCard
       result={events}
+      onRefresh={refresh}
       title={isYou ? 'Happening near you' : 'Happening near them'}
       noun="events"
       loadingMessage={isYou ? 'Looking for events near you…' : 'Looking for events near them…'}

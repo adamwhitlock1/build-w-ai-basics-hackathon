@@ -24,7 +24,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	// New widgets go onto the member's saved layout, and deleted ones come
 	// off it, through layoutHandler.
 	widgetHandler := widgets.NewHandler(planner, srcs, st, layoutHandler, logger)
-	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, logger)
+	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, st, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
 	// needs that user to be a family admin. A method value such as
@@ -75,6 +75,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
 	mux.Handle("POST /api/widgets/from-prompt", private(widgetHandler.FromPrompt))
 	mux.Handle("GET /api/widgets/custom/{id}", private(widgetHandler.GetCustom))
+	mux.Handle("POST /api/widgets/custom/{id}/refresh", private(widgetHandler.RefreshCustom))
 	mux.Handle("DELETE /api/widgets/custom/{id}", private(widgetHandler.DeleteCustom))
 
 	// A parent looking at someone in their family, and setting their

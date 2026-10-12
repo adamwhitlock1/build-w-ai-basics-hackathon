@@ -106,6 +106,36 @@ func (f fakeProfiles) GetMemberProfile(context.Context, int64) (store.MemberProf
 	return f.profile, f.err
 }
 
+// memResults is a widgets.ResultStore in memory.
+type memResults struct {
+	rows   map[string]store.CuratedResult // keyed by resultKey
+	puts   int
+	getErr error
+}
+
+func newMemResults() *memResults {
+	return &memResults{rows: map[string]store.CuratedResult{}}
+}
+
+func resultKey(userID int64, kind string) string { return fmt.Sprint(userID, "/", kind) }
+
+func (m *memResults) GetCuratedResult(_ context.Context, userID int64, kind string) (store.CuratedResult, error) {
+	if m.getErr != nil {
+		return store.CuratedResult{}, m.getErr
+	}
+	r, ok := m.rows[resultKey(userID, kind)]
+	if !ok {
+		return store.CuratedResult{}, store.ErrNotFound
+	}
+	return r, nil
+}
+
+func (m *memResults) PutCuratedResult(_ context.Context, r store.CuratedResult) error {
+	m.puts++
+	m.rows[resultKey(r.UserID, r.Kind)] = r
+	return nil
+}
+
 // article returns a search result whose URL and title are built from id.
 func article(id string) sources.Result {
 	return sources.Result{Title: "Story " + id, URL: "https://example.com/" + id, Snippet: "About " + id, Site: "example.com"}
@@ -124,6 +154,8 @@ type curatedCase struct {
 	wantHint   string // the error's exact hint, if set
 	wantCalls  []string
 	wantAsked  []string // the queries searched, sorted; nil means none
+	// remembered holds the results the handler remembers; nil starts empty.
+	remembered *memResults
 }
 
 // serveCurated runs one request against a CuratedHandler and returns the
@@ -132,7 +164,11 @@ func serveCurated(t *testing.T, tt curatedCase, path string) (widgets.CuratedWid
 	t.Helper()
 	news := &querySource{name: "news_search", results: tt.results, errs: tt.errs}
 	events := &querySource{name: "events_search", results: tt.results, errs: tt.errs}
-	h := widgets.NewCuratedHandler(tt.curator, sources.NewRegistry(news, events), tt.profile, discardLogger)
+	results := tt.remembered
+	if results == nil {
+		results = newMemResults()
+	}
+	h := widgets.NewCuratedHandler(tt.curator, sources.NewRegistry(news, events), tt.profile, results, discardLogger)
 
 	req := httptest.NewRequest(http.MethodGet, path, nil)
 	if !tt.anonymous {
@@ -585,7 +621,7 @@ func TestCuratedHandlerNeedsBothSources(t *testing.T) {
 			t.Error("NewCuratedHandler without a news_search source didn't panic")
 		}
 	}()
-	widgets.NewCuratedHandler(&fakeCurator{}, sources.NewRegistry(&querySource{name: "events_search"}), fakeProfiles{}, discardLogger)
+	widgets.NewCuratedHandler(&fakeCurator{}, sources.NewRegistry(&querySource{name: "events_search"}), fakeProfiles{}, newMemResults(), discardLogger)
 }
 
 // Planning has a free fallback, so it gets less time than the whole request.
@@ -660,7 +696,7 @@ func TestCuratedSearchesRunConcurrently(t *testing.T) {
 	news := newBarrierSource("news_search", len(queries))
 	h := widgets.NewCuratedHandler(&fakeCurator{articleQueries: queries},
 		sources.NewRegistry(news, &querySource{name: "events_search"}),
-		fakeProfiles{profile: store.MemberProfile{Interests: "chess"}}, discardLogger)
+		fakeProfiles{profile: store.MemberProfile{Interests: "chess"}}, newMemResults(), discardLogger)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/widgets/articles", nil)
 	req = req.WithContext(auth.WithUser(req.Context(), alice))
@@ -685,7 +721,7 @@ func TestCuratedStopsWhenTheClientLeaves(t *testing.T) {
 	news := newBarrierSource("news_search", 3)
 	h := widgets.NewCuratedHandler(&fakeCurator{articleQueries: []string{"q1", "q2"}},
 		sources.NewRegistry(news, &querySource{name: "events_search"}),
-		fakeProfiles{profile: store.MemberProfile{Interests: "chess"}}, discardLogger)
+		fakeProfiles{profile: store.MemberProfile{Interests: "chess"}}, newMemResults(), discardLogger)
 
 	ctx, cancel := context.WithCancel(auth.WithUser(context.Background(), alice))
 	defer cancel()
@@ -735,7 +771,7 @@ func TestCuratedWidgetsFollowTheSubject(t *testing.T) {
 			news := &querySource{name: "news_search", results: found}
 			events := &querySource{name: "events_search", results: found}
 			var logs bytes.Buffer
-			h := widgets.NewCuratedHandler(curator, sources.NewRegistry(news, events), profiles,
+			h := widgets.NewCuratedHandler(curator, sources.NewRegistry(news, events), profiles, newMemResults(),
 				slog.New(slog.NewTextHandler(&logs, nil)))
 
 			// Alice is logged in; RequireMember made her kid the subject.

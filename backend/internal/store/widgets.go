@@ -17,18 +17,25 @@ type CustomWidget struct {
 	Name       string
 	Source     string
 	Query      string
+	Prompt     string // the sentence it was described with; "" for widgets made before prompts were kept
 	RenderSpec json.RawMessage
 	CreatedAt  time.Time
+	// RefreshedAt is when the widget's items were last refreshed; zero if
+	// they never have been, so they date from CreatedAt.
+	RefreshedAt time.Time
 }
 
-const customWidgetColumns = `id, user_id, name, source, query, render_spec, created_at`
+const customWidgetColumns = `id, user_id, name, source, query, prompt, render_spec, created_at, refreshed_at`
 
 func scanCustomWidget(row scanner) (CustomWidget, error) {
 	var (
 		w    CustomWidget
 		spec string // TEXT column; database/sql can't scan it into json.RawMessage directly
+		// sql.NullTime scans a NULL refreshed_at as Valid == false instead
+		// of failing.
+		refreshed sql.NullTime
 	)
-	err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.Source, &w.Query, &spec, &w.CreatedAt)
+	err := row.Scan(&w.ID, &w.UserID, &w.Name, &w.Source, &w.Query, &w.Prompt, &spec, &w.CreatedAt, &refreshed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return CustomWidget{}, ErrNotFound
 	}
@@ -36,6 +43,9 @@ func scanCustomWidget(row scanner) (CustomWidget, error) {
 		return CustomWidget{}, err
 	}
 	w.RenderSpec = json.RawMessage(spec)
+	if refreshed.Valid {
+		w.RefreshedAt = refreshed.Time
+	}
 	return w, nil
 }
 
@@ -44,10 +54,10 @@ func scanCustomWidget(row scanner) (CustomWidget, error) {
 // ignored).
 func (s *Store) CreateCustomWidget(ctx context.Context, w CustomWidget) (CustomWidget, error) {
 	saved, err := scanCustomWidget(s.db.QueryRowContext(ctx,
-		`INSERT INTO custom_widgets (user_id, name, source, query, render_spec) VALUES (?, ?, ?, ?, ?)
+		`INSERT INTO custom_widgets (user_id, name, source, query, prompt, render_spec) VALUES (?, ?, ?, ?, ?, ?)
 		 RETURNING `+customWidgetColumns,
 		// Passing the spec as a string stores it as TEXT rather than a BLOB.
-		w.UserID, w.Name, w.Source, w.Query, string(w.RenderSpec)))
+		w.UserID, w.Name, w.Source, w.Query, w.Prompt, string(w.RenderSpec)))
 	if err != nil {
 		return CustomWidget{}, fmt.Errorf("create custom widget: %w", err)
 	}
@@ -62,6 +72,21 @@ func (s *Store) GetCustomWidget(ctx context.Context, userID, widgetID int64) (Cu
 		`SELECT `+customWidgetColumns+` FROM custom_widgets WHERE id = ? AND user_id = ?`, widgetID, userID))
 	if err != nil {
 		return CustomWidget{}, fmt.Errorf("get custom widget %d: %w", widgetID, err)
+	}
+	return w, nil
+}
+
+// UpdateCustomWidgetItems replaces the render spec of widget widgetID, if it
+// belongs to userID, and records refreshedAt as when it was refreshed. It
+// returns the widget as saved. Like GetCustomWidget, it reports another
+// user's widget as ErrNotFound and leaves it alone.
+func (s *Store) UpdateCustomWidgetItems(ctx context.Context, userID, widgetID int64, renderSpec json.RawMessage, refreshedAt time.Time) (CustomWidget, error) {
+	w, err := scanCustomWidget(s.db.QueryRowContext(ctx,
+		`UPDATE custom_widgets SET render_spec = ?, refreshed_at = ? WHERE id = ? AND user_id = ?
+		 RETURNING `+customWidgetColumns,
+		string(renderSpec), formatTime(refreshedAt), widgetID, userID))
+	if err != nil {
+		return CustomWidget{}, fmt.Errorf("update custom widget %d: %w", widgetID, err)
 	}
 	return w, nil
 }
