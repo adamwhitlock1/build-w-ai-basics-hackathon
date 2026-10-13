@@ -2,6 +2,7 @@ import { ArrangeFrame } from './ArrangeFrame'
 import { ArticlesBlock } from './blocks/Articles'
 import { CustomBlock } from './blocks/Custom'
 import { LocalEventsBlock } from './blocks/LocalEvents'
+import { TodayBlock } from './blocks/Today'
 import { DEFAULT_SPAN } from './layout'
 import type { PorchlightConfig } from './types'
 
@@ -26,10 +27,21 @@ export const config: PorchlightConfig = {
     // grid item) and stores only its width, plus a widget id for Custom.
     // `defaultProps` fill in anything a stored card is missing. Puck's own
     // delete (its Backspace and Delete keys) is off for every card: the page
-    // always has its one Articles and one Local Events card, and a widget
+    // always has its one Today, one Articles and one Local Events card, and a widget
     // you described leaves only through "Remove" in the action bar, which
     // deletes the widget itself (see BlockActionBar). Nothing can be
     // duplicated (see ArrangeCanvas).
+    Today: {
+      label: 'Today',
+      inline: true,
+      defaultProps: { span: 4 },
+      permissions: { delete: false },
+      render: ({ id, span, puck }) => (
+        <ArrangeFrame id={id} span={span} dragRef={puck.dragRef} editing={puck.isEditing}>
+          <TodayBlock />
+        </ArrangeFrame>
+      ),
+    },
     Articles: {
       label: 'Articles',
       inline: true,

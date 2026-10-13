@@ -146,7 +146,7 @@ interface MissingNudgeProps {
 }
 
 /** Says what's missing, with a button straight to the field that fixes it. */
-function MissingNudge({ info, onOpen }: MissingNudgeProps) {
+export function MissingNudge({ info, onOpen }: MissingNudgeProps) {
   return (
     <div className="rounded-2xl bg-bg px-4 py-6 text-center">
       <p className="mx-auto max-w-xs text-sm leading-relaxed text-ink-soft">{info.message}</p>

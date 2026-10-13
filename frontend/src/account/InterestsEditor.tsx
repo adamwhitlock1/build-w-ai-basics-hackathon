@@ -1,8 +1,9 @@
 import type { UseMutationResult } from '@tanstack/react-query'
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { ApiError, Profile } from '../api/client'
+import type { ApiError, CalendarSummary, Profile } from '../api/client'
 import { FormError } from '../components/FormError'
 import { SubmitButton } from '../components/SubmitButton'
+import { CalendarLinkField } from './CalendarLinkField'
 import { focusField } from './forms'
 import type { ProfileField } from './interestsEditorContext'
 import { ProfileFields } from './ProfileFields'
@@ -16,8 +17,9 @@ export interface InterestsEditorProps {
    * The saved interests and location the form starts from. If a fresher copy
    * is passed before anything's been typed (the page asks for one as the
    * editor opens: see useFreshPageProfile), the form shows that instead.
+   * With `calendar`, the panel also offers to connect a calendar.
    */
-  initial: Profile
+  initial: Profile & { calendar?: CalendarSummary }
   /** Whose interests these are, for the fields' wording (see ProfileFields). Yours by default. */
   whose?: 'yours' | 'theirs'
   /**
@@ -62,11 +64,20 @@ export function InterestsEditor({
     if (profile === filledFrom) setProfile(initial)
   }
   const formRef = useRef<HTMLFormElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
   const headingId = useId()
 
   // Put the cursor in the requested field when the editor opens, and again
-  // whenever a new request arrives while it's already open.
+  // whenever a new request arrives while it's already open. The calendar
+  // field is its own form below this one: its link box, or, once connected,
+  // its "Replace link" button.
   useEffect(() => {
+    if (focusRequest?.field === 'calendar') {
+      const field = sectionRef.current?.querySelector('[data-calendar-field]')
+      const target = field?.querySelector<HTMLElement>('input[name="calendar"]') ?? field?.querySelector('button')
+      target?.focus()
+      return
+    }
     if (formRef.current) focusField(formRef.current, focusRequest?.field ?? 'interests')
   }, [focusRequest])
 
@@ -102,6 +113,7 @@ export function InterestsEditor({
 
   return (
     <section
+      ref={sectionRef}
       id={id}
       aria-labelledby={headingId}
       onKeyDown={handleKeyDown}
@@ -132,6 +144,12 @@ export function InterestsEditor({
           </div>
         </div>
       </form>
+
+      {initial.calendar && (
+        <div className="mt-6">
+          <CalendarLinkField calendar={initial.calendar} whose={whose} />
+        </div>
+      )}
     </section>
   )
 }

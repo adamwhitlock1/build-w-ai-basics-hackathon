@@ -6,6 +6,7 @@ package main
 // invites_test.go.
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"porchlight/internal/calendar"
 	"porchlight/internal/family"
 	"porchlight/internal/layout"
 	"porchlight/internal/widgets"
@@ -293,5 +295,87 @@ func TestKidSafePicks(t *testing.T) {
 	}
 	if mine := alice.homepage(); len(mine.CustomWidgets) != 1 || mine.CustomWidgets[0].KidSafe {
 		t.Errorf("alice's saved widgets = %+v, want one without kidSafe", mine.CustomWidgets)
+	}
+}
+
+// TestCalendarLinks checks who can connect a calendar for whom, and that
+// the link never comes back in a response: only that one is connected,
+// and from which service.
+func TestCalendarLinks(t *testing.T) {
+	f := newTestFamily(t)
+	alice, kid, aliceMe, kidMe := f.alice, f.kid, f.aliceMe, f.kidMe
+	const secret = "private-SECRET123"
+	link := "https://calendar.google.com/calendar/ical/kid/" + secret + "/basic.ics"
+	noLeak := func(what string, raw json.RawMessage) {
+		t.Helper()
+		if strings.Contains(string(raw), secret) {
+			t.Errorf("%s leaks the calendar link: %s", what, raw)
+		}
+	}
+
+	// A kid can't set anyone else's calendar, not even through their own id.
+	kid.do("PUT", memberPath(aliceMe.User.ID, "/calendar"), map[string]string{"url": link}, http.StatusForbidden, nil)
+	kid.do("DELETE", memberPath(aliceMe.User.ID, "/calendar"), nil, http.StatusForbidden, nil)
+	kid.do("PUT", memberPath(kidMe.User.ID, "/calendar"), map[string]string{"url": link}, http.StatusForbidden, nil)
+
+	// A parent connects the kid's calendar from the kid's page.
+	var raw json.RawMessage
+	alice.do("PUT", memberPath(kidMe.User.ID, "/calendar"), map[string]string{"url": link}, http.StatusOK, &raw)
+	noLeak("PUT /calendar", raw)
+
+	// The kid sees it connected, everywhere their profile shows, and so does
+	// alice on the kid's page. Alice's own stays unconnected.
+	want := calendar.Summary{Connected: true, Provider: "Google Calendar"}
+	var kidNow family.Me
+	kid.do("GET", "/api/me", nil, http.StatusOK, &raw)
+	noLeak("GET /api/me", raw)
+	json.Unmarshal(raw, &kidNow)
+	if kidNow.Profile.Calendar != want || kid.homepage().Profile.Calendar != want {
+		t.Errorf("kid's calendar = %+v / %+v, want %+v", kidNow.Profile.Calendar, kid.homepage().Profile.Calendar, want)
+	}
+	alice.do("GET", memberPath(kidMe.User.ID, "/homepage"), nil, http.StatusOK, &raw)
+	noLeak("GET /homepage", raw)
+	var seen layout.Homepage
+	json.Unmarshal(raw, &seen)
+	if seen.Profile.Calendar != want {
+		t.Errorf("alice's view of the kid's calendar = %+v, want %+v", seen.Profile.Calendar, want)
+	}
+	if alice.homepage().Profile.Calendar.Connected {
+		t.Error("alice's own calendar reads as connected")
+	}
+
+	// Saving the kid's interests doesn't disconnect it.
+	var saved family.ProfileResponse
+	kid.do("PUT", "/api/me/profile", map[string]string{"interests": "chess", "location": ""}, http.StatusOK, &saved)
+	if saved.Profile.Calendar != want {
+		t.Errorf("profile save answered calendar %+v, want %+v", saved.Profile.Calendar, want)
+	}
+
+	// Both the kid and alice see the kid's Today card from it.
+	for _, c := range []struct {
+		who  *client
+		path string
+	}{{kid, "/api/widgets/today?tz=America/Denver"}, {alice, memberPath(kidMe.User.ID, "/widgets/today?tz=America/Denver")}} {
+		var today widgets.TodayWidget
+		c.who.do("GET", c.path, nil, http.StatusOK, &raw)
+		noLeak("GET "+c.path, raw)
+		json.Unmarshal(raw, &today)
+		if len(today.Today) != 1 || today.Today[0].Title != "Family day" || today.Provider != "Google Calendar" {
+			t.Errorf("%s = %+v, want the kid's Family day", c.path, today)
+		}
+	}
+
+	// A web page is refused, and the link already saved stays.
+	alice.do("PUT", memberPath(kidMe.User.ID, "/calendar"), map[string]string{"url": "https://example.com/page.html"}, http.StatusUnprocessableEntity, nil)
+	if !kid.homepage().Profile.Calendar.Connected {
+		t.Error("a refused link disconnected the kid's calendar")
+	}
+
+	// The kid removes their own; their card then asks for one.
+	kid.do("DELETE", "/api/me/calendar", nil, http.StatusOK, nil)
+	var today widgets.TodayWidget
+	kid.do("GET", "/api/widgets/today?tz=America/Denver", nil, http.StatusOK, &today)
+	if today.EmptyReason != widgets.EmptyNoCalendar {
+		t.Errorf("after removing: emptyReason %q, want %q", today.EmptyReason, widgets.EmptyNoCalendar)
 	}
 }

@@ -35,7 +35,7 @@ The system SHALL remember each member's most recent Articles and Local Events re
 - **AND** results a parent's view picks are remembered for that member
 
 ### Requirement: Freshness windows
-Every widget result SHALL carry the time it was last updated and whether it is stale. A result SHALL be stale once it is older than its kind's freshness window: Articles 3 hours, Local Events 12 hours, weather widgets 1 hour, and other described widgets 6 hours.
+Every widget result SHALL carry the time it was last updated and whether it is stale. A result SHALL be stale once it is older than its kind's freshness window: the Today card 15 minutes, Articles 3 hours, Local Events 12 hours, weather widgets 1 hour, and other described widgets 6 hours.
 
 #### Scenario: Result within its window
 - **WHEN** Local Events were updated 5 hours ago
@@ -56,6 +56,10 @@ Every widget result SHALL carry the time it was last updated and whether it is s
 #### Scenario: Other described widget at the same age
 - **WHEN** a described widget that isn't a weather widget was updated 90 minutes ago
 - **THEN** the system reports it as not stale
+
+#### Scenario: Today card after 20 minutes
+- **WHEN** a member's Today events were fetched 20 minutes ago
+- **THEN** the system returns them at once and reports them as stale, so the page fetches the calendar again in the background
 
 ### Requirement: Stale widgets refresh in the background
 When a widget on a member's own page is stale, the page SHALL keep showing its current items and request fresh ones once, without a loading state. It SHALL replace the items when the fresh ones arrive.

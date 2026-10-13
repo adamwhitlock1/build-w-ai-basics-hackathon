@@ -16,8 +16,8 @@ import (
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
 // session and logging middleware. Tests call it with fakes for the LLM
-// (planner and curator) and the search sources.
-func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, curator widgets.Curator, srcs widgets.SourceFinder) http.Handler {
+// (planner and curator), the search sources and the calendar fetcher.
+func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, curator widgets.Curator, srcs widgets.SourceFinder, calendars widgets.CalendarFetcher) http.Handler {
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
 	layoutHandler := layout.NewHandler(st, logger)
@@ -25,6 +25,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	// off it, through layoutHandler.
 	widgetHandler := widgets.NewHandler(planner, srcs, st, st, layoutHandler, logger)
 	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, st, logger)
+	todayHandler := widgets.NewTodayHandler(calendars, st, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
 	// needs that user to be a family admin. A method value such as
@@ -73,6 +74,11 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.Handle("PUT /api/me/profile", private(familyHandler.UpdateProfile))
 	mux.Handle("GET /api/widgets/articles", private(curatedHandler.Articles))
 	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
+	mux.Handle("GET /api/widgets/today", private(todayHandler.Today))
+	// The calendar link travels in the body, never the path, so the request
+	// log can't record it.
+	mux.Handle("PUT /api/me/calendar", private(todayHandler.SetCalendar))
+	mux.Handle("DELETE /api/me/calendar", private(todayHandler.RemoveCalendar))
 	mux.Handle("POST /api/widgets/from-prompt", private(widgetHandler.FromPrompt))
 	mux.Handle("GET /api/widgets/custom/{id}", private(widgetHandler.GetCustom))
 	mux.Handle("POST /api/widgets/custom/{id}/refresh", private(widgetHandler.RefreshCustom))
@@ -82,11 +88,14 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	// interests and location. These reuse the handlers above, which act on
 	// the request's subject: the logged-in user there, member {id} here.
 	// There are deliberately no member routes for changing a layout or
-	// widgets: parents look, and only edit interests and location.
+	// widgets: parents look, and only edit interests, location and calendar.
 	mux.Handle("GET /api/members/{id}/homepage", asParent(layoutHandler.Homepage))
 	mux.Handle("PUT /api/members/{id}/profile", asParent(familyHandler.UpdateProfile))
 	mux.Handle("GET /api/members/{id}/widgets/articles", asParent(curatedHandler.Articles))
 	mux.Handle("GET /api/members/{id}/widgets/events", asParent(curatedHandler.Events))
+	mux.Handle("GET /api/members/{id}/widgets/today", asParent(todayHandler.Today))
+	mux.Handle("PUT /api/members/{id}/calendar", asParent(todayHandler.SetCalendar))
+	mux.Handle("DELETE /api/members/{id}/calendar", asParent(todayHandler.RemoveCalendar))
 
 	// Family admins.
 	mux.Handle("POST /api/families", adminOnly(familyHandler.CreateFamily))

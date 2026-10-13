@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"porchlight/internal/auth"
+	"porchlight/internal/calendar"
 	"porchlight/internal/respond"
 	"porchlight/internal/store"
 	"porchlight/internal/widgets"
@@ -32,6 +33,7 @@ const saveExample = `Send JSON like {"layout": {"root": {"props": {"blocks": [..
 // it.
 type Store interface {
 	GetMemberProfile(ctx context.Context, userID int64) (store.MemberProfile, error)
+	GetCalendarLink(ctx context.Context, userID int64) (string, error)
 	ListCustomWidgets(ctx context.Context, userID int64) ([]store.CustomWidget, error)
 	GetLayout(ctx context.Context, userID int64) (json.RawMessage, error)
 	UpsertLayout(ctx context.Context, userID int64, puckData json.RawMessage) error
@@ -58,10 +60,12 @@ type Homepage struct {
 	CustomWidgets []widgets.SavedWidget `json:"customWidgets"` // oldest first; never null
 }
 
-// Profile is a member's interests and location.
+// Profile is a member's interests and location, and whether they have a
+// calendar connected (never the link itself: see calendar.Summary).
 type Profile struct {
-	Interests string `json:"interests"`
-	Location  string `json:"location"`
+	Interests string           `json:"interests"`
+	Location  string           `json:"location"`
+	Calendar  calendar.Summary `json:"calendar"`
 }
 
 // Homepage handles GET /api/me/homepage, the logged-in user's own page, and
@@ -83,6 +87,11 @@ func (h *Handler) Homepage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, "load profile", err)
 		return
 	}
+	link, err := h.store.GetCalendarLink(ctx, member.ID)
+	if err != nil {
+		h.serverError(w, r, "load calendar link", err)
+		return
+	}
 	saved, err := h.store.ListCustomWidgets(ctx, member.ID)
 	if err != nil {
 		h.serverError(w, r, "list widgets", err)
@@ -90,7 +99,7 @@ func (h *Handler) Homepage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := Homepage{
-		Profile:       Profile{Interests: profile.Interests, Location: profile.Location},
+		Profile:       Profile{Interests: profile.Interests, Location: profile.Location, Calendar: calendar.Summarize(link)},
 		CustomWidgets: make([]widgets.SavedWidget, 0, len(saved)),
 	}
 	widgetIDs := make([]int64, 0, len(saved))

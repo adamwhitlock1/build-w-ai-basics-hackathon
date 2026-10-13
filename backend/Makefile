@@ -8,7 +8,7 @@
 export CGO_ENABLED := 0
 export GOTOOLCHAIN := local
 
-.PHONY: run build vet test check
+.PHONY: run build vet test check seed
 
 run:
 	go run .
@@ -23,3 +23,7 @@ test:
 	go test ./...
 
 check: vet test build
+
+# A test family to log in with, for local testing only (see cmd/seed).
+seed:
+	go run ./cmd/seed
