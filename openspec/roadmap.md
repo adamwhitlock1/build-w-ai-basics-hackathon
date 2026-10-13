@@ -21,7 +21,7 @@ Phase 1 finished four days early. Its three changes are archived in `openspec/ch
 
 Added on 2026-10-12 to use the days Phase 1 freed up. The riskiest item goes first, so problems show up while there's still slack.
 
-4. **Family "Today" card** (~1.5–2 days, Oct 13–14)
+4. **Family "Today" card** (done 2026-10-12; planned for Oct 13–14)
    - A member pastes a private calendar link (the iCal / ICS address Google Calendar and iCloud provide), and a "Today" card lists that day's events in the member's time zone.
    - A parent can set the link for a kid, as they already set a kid's interests.
    - The link is a secret: it's stored on the server, never sent back to the browser in full, and never shown to other members.

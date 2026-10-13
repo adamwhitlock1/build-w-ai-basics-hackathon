@@ -132,4 +132,4 @@
 ## 7. Docs and wrap-up
 
 - [x] 7.1 Add a short "Calendars" note to `README.md`: where to find the private iCal link in Google and iCloud, that it's kept secret on the server, and that Google can take a few hours to publish changes. Verify by reading the rendered README.
-- [ ] 7.2 After archiving, add one line about the Today card to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`. Verify with `git diff devpost/` that only those two lines were added.
+- [x] 7.2 After archiving, add one line about the Today card to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`. Verify with `git diff devpost/` that only those two lines were added.
