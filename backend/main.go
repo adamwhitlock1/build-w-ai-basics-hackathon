@@ -137,7 +137,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	sessions := auth.NewSessionManager(sessionStore, logger)
 
 	srv := &http.Server{
-		Handler:           routes(logger, st, sessions, llmClient, llmClient, registry, calendar.NewFetcher()),
+		Handler:           routes(logger, st, sessions, llmClient, llmClient, llmClient, registry, calendar.NewFetcher()),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,

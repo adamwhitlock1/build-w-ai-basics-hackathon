@@ -10,6 +10,7 @@ import (
 // The kinds of card a homepage can hold. They match the component names in
 // the frontend's Puck config (frontend/src/puck/config.tsx).
 const (
+	TypeBriefing    = "Briefing"
 	TypeToday       = "Today"
 	TypeArticles    = "Articles"
 	TypeLocalEvents = "LocalEvents"
@@ -61,7 +62,7 @@ type RootProps struct {
 
 // Block is one card on the page.
 type Block struct {
-	Type  string     `json:"type"` // TypeToday, TypeArticles, TypeLocalEvents, or TypeCustom
+	Type  string     `json:"type"` // TypeBriefing, TypeToday, TypeArticles, TypeLocalEvents, or TypeCustom
 	Props BlockProps `json:"props"`
 }
 
@@ -91,11 +92,12 @@ func newData(blocks []Block) Data {
 }
 
 // Default is the layout of someone who has never arranged their page: the
-// Today card across the top, Articles and Local Events side by side at half
-// width, then a half-width card for each saved widget. widgetIDs are the
-// member's saved widgets, oldest first.
+// morning briefing and the Today card across the top, Articles and Local
+// Events side by side at half width, then a half-width card for each saved
+// widget. widgetIDs are the member's saved widgets, oldest first.
 func Default(widgetIDs []int64) Data {
 	curated := []Block{
+		briefingBlock(),
 		todayBlock(),
 		{Type: TypeArticles, Props: BlockProps{Span: DefaultSpan}},
 		{Type: TypeLocalEvents, Props: BlockProps{Span: DefaultSpan}},
@@ -103,6 +105,12 @@ func Default(widgetIDs []int64) Data {
 	// heal gives the curated cards their ids, and appends a card for every
 	// widget not already on the page, which here is all of them.
 	return heal(newData(curated), widgetIDs)
+}
+
+// briefingBlock is the morning briefing card where a page first gets it:
+// full width.
+func briefingBlock() Block {
+	return Block{Type: TypeBriefing, Props: BlockProps{ID: "briefing", Span: MaxSpan}}
 }
 
 // todayBlock is the Today card where a page first gets it: full width.
@@ -117,11 +125,13 @@ func customBlock(widgetID int64) Block {
 	return b
 }
 
-// defaultID is the id we give a card: "today", "articles", "events", or
-// "custom-<widget id>". Ids made in the browser by Puck look different,
+// defaultID is the id we give a card: "briefing", "today", "articles",
+// "events", or "custom-<widget id>". Ids made in the browser by Puck look different,
 // and that's fine: they only need to be unique.
 func defaultID(b Block) string {
 	switch b.Type {
+	case TypeBriefing:
+		return "briefing"
 	case TypeToday:
 		return "today"
 	case TypeArticles:
@@ -141,10 +151,11 @@ func defaultID(b Block) string {
 //   - A saved widget with no card gets one at the end, so a widget can
 //     never go missing from the page (for example, if putting it on the
 //     layout failed when it was created).
-//   - Today, Articles and Local Events appear at most once each. The page
-//     can't remove them, so Today missing means the layout was saved before
-//     the Today card existed: it's put back at the top, full width. Articles
-//     or Local Events missing is left as it is.
+//   - The briefing, Today, Articles and Local Events appear at most once
+//     each. The page can't remove them, so the briefing or Today missing
+//     means the layout was saved before that card existed: it's put back at
+//     the top, full width, with the briefing above Today. Articles or Local
+//     Events missing is left as it is.
 //   - Cards of unknown types are dropped, and widths and ids are made valid.
 //     Only this package writes layouts, so these shouldn't be needed, but a
 //     page that still loads beats an error.
@@ -156,14 +167,14 @@ func heal(d Data, widgetIDs []int64) Data {
 
 	blocks := make([]Block, 0, len(d.Root.Props.Blocks)+len(widgetIDs))
 	usedIDs := make(map[string]bool)
-	curatedSeen := make(map[string]bool) // TypeToday / TypeArticles / TypeLocalEvents already kept
+	curatedSeen := make(map[string]bool) // TypeBriefing / TypeToday / TypeArticles / TypeLocalEvents already kept
 	widgetShown := make(map[int64]bool)  // widgets that already have a card
 
 	// Ranging over a slice of structs gives a copy of each element, so
 	// changing b below doesn't touch d.
 	for _, b := range d.Root.Props.Blocks {
 		switch b.Type {
-		case TypeToday, TypeArticles, TypeLocalEvents:
+		case TypeBriefing, TypeToday, TypeArticles, TypeLocalEvents:
 			if curatedSeen[b.Type] {
 				continue
 			}
@@ -194,8 +205,14 @@ func heal(d Data, widgetIDs []int64) Data {
 			blocks = append(blocks, b)
 		}
 	}
+	// Today goes on top first, then the briefing above it.
 	if !curatedSeen[TypeToday] {
 		b := todayBlock()
+		b.Props.ID = claimID(usedIDs, b.Props.ID)
+		blocks = append([]Block{b}, blocks...)
+	}
+	if !curatedSeen[TypeBriefing] {
+		b := briefingBlock()
 		b.Props.ID = claimID(usedIDs, b.Props.ID)
 		blocks = append([]Block{b}, blocks...)
 	}
@@ -283,21 +300,21 @@ func parseLayout(in incomingData, owned map[int64]bool) (d Data, msg, hint strin
 	// GET /api/me/homepage gives every saved widget a card, so someone with
 	// more widgets than MaxBlocks must still be able to save their page.
 	// max is built in since Go 1.21.
-	if limit := max(MaxBlocks, len(owned)+3); len(cards) > limit {
+	if limit := max(MaxBlocks, len(owned)+4); len(cards) > limit {
 		return Data{}, "That layout has too many cards.", fmt.Sprintf("A page holds up to %d.", limit)
 	}
 
 	blocks := make([]Block, 0, len(cards))
 	usedIDs := make(map[string]bool, len(cards))
-	curatedSeen := make(map[string]bool) // TypeToday / TypeArticles / TypeLocalEvents already seen
+	curatedSeen := make(map[string]bool) // TypeBriefing / TypeToday / TypeArticles / TypeLocalEvents already seen
 	widgetSeen := make(map[int64]bool)   // widgets that already have a card
 	for i, c := range cards {
 		card := fmt.Sprintf("Card %d", i+1) // people count from 1
 
 		switch c.Type {
-		case TypeToday, TypeArticles, TypeLocalEvents, TypeCustom:
+		case TypeBriefing, TypeToday, TypeArticles, TypeLocalEvents, TypeCustom:
 		default:
-			return Data{}, fmt.Sprintf("%s has a type we don't know: %q.", card, c.Type), "Use Today, Articles, LocalEvents, or Custom."
+			return Data{}, fmt.Sprintf("%s has a type we don't know: %q.", card, c.Type), "Use Briefing, Today, Articles, LocalEvents, or Custom."
 		}
 
 		id := c.Props.ID
@@ -320,7 +337,7 @@ func parseLayout(in incomingData, owned map[int64]bool) (d Data, msg, hint strin
 
 		b := Block{Type: c.Type, Props: BlockProps{ID: id, Span: int(span)}}
 		switch c.Type {
-		case TypeToday, TypeArticles, TypeLocalEvents:
+		case TypeBriefing, TypeToday, TypeArticles, TypeLocalEvents:
 			// Any widgetId sent with a curated card is dropped: b leaves it 0.
 			if curatedSeen[c.Type] {
 				return Data{}, fmt.Sprintf("The layout has more than one %s card.", c.Type), "Keep one of each."
@@ -337,7 +354,7 @@ func parseLayout(in incomingData, owned map[int64]bool) (d Data, msg, hint strin
 				return Data{}, "That layout mentions a widget that isn't yours.", "Reload the page and try again."
 			}
 			// One card per widget, as heal keeps it. It also means a layout
-			// holds at most len(owned)+3 cards, so whatever GET sends can
+			// holds at most len(owned)+4 cards, so whatever GET sends can
 			// always be saved back under the limit above.
 			if widgetSeen[widgetID] {
 				return Data{}, "That layout shows the same widget twice.", "Keep one card for each widget."

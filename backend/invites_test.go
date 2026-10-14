@@ -383,7 +383,7 @@ func TestAcceptInvite(t *testing.T) {
 	// Their homepage is the default one, with nothing of Alice's on it.
 	alice.addWidget()
 	page := kid.homepage()
-	if got, want := cards(page.Layout), []string{"Today today 4", "Articles articles 2", "LocalEvents events 2"}; !slices.Equal(got, want) {
+	if got, want := cards(page.Layout), []string{"Briefing briefing 4", "Today today 4", "Articles articles 2", "LocalEvents events 2"}; !slices.Equal(got, want) {
 		t.Errorf("kid's layout = %q, want the default %q", got, want)
 	}
 	if len(page.CustomWidgets) != 0 || page.Profile.Interests != "" {

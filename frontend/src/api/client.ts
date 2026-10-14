@@ -144,6 +144,28 @@ export interface TodayWidget extends Freshness {
   moreTomorrow: number
 }
 
+/** The facts a morning briefing can be written from. */
+export type BriefingUse = 'weather' | 'calendar' | 'articles' | 'nearby'
+
+/**
+ * GET /api/widgets/briefing?tz=…: a few sentences the AI wrote about the
+ * person's day from their weather, calendar, articles and nearby events.
+ * The server rewrites it when those change (at most a few times a day), so
+ * it's never stale. `emptyReason` is 'nothing_yet' when there's nothing to
+ * write from.
+ */
+export interface BriefingWidget extends Freshness {
+  emptyReason: '' | 'nothing_yet'
+  /** "" when there's nothing to write from. No greeting: the page adds it. */
+  text: string
+  /** Today in the request's time zone, YYYY-MM-DD. */
+  date: string
+  /** Written with the under-18 guidance, because the person is a kid. */
+  kidSafe: boolean
+  /** Which facts it drew on, in this order. */
+  uses: BriefingUse[]
+}
+
 /** Response of GET /api/me (and of signup, login, create-family and accepting an invite). */
 export interface Me {
   user: { id: number; email: string; isAdmin: boolean }
@@ -250,12 +272,13 @@ interface BlockProps {
  * says which saved widget (SavedWidget.id) it is.
  */
 export type LayoutBlock =
+  | { type: 'Briefing'; props: BlockProps }
   | { type: 'Today'; props: BlockProps }
   | { type: 'Articles'; props: BlockProps }
   | { type: 'LocalEvents'; props: BlockProps }
   | { type: 'Custom'; props: BlockProps & { widgetId: number } }
 
-/** The kinds of card a page can hold: 'Today', 'Articles', 'LocalEvents' or 'Custom'. */
+/** The kinds of card a page can hold: 'Briefing', 'Today', 'Articles', 'LocalEvents' or 'Custom'. */
 export type BlockType = LayoutBlock['type']
 
 /**

@@ -9,3 +9,6 @@ func SetRetryDelay(c *Client, d time.Duration) { c.retryDelay = d }
 
 // KidGuidance is the under-18 block added to system prompts for kids.
 const KidGuidance = kidGuidance
+
+// BriefingUserMessage is the user message WriteBriefing sends.
+var BriefingUserMessage = briefingUserMessage

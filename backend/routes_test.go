@@ -19,6 +19,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -102,8 +104,37 @@ func (fakeCurator) ExtractEvents(_ context.Context, _, _ string, results []sourc
 	}}, nil
 }
 
+// fakeWeather forecasts the same sunny day for any place.
+type fakeWeather struct{}
+
+func (fakeWeather) Name() string  { return sources.WeatherForecast }
+func (fakeWeather) Shape() string { return "test forecast" }
+func (fakeWeather) Search(_ context.Context, place string, _ sources.Audience) ([]sources.Result, error) {
+	return []sources.Result{
+		{Title: "Right now in " + place, Snippet: "61°F. Clear sky."},
+		{Title: "Today (Tue, Oct 13)", Snippet: "Sunny. High 75°F, low 58°F."},
+		{Title: "Wed, Oct 14", Snippet: "Cloudy. High 68°F, low 50°F."},
+	}, nil
+}
+
+// countingBriefer writes the same briefing every time, slowly enough that
+// requests sent together overlap, and counts its calls.
+type countingBriefer struct{ calls atomic.Int32 }
+
+func (b *countingBriefer) WriteBriefing(context.Context, llm.BriefingFacts, sources.Audience) (string, error) {
+	b.calls.Add(1)
+	time.Sleep(20 * time.Millisecond)
+	return "Sunny and 75° today.", nil
+}
+
 // startServer serves the API backed by the database at dbPath.
 func startServer(t *testing.T, dbPath string) (*httptest.Server, *store.Store) {
+	t.Helper()
+	return startServerWith(t, dbPath, &countingBriefer{})
+}
+
+// startServerWith is startServer with briefer writing the briefings.
+func startServerWith(t *testing.T, dbPath string, briefer widgets.Briefer) (*httptest.Server, *store.Store) {
 	t.Helper()
 	st, err := store.Open(context.Background(), dbPath)
 	if err != nil {
@@ -112,7 +143,7 @@ func startServer(t *testing.T, dbPath string) (*httptest.Server, *store.Store) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// A cleanup interval of 0 means no background goroutine to stop.
 	sessions := auth.NewSessionManager(sqlite3store.NewWithCleanupInterval(st.DB(), 0), logger)
-	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, sources.NewRegistry(fakeNews{}, fakeSource{}), fakeCalendars{}))
+	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, briefer, sources.NewRegistry(fakeNews{}, fakeSource{}, fakeWeather{}), fakeCalendars{}))
 	// Cleanups run last-in, first-out: the server stops before the store closes.
 	t.Cleanup(func() { st.Close() })
 	t.Cleanup(srv.Close)
@@ -566,7 +597,7 @@ func TestWidgetsAreSavedPerUser(t *testing.T) {
 	}
 	// Alice never arranged her page, so she gets the default layout, which
 	// includes her new widget.
-	wantCards := []string{"Today today 4", "Articles articles 2", "LocalEvents events 2", fmt.Sprintf("Custom custom-%d 2 #%d", widget.ID, widget.ID)}
+	wantCards := []string{"Briefing briefing 4", "Today today 4", "Articles articles 2", "LocalEvents events 2", fmt.Sprintf("Custom custom-%d 2 #%d", widget.ID, widget.ID)}
 	if got := cards(page.Layout); !slices.Equal(got, wantCards) {
 		t.Errorf("layout = %q, want %q", got, wantCards)
 	}
@@ -611,6 +642,8 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 		{"PUT", "/api/members/1/profile"},
 		{"GET", "/api/members/1/widgets/articles"},
 		{"GET", "/api/members/1/widgets/events"},
+		{"GET", "/api/widgets/briefing"},
+		{"GET", "/api/members/1/widgets/briefing"},
 	}
 	for _, r := range private {
 		t.Run(r.method+" "+r.path, func(t *testing.T) {
@@ -738,8 +771,47 @@ func TestDataSurvivesRestart(t *testing.T) {
 	if len(page.CustomWidgets) != 1 {
 		t.Errorf("after restart: %d widgets, want 1", len(page.CustomWidgets))
 	}
-	want := []string{"Today today 4", fmt.Sprintf("Custom custom-%d 4 #%d", widget.ID, widget.ID), "LocalEvents events 1", "Articles articles 3"}
+	want := []string{"Briefing briefing 4", "Today today 4", fmt.Sprintf("Custom custom-%d 4 #%d", widget.ID, widget.ID), "LocalEvents events 1", "Articles articles 3"}
 	if got := cards(page.Layout); !slices.Equal(got, want) {
 		t.Errorf("after restart: layout = %q, want %q", got, want)
 	}
+}
+
+func TestBriefingRoutes(t *testing.T) {
+	briefer := &countingBriefer{}
+	srv, _ := startServerWith(t, filepath.Join(t.TempDir(), "test.db"), briefer)
+	alice, kid := newClient(t, srv), newClient(t, srv)
+	aliceMe := alice.signup("alice@example.com")
+	alice.setUpFamily()
+	kidMe := kid.accept(tokenOf(alice.invite(aliceMe.Family.ID, "kid@example.com", "kid", http.StatusCreated)))
+	alice.do("PUT", "/api/me/profile", map[string]string{"interests": "", "location": "Portland, OR"}, http.StatusOK, nil)
+
+	// Several of alice's tabs open at once: one AI call between them.
+	var wg sync.WaitGroup
+	got := make([]widgets.BriefingWidget, 4)
+	for i := range got {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			alice.do("GET", "/api/widgets/briefing?tz=America/Los_Angeles", nil, http.StatusOK, &got[i])
+		}()
+	}
+	wg.Wait()
+	if n := briefer.calls.Load(); n != 1 {
+		t.Errorf("AI calls = %d, want 1", n)
+	}
+	for _, w := range got {
+		if w.Text != "Sunny and 75° today." || w.KidSafe || len(w.Uses) != 1 || w.Uses[0] != "weather" {
+			t.Errorf("alice's briefing = %+v", w)
+		}
+	}
+
+	// The kid has nothing to go on yet. A parent sees the same through the
+	// kid's page, and a kid can't look at anyone else's.
+	var kids widgets.BriefingWidget
+	alice.do("GET", memberPath(kidMe.User.ID, "/widgets/briefing?tz=America/Los_Angeles"), nil, http.StatusOK, &kids)
+	if kids.EmptyReason != widgets.EmptyNothingYet || !kids.KidSafe {
+		t.Errorf("kid's briefing seen by alice = %+v", kids)
+	}
+	kid.wantError("GET", memberPath(aliceMe.User.ID, "/widgets/briefing"), nil, http.StatusForbidden, "Only parents can see other family members' pages.")
 }

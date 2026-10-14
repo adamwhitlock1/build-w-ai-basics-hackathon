@@ -16,8 +16,9 @@ import (
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
 // session and logging middleware. Tests call it with fakes for the LLM
-// (planner and curator), the search sources and the calendar fetcher.
-func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, curator widgets.Curator, srcs widgets.SourceFinder, calendars widgets.CalendarFetcher) http.Handler {
+// (planner, curator and briefer), the search sources and the calendar
+// fetcher.
+func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, curator widgets.Curator, briefer widgets.Briefer, srcs widgets.SourceFinder, calendars widgets.CalendarFetcher) http.Handler {
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
 	layoutHandler := layout.NewHandler(st, logger)
@@ -26,6 +27,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	widgetHandler := widgets.NewHandler(planner, srcs, st, st, layoutHandler, logger)
 	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, st, logger)
 	todayHandler := widgets.NewTodayHandler(calendars, st, logger)
+	briefingHandler := widgets.NewBriefingHandler(briefer, srcs, st, st, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
 	// needs that user to be a family admin. A method value such as
@@ -75,6 +77,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.Handle("GET /api/widgets/articles", private(curatedHandler.Articles))
 	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
 	mux.Handle("GET /api/widgets/today", private(todayHandler.Today))
+	mux.Handle("GET /api/widgets/briefing", private(briefingHandler.Briefing))
 	// The calendar link travels in the body, never the path, so the request
 	// log can't record it.
 	mux.Handle("PUT /api/me/calendar", private(todayHandler.SetCalendar))
@@ -94,6 +97,7 @@ func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, 
 	mux.Handle("GET /api/members/{id}/widgets/articles", asParent(curatedHandler.Articles))
 	mux.Handle("GET /api/members/{id}/widgets/events", asParent(curatedHandler.Events))
 	mux.Handle("GET /api/members/{id}/widgets/today", asParent(todayHandler.Today))
+	mux.Handle("GET /api/members/{id}/widgets/briefing", asParent(briefingHandler.Briefing))
 	mux.Handle("PUT /api/members/{id}/calendar", asParent(todayHandler.SetCalendar))
 	mux.Handle("DELETE /api/members/{id}/calendar", asParent(todayHandler.RemoveCalendar))
 
