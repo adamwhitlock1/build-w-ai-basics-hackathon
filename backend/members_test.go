@@ -176,6 +176,7 @@ func TestMemberRoutesRefuse(t *testing.T) {
 		{"PUT", "/profile"},
 		{"GET", "/widgets/articles"},
 		{"GET", "/widgets/events"},
+		{"GET", "/widgets/briefing"},
 	}
 	profile := map[string]string{"interests": "planted", "location": "Nowhere"}
 	const kidsOnly = "Only parents can see other family members' pages."

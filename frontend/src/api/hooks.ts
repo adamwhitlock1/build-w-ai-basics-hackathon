@@ -15,6 +15,7 @@ import {
   ApiError,
   apiFetch,
   type AcceptInviteInput,
+  type BriefingWidget,
   type CalendarResponse,
   type CreateFamilyInput,
   type CreateInviteInput,
@@ -382,7 +383,7 @@ export function useMemberHomepage(memberId: number) {
  * content made for a kid. A kid isn't shown it; it tells them nothing they
  * can act on.
  */
-export function useShowKidSafe(widget: Widget | undefined): boolean {
+export function useShowKidSafe(widget: Pick<Widget, 'kidSafe'> | undefined): boolean {
   const { data: me } = useMe()
   return Boolean(widget?.kidSafe && me?.user.isAdmin)
 }
@@ -829,6 +830,65 @@ export function useSetCalendar() {
       void queryClient.invalidateQueries({ queryKey: todayPrefix(owner) })
     },
   })
+}
+
+// ---------------------------------------------------------------------------
+// Morning briefing
+// ---------------------------------------------------------------------------
+
+/**
+ * Query key of one person's briefing: ['widgets', 'briefing', userId, date,
+ * facts] for yours, ['members', memberId, 'widgets', 'briefing', date,
+ * facts] for a family member's. `facts` changes whenever the Today,
+ * Articles or Local Events results on the page do, so the briefing is asked
+ * for again and the server can decide whether to rewrite it.
+ */
+type BriefingKey =
+  | readonly ['widgets', 'briefing', number | undefined, string, string]
+  | readonly ['members', number, 'widgets', 'briefing', string, string]
+
+/**
+ * The morning briefing of the page it's on. It waits until the page's
+ * Today, Articles and Local Events cards have loaded (or failed), so the
+ * day's first briefing is written from what they found, and asks again when
+ * any of them update or the day changes. The server sends back the
+ * remembered briefing unless the facts behind it changed, so asking again
+ * is cheap. While a new one loads, the last one stays on screen.
+ */
+export function useBriefing() {
+  const owner = usePageOwner()
+  const date = localDate(useNow(60_000))
+  // The same queries the cards use, read without the cards' background
+  // refreshes (useToday and useCuratedWidget run those once already).
+  const today = useQuery(todayQueryOptions(owner, date))
+  const articles = useQuery(curatedWidgetQueryOptions('articles', owner))
+  const events = useQuery(curatedWidgetQueryOptions('events', owner))
+  const settled = !today.isPending && !articles.isPending && !events.isPending
+  const facts = [today.data?.updatedAt, articles.data?.updatedAt, events.data?.updatedAt].join('|')
+
+  const queryKey: BriefingKey = owner.isYou
+    ? ['widgets', 'briefing', owner.userId, date, facts]
+    : ['members', owner.userId, 'widgets', 'briefing', date, facts]
+  const path = owner.isYou ? '/api/widgets/briefing' : `/api/members/${owner.userId}/widgets/briefing`
+  return useQuery<BriefingWidget, ApiError, BriefingWidget, BriefingKey>({
+    queryKey,
+    queryFn: () =>
+      apiFetch<BriefingWidget>(`${path}?${new URLSearchParams({ tz: browserTimeZone() })}`, { cache: 'no-store' }),
+    enabled: owner.userId !== undefined && settled,
+    // A new key (fresh facts, a new day) keeps the last briefing up until
+    // the server answers, rather than flashing the loading state, but only
+    // the same person's: never someone else's briefing on this page.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery && samePerson(previousQuery.queryKey, queryKey) ? previous : undefined,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+}
+
+/** Whether two briefing keys belong to the same person (their first three parts match). */
+function samePerson(a: BriefingKey, b: BriefingKey) {
+  return a.slice(0, 3).every((part, i) => part === b[i])
 }
 
 // ---------------------------------------------------------------------------

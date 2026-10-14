@@ -32,6 +32,10 @@ func articles(id string, span int) Block {
 	return Block{Type: TypeArticles, Props: BlockProps{ID: id, Span: span}}
 }
 
+func briefing(id string, span int) Block {
+	return Block{Type: TypeBriefing, Props: BlockProps{ID: id, Span: span}}
+}
+
 func today(id string, span int) Block {
 	return Block{Type: TypeToday, Props: BlockProps{ID: id, Span: span}}
 }
@@ -52,6 +56,7 @@ func TestDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := `{"root":{"props":{"blocks":[` +
+		`{"type":"Briefing","props":{"id":"briefing","span":4}},` +
 		`{"type":"Today","props":{"id":"today","span":4}},` +
 		`{"type":"Articles","props":{"id":"articles","span":2}},` +
 		`{"type":"LocalEvents","props":{"id":"events","span":2}}` +
@@ -61,7 +66,7 @@ func TestDefault(t *testing.T) {
 	}
 
 	// Saved widgets follow, half width, in the order given (oldest first).
-	wantCards := []string{"Today today 4", "Articles articles 2", "LocalEvents events 2", "Custom custom-3 2 #3", "Custom custom-1 2 #1"}
+	wantCards := []string{"Briefing briefing 4", "Today today 4", "Articles articles 2", "LocalEvents events 2", "Custom custom-3 2 #3", "Custom custom-1 2 #1"}
 	if got := summary(Default([]int64{3, 1})); !slices.Equal(got, wantCards) {
 		t.Errorf("Default([3 1]) = %q, want %q", got, wantCards)
 	}
@@ -76,45 +81,45 @@ func TestHeal(t *testing.T) {
 	}{
 		{
 			name:    "a layout that matches is unchanged",
-			saved:   layoutOf(custom(5, "custom-5", 4), today("today", 2), events("events", 1), articles("articles", 3)),
+			saved:   layoutOf(custom(5, "custom-5", 4), today("today", 2), briefing("briefing", 3), events("events", 1), articles("articles", 3)),
 			widgets: []int64{5},
-			want:    []string{"Custom custom-5 4 #5", "Today today 2", "LocalEvents events 1", "Articles articles 3"},
+			want:    []string{"Custom custom-5 4 #5", "Today today 2", "Briefing briefing 3", "LocalEvents events 1", "Articles articles 3"},
 		},
 		{
 			name:    "a layout saved before Today existed gets it at the top",
 			saved:   layoutOf(custom(5, "custom-5", 4), events("events", 1), articles("articles", 3)),
 			widgets: []int64{5},
-			want:    []string{"Today today 4", "Custom custom-5 4 #5", "LocalEvents events 1", "Articles articles 3"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Custom custom-5 4 #5", "LocalEvents events 1", "Articles articles 3"},
 		},
 		{
 			name:    "a deleted widget's card is dropped",
 			saved:   layoutOf(articles("articles", 2), custom(5, "custom-5", 2), custom(6, "custom-6", 3)),
 			widgets: []int64{6},
-			want:    []string{"Today today 4", "Articles articles 2", "Custom custom-6 3 #6"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Articles articles 2", "Custom custom-6 3 #6"},
 		},
 		{
 			name:    "a widget with no card gets one at the end",
 			saved:   layoutOf(custom(5, "custom-5", 4), articles("articles", 2)),
 			widgets: []int64{5, 8, 9},
-			want:    []string{"Today today 4", "Custom custom-5 4 #5", "Articles articles 2", "Custom custom-8 2 #8", "Custom custom-9 2 #9"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Custom custom-5 4 #5", "Articles articles 2", "Custom custom-8 2 #8", "Custom custom-9 2 #9"},
 		},
 		{
 			name:    "a widget keeps only its first card",
 			saved:   layoutOf(custom(5, "a", 1), articles("articles", 2), custom(5, "b", 3), custom(6, "c", 4), custom(5, "d", 2)),
 			widgets: []int64{5, 6},
-			want:    []string{"Today today 4", "Custom a 1 #5", "Articles articles 2", "Custom c 4 #6"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Custom a 1 #5", "Articles articles 2", "Custom c 4 #6"},
 		},
 		{
 			name:    "a removed Articles card is not put back, but Today is",
 			saved:   layoutOf(events("events", 4)),
 			widgets: nil,
-			want:    []string{"Today today 4", "LocalEvents events 4"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "LocalEvents events 4"},
 		},
 		{
 			name:    "curated cards appear at most once",
 			saved:   layoutOf(articles("a1", 1), events("e1", 2), articles("a2", 3), events("e2", 4)),
 			widgets: nil,
-			want:    []string{"Today today 4", "Articles a1 1", "LocalEvents e1 2"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Articles a1 1", "LocalEvents e1 2"},
 		},
 		{
 			name: "unknown cards are dropped; bad widths and ids are fixed",
@@ -125,31 +130,49 @@ func TestHeal(t *testing.T) {
 				custom(5, "x", 2),
 			),
 			widgets: []int64{5},
-			want:    []string{"Today today 4", "Articles articles 2", "LocalEvents x 2", "Custom x-2 2 #5"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Articles articles 2", "LocalEvents x 2", "Custom x-2 2 #5"},
 		},
 		{
 			name:    "Today appears at most once",
 			saved:   layoutOf(today("t1", 3), articles("articles", 2), today("t2", 4)),
 			widgets: nil,
-			want:    []string{"Today t1 3", "Articles articles 2"},
+			want:    []string{"Briefing briefing 4", "Today t1 3", "Articles articles 2"},
 		},
 		{
 			name:    "an added Today never reuses an id",
 			saved:   layoutOf(articles("today", 2)),
 			widgets: nil,
-			want:    []string{"Today today-2 4", "Articles today 2"},
+			want:    []string{"Briefing briefing 4", "Today today-2 4", "Articles today 2"},
 		},
 		{
 			name:    "an appended card never reuses an id",
 			saved:   layoutOf(articles("custom-5", 2)),
 			widgets: []int64{5},
-			want:    []string{"Today today 4", "Articles custom-5 2", "Custom custom-5-2 2 #5"},
+			want:    []string{"Briefing briefing 4", "Today today 4", "Articles custom-5 2", "Custom custom-5-2 2 #5"},
 		},
 		{
-			name:    "an empty page gets only Today",
+			name:    "a layout with Today but no briefing gets it above Today",
+			saved:   layoutOf(custom(5, "custom-5", 2), today("today", 4), articles("articles", 2)),
+			widgets: []int64{5},
+			want:    []string{"Briefing briefing 4", "Custom custom-5 2 #5", "Today today 4", "Articles articles 2"},
+		},
+		{
+			name:    "the briefing appears at most once",
+			saved:   layoutOf(briefing("b1", 2), today("today", 4), briefing("b2", 4)),
+			widgets: nil,
+			want:    []string{"Briefing b1 2", "Today today 4"},
+		},
+		{
+			name:    "an added briefing never reuses an id",
+			saved:   layoutOf(today("briefing", 4)),
+			widgets: nil,
+			want:    []string{"Briefing briefing-2 4", "Today briefing 4"},
+		},
+		{
+			name:    "an empty page gets only the briefing and Today",
 			saved:   Data{}, // even with nil slices, as from "{}"
 			widgets: nil,
-			want:    []string{"Today today 4"},
+			want:    []string{"Briefing briefing 4", "Today today 4"},
 		},
 	}
 	for _, tt := range tests {
@@ -318,6 +341,19 @@ func TestParseLayout(t *testing.T) {
 			wantMsg: "That layout shows the same widget twice.",
 		},
 		{
+			name: "two briefing cards",
+			layout: withBlocks(
+				`{"type":"Briefing","props":{"id":"b1","span":4}}`,
+				`{"type":"Briefing","props":{"id":"b2","span":4}}`,
+			),
+			wantMsg: "more than one Briefing card",
+		},
+		{
+			name:   "a briefing card",
+			layout: withBlocks(`{"type":"Briefing","props":{"id":"briefing","span":4}}`),
+			want:   []string{"Briefing briefing 4"},
+		},
+		{
 			name: "two LocalEvents cards",
 			layout: withBlocks(
 				`{"type":"LocalEvents","props":{"id":"e1","span":2}}`,
@@ -359,11 +395,16 @@ func TestParseLayoutRoomForEveryWidget(t *testing.T) {
 		owned[id] = true
 		cards = append(cards, fmt.Sprintf(`{"type":"Custom","props":{"id":"custom-%d","span":2,"widgetId":%d}}`, id, id))
 	}
-	cards = append(cards, `{"type":"Articles","props":{"id":"articles","span":2}}`, `{"type":"LocalEvents","props":{"id":"events","span":2}}`)
+	cards = append(cards,
+		`{"type":"Briefing","props":{"id":"briefing","span":4}}`,
+		`{"type":"Today","props":{"id":"today","span":4}}`,
+		`{"type":"Articles","props":{"id":"articles","span":2}}`,
+		`{"type":"LocalEvents","props":{"id":"events","span":2}}`,
+	)
 
 	got, msg, _ := parseLayout(decodeIncoming(t, withBlocks(cards...)), owned)
-	if msg != "" || len(got.Root.Props.Blocks) != MaxBlocks+7 {
-		t.Errorf("got %d cards, message %q; want all %d saved", len(got.Root.Props.Blocks), msg, MaxBlocks+7)
+	if msg != "" || len(got.Root.Props.Blocks) != MaxBlocks+9 {
+		t.Errorf("got %d cards, message %q; want all %d saved", len(got.Root.Props.Blocks), msg, MaxBlocks+9)
 	}
 }
 

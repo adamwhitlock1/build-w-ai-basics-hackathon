@@ -112,7 +112,7 @@ func (h *TodayHandler) Today(w http.ResponseWriter, r *http.Request) {
 		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
 		return
 	}
-	loc := h.location(r)
+	loc := locationFrom(r, h.logger)
 	now := timeNow()
 	day := todayDay{Date: now.In(loc).Format(time.DateOnly), TimeZone: loc.String(), Today: []TodayEvent{}, Tomorrow: []TodayEvent{}}
 
@@ -167,16 +167,16 @@ func (h *TodayHandler) Today(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusOK, TodayWidget{todayDay: day, Freshness: justUpdated(now)})
 }
 
-// location returns the time zone in the request's tz parameter, or UTC if
-// it's missing or unknown.
-func (h *TodayHandler) location(r *http.Request) *time.Location {
+// locationFrom returns the time zone in the request's tz parameter, or UTC
+// if it's missing or unknown. The Today card and the briefing both use it.
+func locationFrom(r *http.Request, logger *slog.Logger) *time.Location {
 	tz := r.URL.Query().Get("tz")
 	if tz == "" || tz == "Local" { // "Local" would be the server's zone, not the member's
 		return time.UTC
 	}
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		h.logger.InfoContext(r.Context(), "unknown time zone; using UTC", "tz", tz)
+		logger.InfoContext(r.Context(), "unknown time zone; using UTC", "tz", tz)
 		return time.UTC
 	}
 	return loc

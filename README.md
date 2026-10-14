@@ -80,6 +80,19 @@ A calendar link is a secret: anyone who has it can read the calendar. Porchlight
 
 Google can take a few hours to publish changes to its iCal link, so a newly added event may not show up straight away.
 
+## Morning briefing
+
+A card at the top of each page greets the member ("Good morning, Maya") and sums up their day in a few sentences the AI writes. It draws on:
+
+- today's forecast for their saved location (tomorrow's, from 6 pm), from Open-Meteo;
+- their Today card's events;
+- a few headlines from their Articles;
+- a few events from "Happening near you".
+
+It never runs a search of its own. The page waits for those cards to load, then asks for the briefing.
+
+The briefing is written once on the member's first visit of the day, and rewritten only when what it's built from changes. Rewrites are at least 10 minutes apart, and there are at most 4 AI calls per member per day. Kids' briefings use the same under-18 guidance as their other cards. The AI is never sent a name, an email address, a location or a calendar link.
+
 ## Tests
 
 ```sh

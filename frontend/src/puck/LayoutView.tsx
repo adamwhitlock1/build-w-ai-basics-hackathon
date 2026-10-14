@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Layout, LayoutBlock, Span } from '../api/client'
 import { ArticlesBlock } from './blocks/Articles'
+import { BriefingBlock } from './blocks/Briefing'
 import { CustomBlock } from './blocks/Custom'
 import { LocalEventsBlock } from './blocks/LocalEvents'
 import { TodayBlock } from './blocks/Today'
@@ -74,6 +75,8 @@ export function LayoutView({ layout, freshWidgetId = null, top, addTile }: Layou
 /** The card a layout block stands for. */
 function BlockContent({ block, freshWidgetId }: { block: LayoutBlock; freshWidgetId: number | null }) {
   switch (block.type) {
+    case 'Briefing':
+      return <BriefingBlock />
     case 'Today':
       return <TodayBlock />
     case 'Articles':
@@ -83,7 +86,7 @@ function BlockContent({ block, freshWidgetId }: { block: LayoutBlock; freshWidge
     case 'Custom':
       return <CustomBlock widgetId={block.props.widgetId} fresh={block.props.widgetId === freshWidgetId} />
     default:
-      // The server only stores these four kinds, but this runs on live
+      // The server only stores these five kinds, but this runs on live
       // data: skip anything else rather than break the page.
       return null
   }

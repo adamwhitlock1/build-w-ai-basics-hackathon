@@ -27,7 +27,7 @@ Added on 2026-10-12 to use the days Phase 1 freed up. The riskiest item goes fir
    - The link is a secret: it's stored on the server, never sent back to the browser in full, and never shown to other members.
    - Repeating events and all-day events must show correctly on the right day.
    - Why: it's the strongest family-impact story, and it partly delivers the "unified family calendar" that the scope cut. It also needs the most care: repeating events, time zones and storing the secret.
-5. **Morning briefing** (~1 day, Oct 15)
+5. **Morning briefing** (done 2026-10-13; planned for Oct 15)
    - An AI-written card of a few warm sentences that sums up the member's own day from what their other cards already hold: today's weather, today's calendar events, nearby events and articles. For example: "Morning, Sam! 75° and sunny, soccer at 4, and a Starlink launch Tuesday."
    - It's written once per member per day from results already remembered, so it costs one AI call a day and no new searches. It uses kid-safe guidance for kids.
    - Why: it's the best demo opener, and an AI idea a judge sees at once. It also ties the other cards together into one morning glance.
