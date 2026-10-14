@@ -127,4 +127,4 @@
 ## 7. Docs and wrap-up
 
 - [x] 7.1 Add a short "Morning briefing" note to `README.md`: what it uses, that it costs at most 4 AI calls per member per day and no searches, and that it waits for the other cards to load. Verify by reading the rendered README.
-- [ ] 7.2 Mark roadmap item 5 done in `openspec/roadmap.md`. After archiving, add one line about the morning briefing to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`. Verify with `git diff devpost/` that only those two lines were added.
+- [x] 7.2 Mark roadmap item 5 done in `openspec/roadmap.md`. After archiving, add one line about the morning briefing to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`. Verify with `git diff devpost/` that only those two lines were added.
