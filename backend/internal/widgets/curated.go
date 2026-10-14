@@ -125,6 +125,41 @@ func NewCuratedHandler(curator Curator, srcs SourceFinder, profiles ProfileStore
 	}
 }
 
+// articlesWidget is an empty Articles widget for aud.
+func articlesWidget(aud sources.Audience) Widget {
+	return Widget{
+		Title:     "Articles for you",
+		Source:    newsSourceName,
+		Archetype: llm.ArchetypeCards,
+		Items:     []llm.Item{},
+		KidSafe:   aud == sources.Kids,
+	}
+}
+
+// eventsWidget is an empty "Happening near you" widget for aud.
+func eventsWidget(aud sources.Audience) Widget {
+	return Widget{
+		Title:     "Happening near you",
+		Source:    eventsSourceName,
+		Archetype: llm.ArchetypeList,
+		Items:     []llm.Item{},
+		KidSafe:   aud == sources.Kids,
+	}
+}
+
+// articlesInputs is what a remembered Articles result is matched on: the
+// member's interests.
+func articlesInputs(p store.MemberProfile) string {
+	return normalizeInput(p.Interests)
+}
+
+// eventsInputs is what a remembered "Happening near you" result is matched
+// on. Events are picked for the location and the interests, so a change to
+// either picks them again.
+func eventsInputs(p store.MemberProfile) string {
+	return normalizeInput(p.Interests) + "\n" + normalizeInput(p.Location)
+}
+
 func mustGetSource(srcs SourceFinder, name string) sources.Source {
 	src, ok := srcs.Get(name)
 	if !ok {
@@ -148,13 +183,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	// parent is the one looking.
 	aud := audienceFor(member)
 	now := timeNow()
-	widget := CuratedWidget{Widget: Widget{
-		Title:     "Articles for you",
-		Source:    newsSourceName,
-		Archetype: llm.ArchetypeCards,
-		Items:     []llm.Item{},
-		KidSafe:   aud == sources.Kids,
-	}, Freshness: justUpdated(now)}
+	widget := CuratedWidget{Widget: articlesWidget(aud), Freshness: justUpdated(now)}
 
 	// Without interests there is nothing to search for; asking the LLM
 	// anyway would only spend credit.
@@ -165,7 +194,7 @@ func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Articles only depend on the interests, so a new location keeps them.
-	inputs := normalizeInput(profile.Interests)
+	inputs := articlesInputs(profile)
 	if h.sendRemembered(w, r, member.ID, kindArticles, inputs, aud, ArticlesFreshFor, now) {
 		return
 	}
@@ -227,22 +256,14 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	}
 	aud := audienceFor(member) // as in Articles
 	now := timeNow()
-	widget := CuratedWidget{Widget: Widget{
-		Title:     "Happening near you",
-		Source:    eventsSourceName,
-		Archetype: llm.ArchetypeList,
-		Items:     []llm.Item{},
-		KidSafe:   aud == sources.Kids,
-	}, Freshness: justUpdated(now)}
+	widget := CuratedWidget{Widget: eventsWidget(aud), Freshness: justUpdated(now)}
 	if profile.Location == "" {
 		widget.EmptyReason = EmptyNoLocation
 		respond.JSON(w, http.StatusOK, widget)
 		return
 	}
 
-	// Events are picked for the location and the interests, so a change to
-	// either picks them again.
-	inputs := normalizeInput(profile.Interests) + "\n" + normalizeInput(profile.Location)
+	inputs := eventsInputs(profile)
 	if h.sendRemembered(w, r, member.ID, kindEvents, inputs, aud, EventsFreshFor, now) {
 		return
 	}

@@ -69,6 +69,55 @@ For trying things out locally, `make seed` (run in `backend/`) adds a test famil
 
 It writes to `porchlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
 
+## Demo family
+
+For testing every member's path end to end, `make demo` builds a whole family, plus a second one, in its own database, `backend/porchlight.db.demo` (gitignored). It deletes that file first, so every run starts from the same place. It never touches `porchlight.db`, and it refuses to write into any other file that already has accounts.
+
+```sh
+# Terminal 1: rebuild the demo, then serve it with fixture calendars on
+cd backend
+make demo
+make demo-serve
+
+# Terminal 2: the web app, as usual
+cd frontend
+npm run dev
+```
+
+Every account's password is `password1`.
+
+| Account | Who | What it tests |
+| --- | --- | --- |
+| `maya@rivera.test` | Parent, created the family | Interests, location, calendar, three described widgets (one weather), a custom page arrangement |
+| `sam@rivera.test` | Parent | Different interests, the default page, a calendar with a moved meeting |
+| `jordan@rivera.test` | Kid (~15) | Kid-safe cards and widget, a calendar with a deleted practice |
+| `lily@rivera.test` | Kid (~9) | Interests and location but no calendar: the "Add your calendar" path |
+| `grandma@rivera.test` | Invited as a parent | The pending invites list, and joining: `make demo` prints the invite link |
+| `alex@chen.test`, `riley@chen.test` | Parent and kid in a second family | That one family can't see another's members, pages or widgets |
+
+`.test` addresses can never reach a real inbox. The data lives in `backend/cmd/seed/demo.go`, as a plain Go list you can add members to.
+
+**Fixture calendars.** The demo members' calendar links point at `https://fixtures.porchlight.test/calendars/<name>.ics`. With `PORCHLIGHT_DEV_FIXTURES=1` (which `make demo-serve` sets), the server answers those links itself, with a feed built fresh around the current time. Between them, the feeds always have:
+
+- an event today that has already ended, and one still to come;
+- an all-day event;
+- events tomorrow evening, which show under "Tomorrow" after 6 pm;
+- a daily standup with today's moved from 9:00 to 11:00 (Sam);
+- a daily band practice with today's deleted (Jordan).
+
+You can paste a fixture link into anyone's "Your interests", for example `https://fixtures.porchlight.test/calendars/maya.ics` for Lily. Without the setting, `.test` never resolves, so those links just show as unavailable. Every other link is fetched exactly as usual either way. Never turn the setting on in a deployment.
+
+Two limits come with building feeds around "now". Between about 11 pm and 1 am, the "already ended" or "still to come" event may not fit inside today and is left out. And "today" is the server's date, which only matters if the server and browser are in different time zones.
+
+**Real calendars instead.** To try a real feed, set `SEED_CALENDAR_MAYA`, `SEED_CALENDAR_SAM`, `SEED_CALENDAR_JORDAN` or `SEED_CALENDAR_ALEX` in `backend/.env` to a private iCal link and run `make demo` again. That member gets the real link instead of the fixture. The link goes only into `porchlight.db.demo`, and `make demo` never prints it.
+
+**What browsing the demo costs.** `make demo` fills every member's Articles, "Happening near you" and described widgets with realistic results, marked as just updated. Their links go to real home pages; refreshing a card replaces them with real results. While they're fresh, opening any page as anyone runs no Brave search and no AI call. Two things still cost:
+
+- **The morning briefing:** it's written on each member's first visit of the day, with one small AI call.
+- **Stale results:** once a result passes its freshness window (Articles after 3 hours, for example), or someone presses refresh, that card searches again and costs credit as usual.
+
+Run `make demo` again to get back to a free, fresh start.
+
 ## Calendars
 
 The Today card at the top of each page lists that day's events from a calendar link the member (or a parent, for them) pastes into "Your interests":

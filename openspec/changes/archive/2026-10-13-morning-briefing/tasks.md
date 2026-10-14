@@ -101,7 +101,7 @@
 
 ## 6. Live check
 
-- [ ] 6.1 Run the app against a throwaway database with `make seed`'s parent and kid. Give the parent interests, a location and the Google calendar from the Today card's check. Then check:
+- [x] 6.1 Run the app against a throwaway database with `make seed`'s parent and kid. Give the parent interests, a location and the Google calendar from the Today card's check. Then check:
   - the parent's page opens with "Good morning, …" (or the right part of the day) above Today, and 1–3 sentences that mention the real forecast, today's events and at least one headline or nearby event, with nothing invented;
   - reloading makes no new AI call (check the backend log for `briefing written` versus `briefing remembered`);
   - removing the calendar and reloading after 10 minutes rewrites the briefing without events;
@@ -123,6 +123,10 @@
   - **Privacy:** no facts payload contained a name, email, location text or calendar link. The weather line names no place.
   - **Fixed during the check:** at 11 pm the briefing was given only today's forecast and described it as "tomorrow's weather" in all 3 briefings. With the user's agreement, evening briefings now get tomorrow's forecast, labelled as tomorrow's, and the spec and design were updated. Re-checked live: "Expect rain tomorrow with a high of 53 and a low of 42", which matches Open-Meteo for Oct 14.
   - **Not checked live:** calendar events in the briefing, and "removing the calendar rewrites it". No calendar with events today or tomorrow could be connected without the user's private link. Unit and handler tests cover both: `TestGatherFactsCalendar`, `TestBriefingRewrittenWhenFactsChange`.
+
+  **Notes (2026-10-14, about 14:00 Denver):** the two items above were checked live with the demo family from the `demo-family-seed` change (`make demo`, `make demo-serve`). It has fixture calendars, which the server builds itself, instead of a private Google link.
+  - **Calendar events in the briefing:** Maya's first briefing said "You have a dentist appointment at 3:23 this afternoon… Recycling day is all day…", which matched the Today card. `uses` was weather, calendar, articles, nearby, and the log said `briefing written … uses=weather,calendar,articles,nearby writes=1`. A reload was `briefing remembered`.
+  - **Removing the calendar rewrites it:** after `DELETE /api/me/calendar`, Today read `no_calendar`. Asking at once returned the remembered briefing, inside the 10-minute gap. With the remembered briefing aged 11 minutes in the database, the next request rewrote it without events: "Expect a rainy day with a high near 53°F… night sky viewing at Chamberlin Observatory… bike-lane plan". `uses` was weather, articles, nearby, and the log said `writes=2`.
 
 ## 7. Docs and wrap-up
 
