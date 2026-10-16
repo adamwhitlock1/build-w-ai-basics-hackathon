@@ -55,6 +55,10 @@ type config struct {
 	openRouterBaseURL string
 	braveKey          string
 	braveBaseURL      string
+	// devFixtures makes the server answer the demo family's fixture
+	// calendar links itself (see calendar.FixtureFetcher). Local
+	// development only: PORCHLIGHT_DEV_FIXTURES=1.
+	devFixtures bool
 }
 
 // loadConfig reads backend/.env (if present) and then the environment.
@@ -73,6 +77,7 @@ func loadConfig() (config, error) {
 		openRouterBaseURL: envOr("OPENROUTER_BASE_URL", llm.DefaultBaseURL),
 		braveKey:          os.Getenv("BRAVE_API_KEY"),
 		braveBaseURL:      envOr("BRAVE_BASE_URL", sources.DefaultBraveBaseURL),
+		devFixtures:       os.Getenv("PORCHLIGHT_DEV_FIXTURES") == "1",
 	}
 
 	var missing []string
@@ -136,8 +141,17 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	defer sessionStore.StopCleanup()
 	sessions := auth.NewSessionManager(sessionStore, logger)
 
+	// The Today card fetches calendars through this. With dev fixtures on,
+	// links on calendar.FixtureHost are answered in-process and every other
+	// link still goes to the real, checked fetcher.
+	var calendars widgets.CalendarFetcher = calendar.NewFetcher()
+	if cfg.devFixtures {
+		calendars = calendar.NewFixtureFetcher(calendar.NewFetcher(), time.Now)
+		logger.Warn("dev fixture calendars are on; never enable this in a deployment", "host", calendar.FixtureHost)
+	}
+
 	srv := &http.Server{
-		Handler:           routes(logger, st, sessions, llmClient, llmClient, llmClient, registry, calendar.NewFetcher()),
+		Handler:           routes(logger, st, sessions, llmClient, llmClient, llmClient, registry, calendars),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,

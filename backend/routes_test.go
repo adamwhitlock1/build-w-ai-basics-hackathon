@@ -136,6 +136,13 @@ func startServer(t *testing.T, dbPath string) (*httptest.Server, *store.Store) {
 // startServerWith is startServer with briefer writing the briefings.
 func startServerWith(t *testing.T, dbPath string, briefer widgets.Briefer) (*httptest.Server, *store.Store) {
 	t.Helper()
+	return startServerWithAll(t, dbPath, briefer, fakeCalendars{})
+}
+
+// startServerWithAll is startServerWith with calendars fetching the
+// calendar feeds.
+func startServerWithAll(t *testing.T, dbPath string, briefer widgets.Briefer, calendars widgets.CalendarFetcher) (*httptest.Server, *store.Store) {
+	t.Helper()
 	st, err := store.Open(context.Background(), dbPath)
 	if err != nil {
 		t.Fatal(err)
@@ -143,7 +150,7 @@ func startServerWith(t *testing.T, dbPath string, briefer widgets.Briefer) (*htt
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// A cleanup interval of 0 means no background goroutine to stop.
 	sessions := auth.NewSessionManager(sqlite3store.NewWithCleanupInterval(st.DB(), 0), logger)
-	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, briefer, sources.NewRegistry(fakeNews{}, fakeSource{}, fakeWeather{}), fakeCalendars{}))
+	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, briefer, sources.NewRegistry(fakeNews{}, fakeSource{}, fakeWeather{}), calendars))
 	// Cleanups run last-in, first-out: the server stops before the store closes.
 	t.Cleanup(func() { st.Close() })
 	t.Cleanup(srv.Close)
@@ -814,4 +821,52 @@ func TestBriefingRoutes(t *testing.T) {
 		t.Errorf("kid's briefing seen by alice = %+v", kids)
 	}
 	kid.wantError("GET", memberPath(aliceMe.User.ID, "/widgets/briefing"), nil, http.StatusForbidden, "Only parents can see other family members' pages.")
+}
+
+// noNetworkCalendars fails the test if a link reaches the real fetcher.
+type noNetworkCalendars struct{ t *testing.T }
+
+func (n noNetworkCalendars) Fetch(_ context.Context, link string) ([]byte, error) {
+	n.t.Errorf("a link reached the real calendar fetcher: %s", link)
+	return nil, calendar.ErrUnavailable
+}
+
+// With dev fixtures on, a fixture link is accepted like any calendar and
+// the Today card lists the fixture's events, without any network.
+func TestFixtureCalendar(t *testing.T) {
+	// The fixtures are built around UTC "now", matching the tz the Today
+	// card is asked for below, so both agree on what today is.
+	fixtures := calendar.NewFixtureFetcher(noNetworkCalendars{t}, func() time.Time { return time.Now().UTC() })
+	srv, _ := startServerWithAll(t, filepath.Join(t.TempDir(), "test.db"), &countingBriefer{}, fixtures)
+	c := newClient(t, srv)
+	c.signup("maya@rivera.test")
+	c.setUpFamily()
+
+	var resp widgets.CalendarResponse
+	c.do("PUT", "/api/me/calendar", map[string]string{"url": calendar.FixtureLink("maya")}, http.StatusOK, &resp)
+	want := calendar.Summary{Connected: true, Provider: calendar.FixtureHost}
+	if resp.Calendar != want {
+		t.Errorf("calendar = %+v, want %+v", resp.Calendar, want)
+	}
+
+	var today widgets.TodayWidget
+	c.do("GET", "/api/widgets/today?tz=UTC", nil, http.StatusOK, &today)
+	var titles []string
+	for _, e := range today.Today {
+		titles = append(titles, e.Title)
+	}
+	// The all-day event is there at any hour, and comes first.
+	if len(titles) == 0 || titles[0] != "Recycling day" {
+		t.Errorf("today's events = %q, want Recycling day first", titles)
+	}
+	var tomorrow []string
+	for _, e := range today.Tomorrow {
+		tomorrow = append(tomorrow, e.Title)
+	}
+	if !slices.Equal(tomorrow, []string{"Book club", "PTA meeting"}) {
+		t.Errorf("tomorrow's events = %q, want Book club and PTA meeting", tomorrow)
+	}
+
+	// An unknown fixture is a link that no longer works.
+	c.do("PUT", "/api/me/calendar", map[string]string{"url": calendar.FixtureLink("nobody")}, http.StatusUnprocessableEntity, nil)
 }
