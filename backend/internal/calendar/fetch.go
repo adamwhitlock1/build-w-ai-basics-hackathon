@@ -161,8 +161,7 @@ func (f *Fetcher) Fetch(ctx context.Context, link string) ([]byte, error) {
 // client's errors are *url.Error values whose message starts with the URL,
 // so the wrapper is dropped and only what went wrong is kept.
 func withoutLink(err error) error {
-	var ue *url.Error
-	if errors.As(err, &ue) {
+	if ue, ok := errors.AsType[*url.Error](err); ok {
 		err = ue.Err
 	}
 	switch {

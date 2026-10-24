@@ -1,49 +1,42 @@
 schema: spec-driven
 
 context: |
-  Porchlight is a Devpost "Build With AI: Basics" hackathon entry. The proof of
-  concept was planned and built with the Devpost Learn skill pack; the commit
-  tagged `poc-complete` is that snapshot. OpenSpec plans every feature added after it.
-  - Never rewrite devpost/scope.md, devpost/prd.md, devpost/spec.md or
-    devpost/checklist.md. Judges check them as proof the skill pack was used.
-    The only allowed edit is the "Post-PoC Additions" list at the end of
-    prd.md and spec.md: add one line per archived change.
-  - Never edit the vendored Devpost Learn skills (.claude/skills/1-start ...
-    6-ship, .agents/skills, agent/) or skills-lock.json.
-  - Hard deadline: Devpost submission closes 2026-10-26 5:00 pm ET. A feature
-    must work reliably end to end before it is demoed. Prefer small, polished
-    changes that strengthen the core story (family homepage, AI-driven widgets)
-    over broad new systems.
-  - The user is learning backend and API development in Go through this
-    project. Keep the backend idiomatic Go and explain new Go concepts briefly.
+  Porchlight is a family homepage where every member's widgets are AI-driven.
+  It began as a Devpost "Build With AI: Basics" entry. The proof of concept
+  (tag `poc-complete`) was planned with the Devpost Learn skill pack, and
+  later features were planned with OpenSpec. The hackathon submission was
+  skipped; work is now on v2 (see openspec/roadmap.md).
+  - Audience: one household (two parents, kids aged 12 and 15), self-hosted
+    on a homelab. It is not a multi-family product yet. SQLite and a single
+    Go process are the intended architecture for v2.
+  - Keep devpost/ (scope.md, prd.md, spec.md, checklist.md) as a historical
+    record and never rewrite it. The one allowed edit: when a change is
+    archived, add one line to "Post-PoC Additions" at the end of
+    devpost/prd.md and devpost/spec.md. Never edit the vendored Devpost Learn
+    skills (.claude/skills/1-start ... 6-ship, .agents/skills, agent/) or
+    skills-lock.json.
+  - Stack:
+    - Backend: Go with stdlib net/http, SQLite via modernc.org/sqlite, and
+      scs sessions. It calls OpenRouter through go-openai today; Genkit for
+      Go is the planned agent framework.
+    - Frontend: React with TanStack Router/Query and Puck.
+  - Kid-safety principles for the family agent:
+    - Parents (admins) can review every kid conversation, and kids always
+      see "Your parents can review these chats".
+    - A fast pre-flight model flags risky kid messages for parent review
+      without blocking them.
+    - A possible crisis is flagged for parents, and the kid's reply always
+      includes crisis resources (call or text 988; text HOME to 741741).
+    - Kids get a restricted, safe tool set.
+    - Before the kids use a feature for real, their conversations go only to
+      no-retention, no-training providers. Prototyping may use other models.
+  - Quality bar: the codebase must be well structured and tested. Every
+    change ships with tests: unit tests with fakes, and route-level
+    integration tests. AI behavior is checked with an opt-in evaluation
+    script against real models, not in CI.
+  - The user is learning backend and API development in Go. Keep the backend
+    idiomatic Go and explain new Go concepts briefly.
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
-
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
-
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+rules:
+  tasks:
+    - Every task names the test or check that verifies it (a Go test, a frontend build or test, or a manual check with its expected result).

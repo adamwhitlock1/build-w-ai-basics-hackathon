@@ -6,7 +6,7 @@ Porchlight is a homepage for each member of a family where every widget is AI-dr
 
 ## Prerequisites
 
-- **Go 1.22+**: check with `go version`
+- **Go 1.27+**: check with `go version`. On a Mac, install it with the official installer from <https://go.dev/dl/> (it goes in `/usr/local/go`). Don't also install Homebrew's `go`: `/opt/homebrew/bin` usually comes first in `PATH`, so the two would silently compete.
 - **Node.js 20.19+ or 22.12+** (what Vite 8 requires): check with `node --version`
 - **An OpenRouter API key**: <https://openrouter.ai/settings/keys>
 - **A Brave Search API key**: <https://api-dashboard.search.brave.com>. The Search plan asks for a card but includes about $5 of free credit each month, which is plenty for local use.
@@ -51,7 +51,12 @@ Accounts, families, saved widgets and page layouts live in a SQLite file, `backe
 
 ### Why `make run` and not `go run .`?
 
-The Makefile sets `CGO_ENABLED=0` for every Go command. On this Mac, Go 1.22.0 binaries linked with cgo crash at launch with `dyld: missing LC_UUID`. Porchlight is pure Go, and so is its SQLite driver (modernc.org/sqlite), so turning cgo off costs nothing. The Makefile also sets `GOTOOLCHAIN=local` so Go never downloads a different toolchain. To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...`.
+The Makefile sets two things for every Go command:
+
+- **`CGO_ENABLED=0`:** Porchlight is pure Go, and so is its SQLite driver (modernc.org/sqlite), so it builds without C. The result is one static binary that also cross-compiles to Linux for a home server (`GOOS=linux make build`). It was first turned off because Go 1.22.0 binaries built with cgo crashed on this Mac. Go 1.24+ fixed that, so it's a deliberate choice now.
+- **`GOTOOLCHAIN=local`:** Go always uses the installed toolchain and never downloads one. If `go.mod` ever needs a newer Go than you have, the build stops and says so.
+
+To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...`.
 
 ## Data sources
 
@@ -146,8 +151,10 @@ The briefing is written once on the member's first visit of the day, and rewritt
 
 ```sh
 cd backend
-make check   # go vet + go test + go build
+make check   # go vet + go test + govulncheck + go build
 ```
+
+`make check` also runs `govulncheck` (pinned in `go.mod` as a tool), which fails if Porchlight's code can reach a known vulnerability in Go or a dependency. It downloads the vulnerability list from vuln.go.dev, so it needs network; `make test` and `make vet` work offline. The race detector works too: `CGO_ENABLED=0 GOTOOLCHAIN=local go test -race ./...`.
 
 The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (calendar tests read sample feeds in `backend/internal/calendar/testdata/`), so they need no keys, spend no credit and make no network calls.
 

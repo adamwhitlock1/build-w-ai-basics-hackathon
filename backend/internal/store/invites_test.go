@@ -133,12 +133,10 @@ func TestAcceptInviteConcurrently(t *testing.T) {
 	errs := make(chan error, tries)
 	var wg sync.WaitGroup
 	for range tries {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := s.AcceptInvite(ctx, "kid-token", []byte("hash"))
 			errs <- err
-		}()
+		})
 	}
 	wg.Wait()
 	close(errs)

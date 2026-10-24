@@ -273,7 +273,7 @@ func TestTodayParentViewsKid(t *testing.T) {
 
 func TestTodayCapsEvents(t *testing.T) {
 	var extra []string
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		extra = append(extra, "BEGIN:VEVENT", fmt.Sprintf("UID:busy-%d", i),
 			fmt.Sprintf("DTSTART;TZID=America/Denver:20200101T%02d0000", 8+i%10), "DURATION:PT30M",
 			"RRULE:FREQ=DAILY", fmt.Sprintf("SUMMARY:Busy %d", i), "END:VEVENT")

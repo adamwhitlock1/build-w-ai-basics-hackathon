@@ -62,3 +62,50 @@ Added on 2026-10-12 to use the days Phase 1 freed up. The riskiest item goes fir
 ## Not before the deadline
 
 Homework review, a points-and-rewards ledger, a combined calendar for the whole family (beyond each member's own Today card), mobile app, external sign-in, multiple families, open-ended UI generation, sending real invite emails. Each is a large new system that wouldn't show well in a 3-minute demo. These stay on the v2 list in `devpost/scope.md`.
+
+---
+
+# v2: The Family Agent (from 2026-10-23)
+
+On 2026-10-23 the hackathon submission was skipped in favor of building v2. Everything above is the hackathon roadmap, kept as history. Of its items, the chore checklist, public demo deployment and shared family widgets were never built. They can be planned again as v2 changes if still wanted.
+
+## Decisions so far
+
+- **Audience:** one household (two parents, kids aged 12 and 15), self-hosted on a homelab. SQLite and a single Go process. A product for other families is a long way off, but the guards should still be strong.
+- **Go:** upgrade to the newest stable release. **Agent framework:** Genkit for Go (its fit is being checked before the `genkit-integration` change).
+- **The family agent:** every member gets one.
+  - For kids it's a tutor and a curiosity/creative companion. The rule "guide, don't answer" applies only to messages the model marks as assignments. A hint ladder enforced in Go (not only in the prompt) caps how much it gives away.
+  - For parents it's an assistant that can also review the kids' conversations.
+- **Oversight:**
+  - Parents (admins) can see every kid conversation, and kids always see "Your parents can review these chats".
+  - A fast pre-flight model flags risky kid messages for parent review and doesn't block them.
+  - Possible crisis messages are flagged, and the kid's reply always includes crisis resources (call or text 988; text HOME to 741741).
+  - Parents get an in-app review queue first; phone push comes later.
+- **Tools:** kids get a restricted, safe set. Adults get standard tools such as web research.
+- **Models:** prototyping may use OpenRouter free models or the MiniMax plan. Before the kids use the agent for real, their conversations must go only to no-retention, no-training providers. The kid-tutor change enforces this.
+- **Cost:** no ceilings yet. Usage is tracked per member.
+- **Shape:** separate chats with automatic titles, a chat page, and a small card on each homepage that opens it.
+- **Quality:** a well-structured, tested codebase. Fake-model unit tests and route-level integration tests run in CI. An opt-in evaluation script checks real tutor behavior.
+
+## Planned changes, in order
+
+Each item is one OpenSpec change, each shippable and testable on its own. Changes 1 and 2 don't involve AI; they make the later ones cheaper and safer.
+
+1. **`go-upgrade`:** the newest stable Go and refreshed dependencies. Re-test whether the `CGO_ENABLED=0` workaround is still needed.
+2. **`v2-foundation`:**
+   - Move business logic out of HTTP handlers into services the agent can call.
+   - Replace `routes()`'s long parameter list with a dependencies struct.
+   - Make the middleware streaming-ready (`statusRecorder.Unwrap`).
+   - Add CI (Go tests and a frontend build), and track usage per member.
+3. **`genkit-integration`:**
+   - Wire Genkit in beside the existing `internal/llm`, with model config for OpenRouter and MiniMax.
+   - Port one existing call (the morning briefing) to prove it.
+   - Add a fake-model test kit and Dev UI tracing.
+4. **`kid-tutor-agent`:**
+   - Conversations stored in SQLite; personas for ages 12 and 15; the hint ladder.
+   - Pre-flight flagging, crisis flags and resources, and the parent review queue with transcripts.
+   - The kid notice and the no-retention gate.
+5. **`agent-tools`:** a kid-safe tool set (weather, my day, kid-safe search) and adult tools (web research, …).
+6. **`parent-agent`:** the parent assistant, including tools for reviewing the kids' chats.
+
+Later, as they become useful: phone push for flags, streaming polish, cost ceilings, long-term agent memory, homework photos, and the unbuilt hackathon items above.

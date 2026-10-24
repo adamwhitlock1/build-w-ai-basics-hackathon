@@ -102,7 +102,7 @@ func FallbackArticleQueries(interests string) []string {
 	var pieces []string
 	for _, part := range parts {
 		var words []string
-		for _, w := range strings.Fields(part) {
+		for w := range strings.FieldsSeq(part) {
 			if strings.EqualFold(w, "and") || w == "&" {
 				pieces = append(pieces, strings.Join(words, " "))
 				words = nil

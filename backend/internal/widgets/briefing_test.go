@@ -320,12 +320,10 @@ func TestBriefingConcurrentRequestsWriteOnce(t *testing.T) {
 	var wg sync.WaitGroup
 	texts := make([]string, 5)
 	for i := range texts {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, w := s.get(t, alice, nil)
 			texts[i] = w.Text
-		}()
+		})
 	}
 	wg.Wait()
 	if n := s.briefer.callCount(); n != 1 {
