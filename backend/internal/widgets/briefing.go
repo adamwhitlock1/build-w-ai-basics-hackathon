@@ -189,7 +189,7 @@ func (h *BriefingHandler) Briefing(w http.ResponseWriter, r *http.Request) {
 			respond.JSON(w, http.StatusOK, today.widget())
 			return
 		}
-		h.writeError(w, r, member.ID, err)
+		writeServiceError(w, r, h.logger, stepError(StepBriefing, err, "user_id", member.ID))
 		return
 	}
 
@@ -278,20 +278,6 @@ func (h *BriefingHandler) remember(ctx context.Context, userID int64, day briefi
 	if err != nil {
 		h.logger.WarnContext(ctx, "couldn't remember the briefing", "user_id", userID, "err", err)
 	}
-}
-
-// writeError answers a briefing that couldn't be written, when there's no
-// earlier one from today to send instead.
-func (h *BriefingHandler) writeError(w http.ResponseWriter, r *http.Request, userID int64, err error) {
-	h.logger.ErrorContext(r.Context(), "briefing writing failed", "user_id", userID, "err", err)
-	var upstream *llm.UpstreamError
-	if errors.As(err, &upstream) && upstream.Status != 0 {
-		// OpenRouter itself said no (a bad key, no credits, a rate limit):
-		// its reason and hint are what to fix.
-		respond.Error(w, http.StatusBadGateway, "The AI service had a problem: "+upstream.Reason+".", upstream.Hint)
-		return
-	}
-	respond.Error(w, http.StatusBadGateway, "Couldn't write your briefing right now.", "Try again in a moment.")
 }
 
 // briefingFacts is what a briefing would be written from right now.

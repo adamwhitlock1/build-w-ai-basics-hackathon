@@ -198,13 +198,13 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	// 1. Plan: which source, what query, which archetype.
 	spec, err := h.planner.PickWidgetSpec(ctx, prompt, h.sources, aud, location)
 	if err != nil {
-		h.writeLLMError(w, r, err)
+		writeServiceError(w, r, h.logger, &StepError{Step: StepPlanning, Err: err})
 		return
 	}
 	src, ok := h.sources.Get(spec.Source)
 	if !ok { // the planner validates this, but don't trust a dependency blindly
 		h.logger.WarnContext(ctx, "planner chose an unknown source", "source", spec.Source)
-		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a widget.", "Couldn't pick a source for that prompt — try rephrasing")
+		writeServiceError(w, r, h.logger, ErrUnknownSource)
 		return
 	}
 	h.logger.InfoContext(ctx, "widget planned", "source", spec.Source, "query", spec.Query, "archetype", spec.Archetype, "kid_safe", aud == sources.Kids)
@@ -212,7 +212,7 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	// 2. Search.
 	results, err := src.Search(ctx, spec.Query, aud)
 	if err != nil {
-		writeSearchError(w, r, h.logger, err)
+		writeServiceError(w, r, h.logger, &StepError{Step: StepSearch, Err: err})
 		return
 	}
 
@@ -239,7 +239,7 @@ func (h *Handler) FromPrompt(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.ErrorContext(ctx, "save widget", "user_id", user.ID, "err", err)
-		respond.Error(w, http.StatusInternalServerError, "Your widget was ready, but we couldn't save it.", "Try again in a moment.")
+		writeServiceError(w, r, h.logger, ErrNotSaved)
 		return
 	}
 	respond.JSON(w, http.StatusCreated, saved)
@@ -377,7 +377,7 @@ func (h *Handler) RefreshCustom(w http.ResponseWriter, r *http.Request) {
 	src, ok := h.sources.Get(cw.Source)
 	if !ok { // saved before a source was renamed or removed
 		h.logger.WarnContext(r.Context(), "saved widget has an unknown source", "widget_id", id, "source", cw.Source)
-		respond.Error(w, http.StatusUnprocessableEntity, "This widget's data source isn't available any more.", "Remove it and describe it again.")
+		writeServiceError(w, r, h.logger, ErrSourceGone)
 		return
 	}
 
@@ -391,7 +391,7 @@ func (h *Handler) RefreshCustom(w http.ResponseWriter, r *http.Request) {
 	// 1. Search again with the saved query.
 	results, err := src.Search(ctx, cw.Query, aud)
 	if err != nil {
-		writeSearchError(w, r, h.logger, err)
+		writeServiceError(w, r, h.logger, &StepError{Step: StepSearch, Err: err})
 		return
 	}
 	if len(results) == 0 {
@@ -482,15 +482,11 @@ func (h *Handler) DeleteCustom(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func writeWidgetNotFound(w http.ResponseWriter) {
-	respond.Error(w, http.StatusNotFound, "That widget doesn't exist.", "")
-}
-
 // serverError logs err and writes a generic 500. what says what we were
 // doing, e.g. "load widget".
 func (h *Handler) serverError(w http.ResponseWriter, r *http.Request, what string, err error) {
 	h.logger.ErrorContext(r.Context(), what+" failed", "err", err)
-	respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")
+	writeInternalError(w)
 }
 
 // decodePrompt reads the request body and returns the trimmed prompt. On a
@@ -529,71 +525,6 @@ func decodePrompt(w http.ResponseWriter, r *http.Request) (prompt string, ok boo
 		return "", false
 	}
 	return prompt, true
-}
-
-// writeIfCancelled handles a request whose own context has ended because the
-// client went away or the server is shutting down. Neither is an upstream
-// failure, so it logs at Info rather than Error. It reports whether it wrote
-// a response.
-func writeIfCancelled(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) bool {
-	if r.Context().Err() == nil {
-		return false
-	}
-	logger.InfoContext(r.Context(), "request cancelled before the widget was ready", "err", err)
-	respond.Error(w, http.StatusServiceUnavailable, "The server stopped working on that request.", "Try again in a moment.")
-	return true
-}
-
-// writeLLMError maps a planner error to an HTTP response.
-func (h *Handler) writeLLMError(w http.ResponseWriter, r *http.Request, err error) {
-	if writeIfCancelled(w, r, h.logger, err) {
-		return
-	}
-	var upstream *llm.UpstreamError
-	switch {
-	case errors.Is(err, llm.ErrInvalidSpec):
-		h.logger.WarnContext(r.Context(), "no valid widget spec", "err", err)
-		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a widget.", "Couldn't pick a source for that prompt — try rephrasing")
-	case errors.As(err, &upstream):
-		h.logger.ErrorContext(r.Context(), "llm call failed", "err", err)
-		respond.Error(w, http.StatusBadGateway, "The AI service had a problem: "+upstream.Reason+".", upstream.Hint)
-	default:
-		h.logger.ErrorContext(r.Context(), "unexpected planner error", "err", err)
-		respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")
-	}
-}
-
-// writeSearchError maps a search error, from Brave or the weather source, to
-// an HTTP response. It's a function rather than a Handler method so the
-// curated widgets can share it.
-func writeSearchError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) {
-	if writeIfCancelled(w, r, logger, err) {
-		return
-	}
-	switch {
-	// The weather errors come first: a weather timeout wraps both
-	// ErrForecastUnavailable and context.DeadlineExceeded, and must not read
-	// as a Brave one.
-	case errors.Is(err, sources.ErrPlaceNotFound):
-		logger.InfoContext(r.Context(), "weather place not found", "err", err)
-		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't find that place for the forecast.",
-			"Name a town, like “weather in Denver, CO”, or add your location to your profile.")
-		return
-	case errors.Is(err, sources.ErrForecastUnavailable):
-		logger.ErrorContext(r.Context(), "weather forecast failed", "err", err)
-		respond.Error(w, http.StatusBadGateway, "The weather service (Open-Meteo) isn't answering right now.", "Try again in a moment.")
-		return
-	}
-	logger.ErrorContext(r.Context(), "search failed", "err", err)
-	switch {
-	case errors.Is(err, sources.ErrRateLimited):
-		respond.Error(w, http.StatusBadGateway, "Brave Search is busy right now.", "Wait a few seconds and try again.")
-	case errors.Is(err, context.DeadlineExceeded):
-		respond.Error(w, http.StatusBadGateway, "Brave Search took too long to answer.", "Try again in a moment.")
-	default:
-		respond.Error(w, http.StatusBadGateway, "Couldn't fetch results from Brave Search.",
-			"Try again in a moment. If it keeps failing, check BRAVE_API_KEY in backend/.env.")
-	}
 }
 
 // itemsFromResults maps search results straight to items. It's the fallback

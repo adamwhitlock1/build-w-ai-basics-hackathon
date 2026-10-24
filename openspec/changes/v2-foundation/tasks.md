@@ -14,7 +14,7 @@
 
 ## 3. Services out of handlers
 
-- [ ] 3.1 Add the error plumbing in `internal/widgets/errors.go`:
+- [x] 3.1 Add the error plumbing in `internal/widgets/errors.go`:
   - `ErrNoSuchWidget`;
   - `StepError{Step string; Err error}` (with `Unwrap`);
   - one `writeServiceError(w, r, logger, err)` that reproduces today's `writeLLMError`, `writeSearchError` and `writeIfCancelled` statuses, messages and hints.

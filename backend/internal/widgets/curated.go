@@ -285,7 +285,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 		// searches on a card that can't be filled. This is a deliberate
 		// exception to falling back when the LLM fails, to save credit.
 		if openRouterRefused(err) {
-			h.writeLLMError(w, r, "event planning", err)
+			writeServiceError(w, r, h.logger, &StepError{Step: StepEventPlanning, Err: err})
 			return
 		}
 		h.logger.WarnContext(ctx, "couldn't curate event queries; using general ones", "err", err)
@@ -307,7 +307,7 @@ func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
 	if len(results) > 0 {
 		events, err = h.curator.ExtractEvents(ctx, profile.Interests, profile.Location, results, now, aud)
 		if err != nil {
-			h.writeLLMError(w, r, "event extraction", err)
+			writeServiceError(w, r, h.logger, &StepError{Step: StepEventExtraction, Err: err})
 			return
 		}
 	}
@@ -443,7 +443,7 @@ func (h *CuratedHandler) search(ctx context.Context, w http.ResponseWriter, r *h
 	if failed > 0 && failed == len(queries) {
 		// errors.Join keeps every error, so errors.Is inside writeSearchError
 		// still spots a rate limit among them.
-		writeSearchError(w, r, h.logger, errors.Join(errs...))
+		writeServiceError(w, r, h.logger, &StepError{Step: StepSearch, Err: errors.Join(errs...)})
 		return nil, false
 	}
 	return perQuery, true
@@ -589,26 +589,4 @@ func shorten(s string, limit int) string {
 func openRouterRefused(err error) bool {
 	var upstream *llm.UpstreamError
 	return errors.As(err, &upstream) && upstream.Status != 0
-}
-
-// writeLLMError maps a failed LLM step of the Events widget (step, such as
-// "event extraction", is for the log) to a response.
-func (h *CuratedHandler) writeLLMError(w http.ResponseWriter, r *http.Request, step string, err error) {
-	if writeIfCancelled(w, r, h.logger, err) {
-		return
-	}
-	h.logger.ErrorContext(r.Context(), step+" failed", "err", err)
-	if upstream, ok := errors.AsType[*llm.UpstreamError](err); ok {
-		// Hints about OpenRouter itself (its key, credits, rate limit) fit
-		// here; others, such as "Try describing the widget differently",
-		// were written for describe-a-widget, and the member described
-		// nothing.
-		hint := "Try refreshing in a moment."
-		if upstream.Status != 0 {
-			hint = upstream.Hint
-		}
-		respond.Error(w, http.StatusBadGateway, "The AI service had a problem: "+upstream.Reason+".", hint)
-		return
-	}
-	respond.Error(w, http.StatusBadGateway, "Couldn't pick out events from the search results.", "Try again in a moment.")
 }

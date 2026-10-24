@@ -146,7 +146,7 @@ func (h *TodayHandler) Today(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		h.calendarError(w, r, member.ID, day.Provider, err)
+		writeServiceError(w, r, h.logger, stepError(StepCalendar, err, "user_id", member.ID, "provider", day.Provider))
 		return
 	}
 
@@ -156,7 +156,7 @@ func (h *TodayHandler) Today(w http.ResponseWriter, r *http.Request) {
 	tomorrowStart := todayStart.AddDate(0, 0, 1)
 	events, err := calendar.Between(feed, todayStart, tomorrowStart.AddDate(0, 0, 1), loc)
 	if err != nil {
-		h.calendarError(w, r, member.ID, day.Provider, err)
+		writeServiceError(w, r, h.logger, stepError(StepCalendar, err, "user_id", member.ID, "provider", day.Provider))
 		return
 	}
 	day.Today, day.MoreToday = eventsOn(events, todayStart, tomorrowStart)
@@ -254,17 +254,6 @@ func (h *TodayHandler) remember(ctx context.Context, userID int64, inputs string
 	if err != nil {
 		h.logger.WarnContext(ctx, "couldn't remember today's events", "user_id", userID, "err", err)
 	}
-}
-
-// calendarError answers a failed calendar fetch or read with a 502, so the
-// page keeps what it shows and offers "Try again". err never contains the
-// link (see the calendar package).
-func (h *TodayHandler) calendarError(w http.ResponseWriter, r *http.Request, userID int64, provider string, err error) {
-	if writeIfCancelled(w, r, h.logger, err) {
-		return
-	}
-	h.logger.WarnContext(r.Context(), "couldn't load the calendar", "user_id", userID, "provider", provider, "err", err)
-	respond.Error(w, http.StatusBadGateway, "Couldn't load the calendar right now.", "Try again in a moment.")
 }
 
 // CalendarResponse is the response body of SetCalendar and RemoveCalendar.
