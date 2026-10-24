@@ -66,7 +66,7 @@ func (f *fakeAgent) Reply(ctx context.Context, in aikit.ReplyInput, onChunk func
 type family struct {
 	st                         *store.Store
 	parent, parent2, kid, kid2 store.User
-	otherKid                   store.User
+	otherParent, otherKid      store.User
 }
 
 func newFamily(t *testing.T) family {
@@ -99,12 +99,13 @@ func newFamily(t *testing.T) family {
 		t.Fatal(err)
 	}
 	return family{
-		st:       st,
-		parent:   parent,
-		parent2:  join(parent.FamilyID, "sam@rivera.test", true),
-		kid:      join(parent.FamilyID, "jordan@rivera.test", false),
-		kid2:     join(parent.FamilyID, "lily@rivera.test", false),
-		otherKid: join(other.FamilyID, "riley@chen.test", false),
+		st:          st,
+		parent:      parent,
+		parent2:     join(parent.FamilyID, "sam@rivera.test", true),
+		kid:         join(parent.FamilyID, "jordan@rivera.test", false),
+		kid2:        join(parent.FamilyID, "lily@rivera.test", false),
+		otherParent: other,
+		otherKid:    join(other.FamilyID, "riley@chen.test", false),
 	}
 }
 

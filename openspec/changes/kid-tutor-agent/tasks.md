@@ -63,7 +63,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
   - `PersonaFor` gives the right persona at the boundaries (12 and 13, and no birth year).
 
   Verify with `go test ./internal/chat/`.
-- [ ] 3.2 Add the parent operations `ListFor`, `Transcript`, `Delete`, `Reviews`, `MarkReviewed` and `Alerts`, with permissions and family scoping. Tests:
+- [x] 3.2 Add the parent operations `ListFor`, `Transcript`, `Delete`, `Reviews`, `MarkReviewed` and `Alerts`, with permissions and family scoping. Tests:
   - a kid can't call them;
   - another family's members, chats and flags are not found;
   - the queue order;
