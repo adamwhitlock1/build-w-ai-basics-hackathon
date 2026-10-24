@@ -61,7 +61,7 @@
   - a nil recorder is fine.
 
   Verify with `go test ./internal/llm/`. Commit.
-- [ ] 4.3 Add `internal/usage` with `Recorder`:
+- [x] 4.3 Add `internal/usage` with `Recorder`:
   - `New(store, logger, capacity)`;
   - `Run(ctx)`, the single writer goroutine;
   - `RecordUsage`, a non-blocking send that drops and counts when the queue is full;
