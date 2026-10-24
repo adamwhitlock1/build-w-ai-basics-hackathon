@@ -184,6 +184,26 @@ No prompts, replies, interests or calendar data are stored, only counts and labe
 
 The HTTP handlers only decode the request, call a service, and turn its result or error into a response. The family agent will call the same services.
 
+AI calls go through one of two packages:
+- `internal/llm`, the original OpenRouter client, for describing widgets, Articles and Local Events.
+- `internal/aikit`, which builds Genkit for Go and is the only package that imports Genkit's model plugins. It writes the morning briefing, and the family agent will be built on it (see below).
+
+## Genkit
+
+[Genkit for Go](https://genkit.dev/docs/go/) (v1.14.0) is the framework the family agent will be built on. For now it writes the morning briefing, with the same prompts, length rules, retries and error messages as the original client (a contract test checks that the two agree).
+
+**Models.** Both clients use `OPENROUTER_MODEL` (default `openai/gpt-4.1-mini`) through your OpenRouter account. In Genkit that model is called `openrouter/openai/gpt-4.1-mini`. To give Genkit a different one, set `GENKIT_MODEL` in `backend/.env` to `openrouter/` plus any OpenRouter model id. Every Genkit call's tokens go to `llm_usage` like everything else's.
+
+**Switching back.** `PORCHLIGHT_BRIEFER=legacy` in `backend/.env` makes the original client write the briefing again, after a restart. The default is `genkit`, and any other value stops the server at startup. The switch goes away once the agent has run on Genkit for a while.
+
+**MiniMax.** With `MINIMAX_API_KEY` set (and optionally `MINIMAX_BASE_URL` and `MINIMAX_MODEL`), MiniMax's Anthropic-compatible API is available to Genkit as `anthropic/<MINIMAX_MODEL>`. Nothing uses it yet. It's for the owner's own experiments and never for kids' conversations: those go only to providers that don't keep or train on what they're sent, and a subscription plan doesn't promise that. Without the key, MiniMax isn't registered at all.
+
+**Checking the real providers.** `make ai-smoke` (in `backend/`) calls the real models: structured output, one tool call, a required tool call, and usage reporting, for OpenRouter and, with a key, MiniMax. It costs a fraction of a cent, so it only runs when you ask; CI never does. The tests otherwise use `internal/aikit/aitest`, a real Genkit instance whose one model answers from a script, so they need no keys or network.
+
+**Watching AI calls.** `make dev-ui` runs the API under Genkit's Developer UI at <http://localhost:4000>. It shows each model call's prompt, reply, tokens and timing. Settings pass through, e.g. `DB_PATH=porchlight.db.demo PORCHLIGHT_DEV_FIXTURES=1 make dev-ui` for the demo family. The CLI is pinned (`genkit-cli@1.44.1`) and fetched by `npx`. On first run it asks you to acknowledge Google's analytics notice; `npx genkit-cli@1.44.1 config set analyticsOptOut true` opts out instead.
+
+The Dev UI talks to Genkit's reflection server on 127.0.0.1:3100, which **runs any AI flow without a login**. It starts only when `GENKIT_ENV=dev` or `GENKIT_REFLECTION_ENABLED` is set, and the backend logs a warning when it does. Use it on your own machine only, and never set either variable on the homelab.
+
 ## How it was planned
 
 The proof of concept was planned and built with the [Devpost Learn skill pack](https://github.com/challengepost/learn-ai-basics). Its planning documents are in `devpost/`: `scope.md`, `prd.md`, `spec.md` and the build `checklist.md`. The git tag `poc-complete` marks the finished proof of concept.

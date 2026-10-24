@@ -83,7 +83,7 @@
       - `tool_choice=required` is honored.
     - MiniMax: skipped, because `MINIMAX_API_KEY` isn't set. Its tool, `tool_choice` and structured-output behavior is still open: add the key to `backend/.env` and rerun `make ai-smoke`. A third check, `tool choice required`, was added to settle the `tool_choice` question.
 - [ ] 5.2 Add `make dev-ui` (`GENKIT_ENV=dev npx --yes genkit-cli@1.44.1 start -- go run .`, with the Makefile's Go settings). Verify by starting it, opening the Dev UI, and seeing a briefing's model call traced after loading a page. Stop it afterwards.
-- [ ] 5.3 Add a "Genkit" section to `README.md`:
+- [x] 5.3 Add a "Genkit" section to `README.md`:
   - which models are used and how to choose them;
   - `PORCHLIGHT_BRIEFER`;
   - MiniMax is for the owner's own use and never kid traffic, and why;
