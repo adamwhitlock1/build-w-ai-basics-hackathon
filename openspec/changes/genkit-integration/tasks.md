@@ -4,11 +4,12 @@
 
 ## 2. Genkit in the module
 
-- [ ] 2.1 Run `go get github.com/firebase/genkit/go@v1.14.0` (exact version; `GOTOOLCHAIN=local`) and `go mod tidy`. Verify that `go.mod` keeps `go 1.27.0` with no toolchain line, and that `make check` (including govulncheck) passes. Record any reachable vulnerability here, and fix it before continuing. Commit together with 3.1, since an unused dependency would be tidied away.
+- [x] 2.1 Run `go get github.com/firebase/genkit/go@v1.14.0` (exact version; `GOTOOLCHAIN=local`) and `go mod tidy`. Verify that `go.mod` keeps `go 1.27.0` with no toolchain line, and that `make check` (including govulncheck) passes. Record any reachable vulnerability here, and fix it before continuing. Commit together with 3.1, since an unused dependency would be tidied away.
+  - Result (2026-10-24): `go.mod` still says `go 1.27.0` with no toolchain line. Genkit brought in `openai-go` v1.8.2 and `anthropic-sdk-go` v1.23.0. govulncheck: 0 reachable vulnerabilities; the one module-level finding is the existing GO-2026-5932 (`x/crypto/openpgp`, never called).
 
 ## 3. `internal/aikit`
 
-- [ ] 3.1 Add `aikit.Config` (OpenRouter key and base URL, default model, MiniMax key, base URL and model) and `aikit.New(ctx, cfg) (*Kit, error)`:
+- [x] 3.1 Add `aikit.Config` (OpenRouter key and base URL, default model, MiniMax key, base URL and model) and `aikit.New(ctx, cfg) (*Kit, error)`:
   - OpenRouter is registered with `option.WithBaseURL` and `option.WithMaxRetries(0)`.
   - The anthropic plugin is registered for MiniMax only when its key is set.
   - Missing required config returns an error, never a panic.
