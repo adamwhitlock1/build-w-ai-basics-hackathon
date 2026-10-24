@@ -456,20 +456,20 @@ func searchAll(ctx context.Context, src sources.Source, queries []string, aud so
 	results = make([][]sources.Result, len(queries))
 	errs = make([]error, len(queries))
 
-	// A WaitGroup counts goroutines still running: Add(1) before starting
-	// each one, Done when it finishes, and Wait blocks until none are left.
+	// A WaitGroup counts goroutines still running, and Wait blocks until
+	// none are left. wg.Go (Go 1.25) starts f on a new goroutine and does
+	// the counting for us: it replaces the older wg.Add(1), go func() {
+	// defer wg.Done(); ... }() pattern.
 	var wg sync.WaitGroup
 	for i, q := range queries {
-		wg.Add(1)
-		// "go" runs the function on a new goroutine and moves straight on to
+		// wg.Go runs the function on a new goroutine and moves straight on to
 		// the next query. Since Go 1.22 every loop iteration has its own i
 		// and q, so each goroutine sees the values from its own iteration.
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			// Each goroutine writes only its own slot of the slices, so no two
 			// goroutines touch the same memory and no mutex is needed.
 			results[i], errs[i] = src.Search(ctx, q, aud)
-		}()
+		})
 	}
 	wg.Wait()
 	return results, errs
@@ -598,8 +598,7 @@ func (h *CuratedHandler) writeLLMError(w http.ResponseWriter, r *http.Request, s
 		return
 	}
 	h.logger.ErrorContext(r.Context(), step+" failed", "err", err)
-	var upstream *llm.UpstreamError
-	if errors.As(err, &upstream) {
+	if upstream, ok := errors.AsType[*llm.UpstreamError](err); ok {
 		// Hints about OpenRouter itself (its key, credits, rate limit) fit
 		// here; others, such as "Try describing the widget differently",
 		// were written for describe-a-widget, and the member described

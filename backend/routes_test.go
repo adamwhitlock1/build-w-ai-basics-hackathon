@@ -799,11 +799,9 @@ func TestBriefingRoutes(t *testing.T) {
 	var wg sync.WaitGroup
 	got := make([]widgets.BriefingWidget, 4)
 	for i := range got {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			alice.do("GET", "/api/widgets/briefing?tz=America/Los_Angeles", nil, http.StatusOK, &got[i])
-		}()
+		})
 	}
 	wg.Wait()
 	if n := briefer.calls.Load(); n != 1 {

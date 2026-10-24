@@ -137,10 +137,7 @@ func (e vevent) occurrence(start time.Time) occurrence {
 	if e.allDay {
 		// An all-day event covers whole days, whatever the clock does in
 		// between, so its end is counted in days, not hours.
-		days := int(e.length.Round(24*time.Hour) / (24 * time.Hour))
-		if days < 1 {
-			days = 1
-		}
+		days := max(int(e.length.Round(24*time.Hour)/(24*time.Hour)), 1)
 		return occurrence{start: start, end: start.AddDate(0, 0, days), allDay: true}
 	}
 	return occurrence{start: start, end: start.Add(e.length)}
@@ -280,7 +277,7 @@ func parseTimes(p *ics.IANAProperty, loc *time.Location) (times []time.Time, all
 		}
 	}
 	isDate := strings.EqualFold(firstParam(p, "VALUE"), "DATE")
-	for _, v := range strings.Split(p.Value, ",") {
+	for v := range strings.SplitSeq(p.Value, ",") {
 		v = strings.TrimSpace(v)
 		var t time.Time
 		switch {

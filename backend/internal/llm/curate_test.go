@@ -56,10 +56,9 @@ func TestCurateArticles(t *testing.T) {
 			if n := len(fake.reqs); n != tt.wantCalls {
 				t.Errorf("made %d calls, want %d", n, tt.wantCalls)
 			}
-			var upstream *llm.UpstreamError
 			switch {
 			case tt.wantUpstream:
-				if !errors.As(err, &upstream) {
+				if _, ok := errors.AsType[*llm.UpstreamError](err); !ok {
 					t.Fatalf("err = %v, want an UpstreamError", err)
 				}
 			case tt.wantErr != nil:
@@ -224,9 +223,8 @@ func TestExtractEvents(t *testing.T) {
 
 			events, err := client.ExtractEvents(context.Background(), "indie music", "Denver, CO", results, time.Now(), sources.Everyone)
 
-			var upstream *llm.UpstreamError
 			if tt.wantUpstream {
-				if !errors.As(err, &upstream) {
+				if _, ok := errors.AsType[*llm.UpstreamError](err); !ok {
 					t.Fatalf("err = %v, want an UpstreamError", err)
 				}
 				return
