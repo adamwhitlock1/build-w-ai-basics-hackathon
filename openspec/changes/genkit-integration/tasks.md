@@ -52,12 +52,13 @@
   - usage recorded once per model call.
 
   Verify with `go test ./internal/aikit/`.
-- [ ] 4.2 Add a contract test that runs the same scripted replies through both briefers (`llm.Client` against the fake OpenRouter, and `aikit.Briefer` against `aitest`) and checks:
+- [x] 4.2 Add a contract test that runs the same scripted replies through both briefers (`llm.Client` against the fake OpenRouter, and `aikit.Briefer` against `aitest`) and checks:
   - the same output text;
   - the same error kinds (`ErrNoBriefing`, the `UpstreamError` status and reason);
   - the same system and user messages sent.
 
   Verify with `go test ./internal/aikit/`.
+  - As built: 12 scenarios. The Genkit briefer also runs through the real OpenRouter plugin against the same fake, and its outcomes match too. The one allowed difference is the JSON parser's own wording inside the correction message after an unreadable reply (`encoding/json` and Genkit describe bad JSON differently).
 - [ ] 4.3 Wire it in `main.go`:
   - build the Kit after the preflight checks;
   - read `PORCHLIGHT_BRIEFER` (`genkit` by default, or `legacy`; anything else exits with a clear message) and pass the chosen briefer in `deps.Briefer`;
