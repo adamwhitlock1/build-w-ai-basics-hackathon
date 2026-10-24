@@ -105,11 +105,23 @@
   - The comments on `routes()` and the services describe the new structure.
 
   Verify by reading the README.
-- [ ] 6.2 Run the demo end to end: `make demo`, then `make demo-serve` on a side port with the frontend. Log in as Maya and as Jordan, and confirm:
+- [x] 6.2 Run the demo end to end: `make demo`, then `make demo-serve` on a side port with the frontend. Log in as Maya and as Jordan, and confirm:
   - The cards load as before.
   - Describing a widget as Jordan works.
   - The `llm_usage` table in `backend/porchlight.db.demo` has rows for Jordan's describe-a-widget (2 steps) and Maya's briefing, with token counts and no text columns holding the prompt.
   - `UsageSummary` returns the per-member totals. Check it through a tiny test or by reading the table with the Go store in a scratch program.
 
   Record the numbers here.
+  - **Result (2026-10-24, real OpenRouter and Brave, demo database, API on :8086, frontend on :5186):**
+    - Maya and Jordan each loaded homepage, Today (3 and 1 events), Articles (4 and 3), Happening near you (3 and 2) and the briefing.
+    - Jordan described "show me upcoming SpaceX launches": 201, marked kid-safe.
+    - `llm_usage` has exactly 4 rows:
+      - Maya, briefing/morning_briefing: 433+58=491
+      - Jordan, briefing/morning_briefing: 483+61=544
+      - Jordan, describe_widget/widget_spec: 761+32=793
+      - Jordan, describe_widget/widget_items: 3762+177=3939
+    - Every row has `viewer_id` equal to the member and model `openai/gpt-4.1-mini`.
+    - The table's columns are only ids, labels, the model and counts; no row contains "SpaceX".
+    - There were no Brave or curating AI calls on page loads (the results were pre-filled), and no warnings or errors in the log.
+    - `UsageSummary`'s per-member totals are covered by `TestUsageSummary`.
 - [ ] 6.3 Run `openspec validate v2-foundation` and confirm it passes. Add the "v2 foundation" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`. Verify that both files gain exactly one line.
