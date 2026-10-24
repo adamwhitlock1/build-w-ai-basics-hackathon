@@ -70,12 +70,18 @@
 
 ## 5. Tooling and docs
 
-- [ ] 5.1 Add `make ai-smoke`, which runs `PORCHLIGHT_LIVE_AI=1 go test -run Live ./internal/aikit/`. Add `live_test.go`, skipped unless that variable is set, with three checks for OpenRouter and, if `MINIMAX_API_KEY` is set, for MiniMax:
+- [x] 5.1 Add `make ai-smoke`, which runs `PORCHLIGHT_LIVE_AI=1 go test -run Live ./internal/aikit/`. Add `live_test.go`, skipped unless that variable is set, with three checks for OpenRouter and, if `MINIMAX_API_KEY` is set, for MiniMax:
   - `GenerateData` into a struct;
   - one tool call (`add`);
   - usage reported.
 
   Run it and record the results here, especially MiniMax's tool and structured-output behavior. Verify that `make ai-smoke` passes for OpenRouter, and record MiniMax as passed, failed (with the error) or skipped (no key).
+  - Result (2026-10-24), `make ai-smoke`:
+    - OpenRouter (`openai/gpt-4.1-mini`) passed all checks in about 4 s:
+      - structured output came back as `{City:Paris Country:France}` through Genkit's prompt-based schema instructions, using 80 + 10 tokens;
+      - one `add` call, answering "The result of adding 2 and 3 is 5.", with usage recorded for both model calls;
+      - `tool_choice=required` is honored.
+    - MiniMax: skipped, because `MINIMAX_API_KEY` isn't set. Its tool, `tool_choice` and structured-output behavior is still open: add the key to `backend/.env` and rerun `make ai-smoke`. A third check, `tool choice required`, was added to settle the `tool_choice` question.
 - [ ] 5.2 Add `make dev-ui` (`GENKIT_ENV=dev npx --yes genkit-cli@1.44.1 start -- go run .`, with the Makefile's Go settings). Verify by starting it, opening the Dev UI, and seeing a briefing's model call traced after loading a page. Stop it afterwards.
 - [ ] 5.3 Add a "Genkit" section to `README.md`:
   - which models are used and how to choose them;

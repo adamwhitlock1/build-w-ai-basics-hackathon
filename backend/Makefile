@@ -11,7 +11,7 @@
 export CGO_ENABLED := 0
 export GOTOOLCHAIN := local
 
-.PHONY: run build vet test vuln check seed demo demo-serve
+.PHONY: run build vet test vuln check seed demo demo-serve ai-smoke dev-ui
 
 run:
 	go run .
@@ -34,6 +34,12 @@ vuln:
 	go tool govulncheck ./...
 
 check: vet test vuln build
+
+# Calls the real AI providers (OpenRouter, and MiniMax when MINIMAX_API_KEY
+# is set) through Genkit: structured output, one tool call, and usage. It
+# spends a fraction of a cent, so it's opt-in and never runs in CI.
+ai-smoke:
+	PORCHLIGHT_LIVE_AI=1 go test -count=1 -v -run Live ./internal/aikit/
 
 # A test family to log in with, for local testing only (see cmd/seed).
 seed:
