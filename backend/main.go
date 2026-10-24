@@ -31,6 +31,7 @@ import (
 	"porchlight/internal/llm"
 	"porchlight/internal/sources"
 	"porchlight/internal/store"
+	"porchlight/internal/usage"
 	"porchlight/internal/widgets"
 )
 
@@ -141,6 +142,13 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	defer sessionStore.StopCleanup()
 	sessions := auth.NewSessionManager(sessionStore, logger)
 
+	// Token usage of every AI call goes to the llm_usage table. Requests only
+	// queue an entry; this one goroutine writes them, so recording never
+	// slows a request down. It's drained after the server stops (below).
+	usageRecorder := usage.New(st, logger, 256)
+	go usageRecorder.Run(ctx)
+	llmClient.SetUsageRecorder(usageRecorder)
+
 	// The Today card fetches calendars through this. With dev fixtures on,
 	// links on calendar.FixtureHost are answered in-process and every other
 	// link still goes to the real, checked fetcher.
@@ -151,7 +159,16 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	srv := &http.Server{
-		Handler:           routes(logger, st, sessions, llmClient, llmClient, llmClient, registry, calendars),
+		Handler: routes(deps{
+			Logger:    logger,
+			Store:     st,
+			Sessions:  sessions,
+			Planner:   llmClient,
+			Curator:   llmClient,
+			Briefer:   llmClient,
+			Sources:   registry,
+			Calendars: calendars,
+		}),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       15 * time.Second,
@@ -186,6 +203,10 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Warn("graceful shutdown timed out; closing open connections", "err", err)
 		_ = srv.Close() // best effort: we're exiting anyway
+	}
+	// No request can queue usage any more: write what's left.
+	if err := usageRecorder.Close(5 * time.Second); err != nil {
+		logger.Warn("some AI usage entries weren't recorded", "err", err)
 	}
 	return nil
 }

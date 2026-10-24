@@ -158,6 +158,32 @@ make check   # go vet + go test + govulncheck + go build
 
 The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (calendar tests read sample feeds in `backend/internal/calendar/testdata/`), so they need no keys, spend no credit and make no network calls.
 
+GitHub Actions (`.github/workflows/ci.yml`) runs three checks on every pull request and every push to `main`:
+- **Backend:** `make check`, on Go 1.27.3.
+- **Backend race detector:** `go test -race ./...`. On Linux it needs cgo, so this job turns cgo on.
+- **Frontend:** `npm run lint` and `npm run build`.
+
+## AI usage
+
+Every answer from the AI model records its token counts in the `llm_usage` table. Each record has:
+- the feature it was for (describing a widget, refreshing one, Articles, Local Events or the morning briefing);
+- the step within that feature;
+- the model;
+- the family member it was for;
+- who caused it. A parent opening a kid's page is charged to the kid, with the parent as the viewer.
+
+No prompts, replies, interests or calendar data are stored, only counts and labels. Recording never slows a request: entries go on a queue that one background goroutine writes (`internal/usage`). There's no screen for usage yet. `store.UsageSummary` totals a family's usage per member and feature for when there is.
+
+## How the backend is laid out
+
+`routes.go` wires the HTTP API from one `deps` struct. The widget work lives in services in `internal/widgets` that take a context and a family member and return results, with no HTTP involved:
+- `WidgetBuilder`: describe and refresh widgets.
+- `Curation`: Articles and Local Events.
+- `Agenda`: the Today card.
+- `Briefings`: the morning briefing.
+
+The HTTP handlers only decode the request, call a service, and turn its result or error into a response. The family agent will call the same services.
+
 ## How it was planned
 
 The proof of concept was planned and built with the [Devpost Learn skill pack](https://github.com/challengepost/learn-ai-basics). Its planning documents are in `devpost/`: `scope.md`, `prd.md`, `spec.md` and the build `checklist.md`. The git tag `poc-complete` marks the finished proof of concept.

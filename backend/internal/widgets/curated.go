@@ -2,7 +2,6 @@ package widgets
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -91,38 +90,21 @@ type CuratedWidget struct {
 	EmptyReason EmptyReason `json:"emptyReason"`
 }
 
-// CuratedHandler serves the Articles and Local Events widgets. They pick
-// their own searches from the member's interests and location. Each
-// member's latest result is remembered and sent again, without searching,
-// until the member's interests or location change or the page asks for a
-// refresh (?refresh=1). A remembered result past its freshness window is
-// still sent, marked stale, and the page then asks for a refresh.
-//
-// The member is the request's subject (see auth.SubjectFrom): the logged-in
-// user on /api/widgets/..., or, on /api/members/{id}/widgets/..., the
-// family member a parent is looking at.
+// CuratedHandler serves the Articles and Local Events widgets, which a
+// Curation works out. The member is the request's subject (see
+// auth.SubjectFrom): the logged-in user on /api/widgets/..., or, on
+// /api/members/{id}/widgets/..., the family member a parent is looking at.
 type CuratedHandler struct {
-	curator  Curator
-	news     sources.Source
-	events   sources.Source
-	profiles ProfileStore
-	results  ResultStore
+	curation *Curation
 	logger   *slog.Logger
 }
 
-// NewCuratedHandler returns a CuratedHandler that plans with curator, reads
-// profiles from profiles, remembers results in results, and searches the
-// news_search and events_search sources in srcs. It panics if either source
-// is missing: that's a wiring mistake, and panicking catches it at startup.
+// NewCuratedHandler returns a CuratedHandler whose Curation plans with
+// curator, reads profiles from profiles, remembers results in results, and
+// searches the news_search and events_search sources in srcs. It panics if
+// either source is missing (see NewCuration).
 func NewCuratedHandler(curator Curator, srcs SourceFinder, profiles ProfileStore, results ResultStore, logger *slog.Logger) *CuratedHandler {
-	return &CuratedHandler{
-		curator:  curator,
-		news:     mustGetSource(srcs, newsSourceName),
-		events:   mustGetSource(srcs, eventsSourceName),
-		profiles: profiles,
-		results:  results,
-		logger:   logger,
-	}
+	return &CuratedHandler{curation: NewCuration(curator, srcs, profiles, results, logger), logger: logger}
 }
 
 // articlesWidget is an empty Articles widget for aud.
@@ -168,252 +150,38 @@ func mustGetSource(srcs SourceFinder, name string) sources.Source {
 	return src
 }
 
-// Articles handles GET /api/widgets/articles (and GET
+// Articles handles GET /api/widgets/articles[?refresh=1] (and GET
 // /api/members/{id}/widgets/articles): 3-5 recent news articles for the
-// member's interests. The LLM writes one news query per interest (or, if it
-// fails, the interests are split into queries), every query is searched at
-// once, and each query's best result is shown. The result is remembered
-// (see CuratedHandler). It must sit behind auth.RequireAuth.
+// member's interests (see Curation.Articles). It must sit behind
+// auth.RequireAuth.
 func (h *CuratedHandler) Articles(w http.ResponseWriter, r *http.Request) {
-	viewer, member, profile, ok := h.loadProfile(w, r)
-	if !ok {
-		return
-	}
-	// The member whose card this is decides what's suitable, even when a
-	// parent is the one looking.
-	aud := audienceFor(member)
-	now := timeNow()
-	widget := CuratedWidget{Widget: articlesWidget(aud), Freshness: justUpdated(now)}
-
-	// Without interests there is nothing to search for; asking the LLM
-	// anyway would only spend credit.
-	if profile.Interests == "" {
-		widget.EmptyReason = EmptyNoInterests
-		respond.JSON(w, http.StatusOK, widget)
-		return
-	}
-
-	// Articles only depend on the interests, so a new location keeps them.
-	inputs := articlesInputs(profile)
-	if h.sendRemembered(w, r, member.ID, kindArticles, inputs, aud, ArticlesFreshFor, now) {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), RequestBudget)
-	defer cancel()
-
-	// 1. Plan the searches. The widget still works without the LLM.
-	planCtx, cancelPlan := context.WithTimeout(ctx, planTimeout)
-	queries, err := h.curator.CurateArticles(planCtx, profile.Interests, aud)
-	cancelPlan() // release the timer now rather than at the end of the request
-	fromLLM := err == nil
-	if err != nil {
-		if writeIfCancelled(w, r, h.logger, err) {
-			return
-		}
-		h.logger.WarnContext(ctx, "couldn't curate article queries; searching the interests as written", "err", err)
-		queries = llm.FallbackArticleQueries(profile.Interests)
-	}
-	if len(queries) == 0 { // interests like "and, and" leave nothing to search
-		widget.EmptyReason = EmptyNoInterests
-		respond.JSON(w, http.StatusOK, widget)
-		return
-	}
-	widget.Query = strings.Join(queries, querySeparator)
-
-	// 2. Search, then 3. pick the best result per query.
-	perQuery, ok := h.search(ctx, w, r, h.news, queries, aud)
-	if !ok {
-		return
-	}
-	widget.Items = pickArticles(perQuery)
-	h.remember(r.Context(), member.ID, kindArticles, inputs, widget.Widget, now)
-
-	h.logger.InfoContext(ctx, "articles curated",
-		"user_id", member.ID, // whose card this is
-		"viewer_id", viewer.ID, // who asked: a parent, if not the member
-		"queries", widget.Query,
-		"from_llm", fromLLM,
-		"kid_safe", widget.KidSafe,
-		"results", countResults(perQuery),
-		"items", len(widget.Items),
-	)
-	respond.JSON(w, http.StatusOK, widget)
+	// h.curation.Articles is a method value: the method with its receiver
+	// already bound, so it can be passed around like any other function.
+	h.serve(w, r, h.curation.Articles)
 }
 
-// Events handles GET /api/widgets/events (and GET
+// Events handles GET /api/widgets/events[?refresh=1] (and GET
 // /api/members/{id}/widgets/events): up to 5 upcoming events near the
-// member, matched to their interests when they have some. The LLM
-// writes 2-3 location- and month-anchored web queries (with a fixed
-// fallback, unless OpenRouter itself is turning calls away), every query is
-// searched at once, and the LLM picks dated events out of the merged
-// results. The result is remembered (see CuratedHandler). It must sit
-// behind auth.RequireAuth.
+// member (see Curation.Events). It must sit behind auth.RequireAuth.
 func (h *CuratedHandler) Events(w http.ResponseWriter, r *http.Request) {
-	viewer, member, profile, ok := h.loadProfile(w, r)
-	if !ok {
-		return
-	}
-	aud := audienceFor(member) // as in Articles
-	now := timeNow()
-	widget := CuratedWidget{Widget: eventsWidget(aud), Freshness: justUpdated(now)}
-	if profile.Location == "" {
-		widget.EmptyReason = EmptyNoLocation
-		respond.JSON(w, http.StatusOK, widget)
-		return
-	}
-
-	inputs := eventsInputs(profile)
-	if h.sendRemembered(w, r, member.ID, kindEvents, inputs, aud, EventsFreshFor, now) {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), RequestBudget)
-	defer cancel()
-
-	// 1. Plan the searches.
-	planCtx, cancelPlan := context.WithTimeout(ctx, planTimeout)
-	queries, err := h.curator.CurateEvents(planCtx, profile.Interests, profile.Location, now, aud)
-	cancelPlan()
-	fromLLM := err == nil
-	if err != nil {
-		if writeIfCancelled(w, r, h.logger, err) {
-			return
-		}
-		// OpenRouter turning the call away (a bad key, no credits, an
-		// outage) means step 3 would fail the same way, so don't spend
-		// searches on a card that can't be filled. This is a deliberate
-		// exception to falling back when the LLM fails, to save credit.
-		if openRouterRefused(err) {
-			h.writeLLMError(w, r, "event planning", err)
-			return
-		}
-		h.logger.WarnContext(ctx, "couldn't curate event queries; using general ones", "err", err)
-		queries = llm.FallbackEventQueries(profile.Location, now)
-	}
-	widget.Query = strings.Join(queries, querySeparator)
-
-	// 2. Search, and mix the queries' results together, taking one from
-	// each query in turn, so every query is represented under the cap.
-	perQuery, ok := h.search(ctx, w, r, h.events, queries, aud)
-	if !ok {
-		return
-	}
-	results := newRoundRobin(perQuery).fill(nil, maxEventResults)
-
-	// 3. Find the events. A list of web pages isn't a list of events, so
-	// unlike the custom widgets there's no raw-results fallback.
-	var events []llm.Event
-	if len(results) > 0 {
-		events, err = h.curator.ExtractEvents(ctx, profile.Interests, profile.Location, results, now, aud)
-		if err != nil {
-			h.writeLLMError(w, r, "event extraction", err)
-			return
-		}
-	}
-	for _, e := range events {
-		widget.Items = append(widget.Items, llm.Item{
-			Title:     e.Name,
-			URL:       e.URL,
-			Snippet:   shorten(e.Description, maxSnippetRunes),
-			Date:      e.Date,
-			Label:     e.Venue,
-			Thumbnail: e.Thumbnail,
-		})
-	}
-	h.remember(r.Context(), member.ID, kindEvents, inputs, widget.Widget, now)
-
-	h.logger.InfoContext(ctx, "events curated",
-		"user_id", member.ID,
-		"viewer_id", viewer.ID,
-		"queries", widget.Query,
-		"from_llm", fromLLM,
-		"kid_safe", widget.KidSafe,
-		"results", len(results),
-		"items", len(widget.Items),
-	)
-	respond.JSON(w, http.StatusOK, widget)
+	h.serve(w, r, h.curation.Events)
 }
 
-// loadProfile returns who is asking (the logged-in user), the member the
-// widget is for (the request's subject, usually the same person), and that
-// member's profile, trimmed. No profile yet reads as an empty one. On
-// failure it writes the response and returns ok == false.
-func (h *CuratedHandler) loadProfile(w http.ResponseWriter, r *http.Request) (viewer, member store.User, profile store.MemberProfile, ok bool) {
-	ctx := r.Context()
-	viewer, ok = auth.UserFrom(ctx)
+// serve answers a curated widget request with what curate, Curation.Articles
+// or Curation.Events, works out for the request's subject.
+func (h *CuratedHandler) serve(w http.ResponseWriter, r *http.Request, curate func(ctx context.Context, viewer, member store.User, opts CurationOptions) (CuratedWidget, error)) {
+	viewer, ok := auth.UserFrom(r.Context())
 	if !ok {
 		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
-		return viewer, member, profile, false
+		return
 	}
-	member, _ = auth.SubjectFrom(ctx) // falls back to viewer, so always ok here
-	profile, err := h.profiles.GetMemberProfile(ctx, member.ID)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		h.logger.ErrorContext(ctx, "load profile failed", "user_id", member.ID, "viewer_id", viewer.ID, "err", err)
-		respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")
-		return viewer, member, profile, false
-	}
-	profile.Interests = strings.TrimSpace(profile.Interests)
-	profile.Location = strings.TrimSpace(profile.Location)
-	return viewer, member, profile, true
-}
-
-// sendRemembered sends userID's remembered widget of kind, and reports true,
-// when there is one picked for inputs and aud and the request doesn't need a
-// new one. A refresh (?refresh=1) needs a new one, unless the remembered one
-// is under a minute old (see refreshGuard). If nothing usable is remembered
-// it writes nothing and reports false, and the caller works the widget out.
-func (h *CuratedHandler) sendRemembered(w http.ResponseWriter, r *http.Request, userID int64, kind, inputs string, aud sources.Audience, window time.Duration, now time.Time) bool {
-	ctx := r.Context()
-	remembered, err := h.results.GetCuratedResult(ctx, userID, kind)
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		return false
-	case err != nil:
-		// Not worth failing the card over: working it out again still works.
-		h.logger.WarnContext(ctx, "couldn't load the remembered widget; picking again", "kind", kind, "user_id", userID, "err", err)
-		return false
-	case remembered.Inputs != inputs: // the member's profile has changed since
-		return false
-	case r.URL.Query().Get("refresh") == "1" && !recentlyUpdated(remembered.UpdatedAt, now):
-		return false
-	}
-
-	var widget Widget
-	if err := json.Unmarshal(remembered.Payload, &widget); err != nil {
-		h.logger.WarnContext(ctx, "couldn't read the remembered widget; picking again", "kind", kind, "user_id", userID, "err", err)
-		return false
-	}
-	// A kid must never be sent a result picked without kid-safe filtering,
-	// such as one remembered before kid-safe picks existed. (Results picked
-	// for a kid are filtered more than a parent needs, so they're picked
-	// again too.)
-	if widget.KidSafe != (aud == sources.Kids) {
-		return false
-	}
-	if widget.Items == nil {
-		widget.Items = []llm.Item{}
-	}
-	respond.JSON(w, http.StatusOK, CuratedWidget{Widget: widget, Freshness: freshness(remembered.UpdatedAt, now, window)})
-	return true
-}
-
-// remember saves widget, worked out at now from inputs, as userID's latest
-// widget of kind. The searches are already paid for, so like Handler.save it
-// outlives the request's cancellation. A failure is only logged: the member
-// still gets their widget, and it's worked out again next time.
-func (h *CuratedHandler) remember(ctx context.Context, userID int64, kind, inputs string, widget Widget, now time.Time) {
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), saveTimeout)
-	defer cancel()
-	payload, err := json.Marshal(widget)
-	if err == nil {
-		err = h.results.PutCuratedResult(ctx, store.CuratedResult{
-			UserID: userID, Kind: kind, Inputs: inputs, Payload: payload, UpdatedAt: now,
-		})
-	}
+	member, _ := auth.SubjectFrom(r.Context()) // falls back to viewer, so always ok here
+	widget, err := curate(r.Context(), viewer, member, CurationOptions{Refresh: wantsRefresh(r)})
 	if err != nil {
-		h.logger.WarnContext(ctx, "couldn't remember the widget", "kind", kind, "user_id", userID, "err", err)
+		writeServiceError(w, r, h.logger, err)
+		return
 	}
+	respond.JSON(w, http.StatusOK, widget)
 }
 
 // normalizeInput puts a profile field in the form remembered widgets are
@@ -421,32 +189,6 @@ func (h *CuratedHandler) remember(ctx context.Context, userID int64, kind, input
 // spaces, so retyping the same interests doesn't count as a change.
 func normalizeInput(s string) string {
 	return strings.ToLower(strings.Join(strings.Fields(s), " "))
-}
-
-// search runs every query on src at once, filtered for aud (see searchAll). A failed query is
-// logged and skipped; if every one fails, search writes the error response
-// and returns ok == false.
-func (h *CuratedHandler) search(ctx context.Context, w http.ResponseWriter, r *http.Request, src sources.Source, queries []string, aud sources.Audience) (perQuery [][]sources.Result, ok bool) {
-	perQuery, errs := searchAll(ctx, src, queries, aud)
-	// If the client has gone, every search was cancelled: that's not worth a
-	// warning each, and writeSearchError logs it once.
-	clientGone := r.Context().Err() != nil
-	failed := 0
-	for i, err := range errs {
-		if err != nil {
-			failed++
-			if !clientGone {
-				h.logger.WarnContext(ctx, "search failed; skipping query", "source", src.Name(), "query", queries[i], "err", err)
-			}
-		}
-	}
-	if failed > 0 && failed == len(queries) {
-		// errors.Join keeps every error, so errors.Is inside writeSearchError
-		// still spots a rate limit among them.
-		writeSearchError(w, r, h.logger, errors.Join(errs...))
-		return nil, false
-	}
-	return perQuery, true
 }
 
 // searchAll searches src (filtered for aud) for every query at the same time and waits for all
@@ -589,26 +331,4 @@ func shorten(s string, limit int) string {
 func openRouterRefused(err error) bool {
 	var upstream *llm.UpstreamError
 	return errors.As(err, &upstream) && upstream.Status != 0
-}
-
-// writeLLMError maps a failed LLM step of the Events widget (step, such as
-// "event extraction", is for the log) to a response.
-func (h *CuratedHandler) writeLLMError(w http.ResponseWriter, r *http.Request, step string, err error) {
-	if writeIfCancelled(w, r, h.logger, err) {
-		return
-	}
-	h.logger.ErrorContext(r.Context(), step+" failed", "err", err)
-	if upstream, ok := errors.AsType[*llm.UpstreamError](err); ok {
-		// Hints about OpenRouter itself (its key, credits, rate limit) fit
-		// here; others, such as "Try describing the widget differently",
-		// were written for describe-a-widget, and the member described
-		// nothing.
-		hint := "Try refreshing in a moment."
-		if upstream.Status != 0 {
-			hint = upstream.Hint
-		}
-		respond.Error(w, http.StatusBadGateway, "The AI service had a problem: "+upstream.Reason+".", hint)
-		return
-	}
-	respond.Error(w, http.StatusBadGateway, "Couldn't pick out events from the search results.", "Try again in a moment.")
 }

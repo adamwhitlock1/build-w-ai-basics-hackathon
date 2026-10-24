@@ -1,0 +1,66 @@
+# Runs Porchlight's checks on pull requests and pushes to main. The tests swap
+# OpenRouter, Brave, Open-Meteo and calendars for fakes, so no secrets are
+# needed.
+name: CI
+
+# Pushes to main, plus every pull request. Not every push to any branch:
+# a branch with an open PR would then run everything twice.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (vet, test, govulncheck, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.3"
+          cache-dependency-path: backend/go.sum
+      # The Makefile sets CGO_ENABLED=0 and GOTOOLCHAIN=local, as locally.
+      - run: make check
+
+  backend-race:
+    name: Backend (race detector)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.3"
+          cache-dependency-path: backend/go.sum
+      # On Linux the race detector needs cgo (on macOS it doesn't), so this
+      # is the one place cgo is turned on.
+      - run: go test -race ./...
+        env:
+          CGO_ENABLED: "1"
+          GOTOOLCHAIN: local
+
+  frontend:
+    name: Frontend (lint, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

@@ -150,7 +150,16 @@ func startServerWithAll(t *testing.T, dbPath string, briefer widgets.Briefer, ca
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// A cleanup interval of 0 means no background goroutine to stop.
 	sessions := auth.NewSessionManager(sqlite3store.NewWithCleanupInterval(st.DB(), 0), logger)
-	srv := httptest.NewServer(routes(logger, st, sessions, fakePlanner{}, fakeCurator{}, briefer, sources.NewRegistry(fakeNews{}, fakeSource{}, fakeWeather{}), calendars))
+	srv := httptest.NewServer(routes(deps{
+		Logger:    logger,
+		Store:     st,
+		Sessions:  sessions,
+		Planner:   fakePlanner{},
+		Curator:   fakeCurator{},
+		Briefer:   briefer,
+		Sources:   sources.NewRegistry(fakeNews{}, fakeSource{}, fakeWeather{}),
+		Calendars: calendars,
+	}))
 	// Cleanups run last-in, first-out: the server stops before the store closes.
 	t.Cleanup(func() { st.Close() })
 	t.Cleanup(srv.Close)

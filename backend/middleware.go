@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
-	"net/url"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -69,6 +68,13 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+// Unwrap returns the wrapped ResponseWriter. Embedding an interface only
+// promotes that interface's methods, so a statusRecorder has no Flush or
+// SetWriteDeadline of its own even when the real writer does.
+// http.ResponseController looks for Unwrap and follows it down to the real
+// writer, so a handler can still stream with rc.Flush() (Go 1.20+).
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
+
 // rejectCrossSite turns away requests that another website could have sent
 // with this browser's session cookie (cross-site request forgery). The
 // cookie's SameSite=Lax setting can't do this alone: browsers ignore ports
@@ -85,8 +91,10 @@ func (r *statusRecorder) WriteHeader(code int) {
 //     which covers another port on localhost), refuse it, whatever the
 //     method. Without the header (curl, an older browser) the request goes
 //     on to the checks below.
-//   - Browsers send an Origin header with every cross-origin POST. If it
-//     names a different host than the request went to, refuse it.
+//   - For requests that change something (anything but GET, HEAD and
+//     OPTIONS), http.CrossOriginProtection checks Sec-Fetch-Site, or else
+//     compares the Origin header browsers send with the host the request
+//     went to, and refuses a mismatch.
 //   - A request body must be JSON. A page on another origin can only send
 //     Content-Type: application/json after a CORS "preflight" check, which
 //     this server never approves.
@@ -106,7 +114,9 @@ func rejectCrossSite(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r) // no body to check
 			return
 		}
-		if origin := r.Header.Get("Origin"); origin != "" && !sameHost(origin, r.Host) {
+		// The standard library's CSRF check (Go 1.25): Sec-Fetch-Site must
+		// say same-origin, or else the Origin header must match Host.
+		if err := writeOriginCheck.Check(r); err != nil {
 			respond.Error(w, http.StatusForbidden, "That request came from another site.", "")
 			return
 		}
@@ -119,12 +129,10 @@ func rejectCrossSite(next http.Handler) http.Handler {
 	})
 }
 
-// sameHost reports whether origin (like "http://localhost:5174") names host
-// (like "localhost:5174").
-func sameHost(origin, host string) bool {
-	u, err := url.Parse(origin)
-	return err == nil && strings.EqualFold(u.Host, host)
-}
+// writeOriginCheck is the standard library's cross-origin check, used by
+// rejectCrossSite for requests that change something. Its zero value trusts
+// no extra origins; only requests from the app's own origin pass.
+var writeOriginCheck = http.NewCrossOriginProtection()
 
 // isJSON reports whether a Content-Type header value is application/json,
 // with or without parameters such as "; charset=utf-8".
