@@ -109,3 +109,4 @@
     - Legacy (`make demo` again, `PORCHLIGHT_BRIEFER=legacy`): equivalent briefings for both members, and 2 rows of the same shape at 433+56 and 483+62 tokens. Genkit's prompt is about 15 tokens longer, because the schema goes in the prompt rather than in `response_format`.
     - In both runs the API log has no warnings except the expected fixture notice.
 - [ ] 6.2 Run `openspec validate genkit-integration`, and confirm CI passes on the PR. Add the "Genkit integration" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+  - Progress (2026-10-24): `openspec validate genkit-integration` passes, and the Post-PoC line is in both files; it names the archive folder `2026-10-24-genkit-integration`, so fix the date if archiving happens later. Locally, `make check` and `go test -race ./...` pass. Still to do: CI on the PR.
