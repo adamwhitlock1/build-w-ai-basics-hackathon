@@ -24,16 +24,23 @@
 - [x] 3.3 Add `Curation` (`curation.go`) with `Articles(ctx, viewer, member, opts)` and `Events(ctx, viewer, member, opts)`. These hold the empty states, remembered results and freshness, `Refresh`, planning with its own deadline, the fallbacks, `openRouterRefused`, search, pick or extract, remember, and the "curated" log line. The `CuratedHandler` methods become thin. Add service tests for each empty state, a remembered hit, the planning fallback, and an extraction failure surfacing as a `StepError`. Verify with `make test`; `curated_test.go`, `refresh_test.go` and `freshness_test.go` stay unchanged. Commit.
 - [x] 3.4 Add `WidgetBuilder` (`builder.go`) with `Build(ctx, member, prompt) (SavedWidget, error)` and `Refresh(ctx, member, widgetID, opts) (SavedWidget, error)`. These hold the planning, the unknown source (422 kept through a `StepError`), search, shaping with the raw-results fallback, the save with `context.WithoutCancel`, the layout append, and the refresh guard. `Handler.FromPrompt` and `RefreshCustom` become thin. Add service tests: a successful build saves and appends, an unknown source, shaping falls back, and a refresh within the guard returns the remembered widget. Verify that `make test` passes with `handler_test.go` and `refresh_test.go` unchanged. Commit.
 - [x] 3.5 Add `Briefings` (`briefings.go`) with `Today(ctx, viewer, member, loc) (BriefingWidget, error)`. It holds the per-member lock, the remembered briefing, the fingerprint and `shouldWrite`, `gatherFacts`, the write, and remembering. `BriefingHandler.Briefing` becomes thin. Add service tests for a fresh write, a remembered hit with an unchanged fingerprint, and a rewrite cap. Verify that `make test` passes with `briefing_test.go` unchanged, including `TestBriefingConcurrentRequestsWriteOnce`. Commit.
-- [ ] 3.6 Confirm there were no behavior changes:
+- [x] 3.6 Confirm there were no behavior changes:
   - `git diff aw-/v2-go-upgrade -- 'backend/**/*_test.go'` shows only new test files, new test functions, and the routes helper from 1.1 (no edited assertions).
   - `go test -race ./...` passes.
   - `go vet` is clean.
 
   Record the diff summary in this task.
+  - **Result:**
+    - Since `aw-/v2-go-upgrade`, two existing test files changed, and only in task 1.1 and 2.1 code: `routes_test.go` (the server helper now passes `deps{...}`) and `middleware_test.go` (an import block for the new flush test).
+    - No existing test function or assertion was edited.
+    - New test files: `agenda_test.go`, `briefings_test.go`, `briefings_export_test.go`, `builder_test.go`, `curation_test.go`, `errors_test.go`.
+    - `go vet` is clean, `gofmt -l` is empty, and `go test -race ./...` passes for every package.
+    - The handlers are now short (decode → service → respond or `writeServiceError`).
+    - `BriefingHandler` is declared as `type BriefingHandler Briefings`, so the existing internal briefing test can still build it from fields.
 
 ## 4. LLM usage tracking
 
-- [ ] 4.1 Add migration `backend/migrations/005_llm_usage.sql` (table and index as in design.md decision 7). Add `store.InsertLLMUsage(ctx, LLMUsage)` and `store.UsageSummary(ctx, familyID, since) ([]MemberUsage, error)`, grouped by member and feature. Add store tests:
+- [x] 4.1 Add migration `backend/migrations/005_llm_usage.sql` (table and index as in design.md decision 7). Add `store.InsertLLMUsage(ctx, LLMUsage)` and `store.UsageSummary(ctx, familyID, since) ([]MemberUsage, error)`, grouped by member and feature. Add store tests:
   - an insert round-trip;
   - the summary totals per member and feature;
   - rows from another family excluded;
