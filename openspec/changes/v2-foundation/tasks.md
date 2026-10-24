@@ -89,7 +89,7 @@
 
 ## 5. CI
 
-- [ ] 5.1 Add `.github/workflows/ci.yml` triggered on `push` and `pull_request`, with three jobs:
+- [x] 5.1 Add `.github/workflows/ci.yml` triggered on `push` and `pull_request`, with three jobs:
   - **backend:** `actions/setup-go` with `go-version: 1.27.3` and cache on `backend/go.sum`, then `make check` in `backend/`;
   - **backend-race:** `CGO_ENABLED=1 go test -race ./...` in `backend/`;
   - **frontend:** `actions/setup-node` with Node 22 and an npm cache, then `npm ci`, `npm run lint` and `npm run build` in `frontend/`.
