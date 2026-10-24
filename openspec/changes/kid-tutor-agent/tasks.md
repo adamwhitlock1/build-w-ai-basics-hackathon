@@ -49,7 +49,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
 ## 3. The chat service in `internal/chat`
 
-- [ ] 3.1 Add `chat.Service` with its `Agent` and `Store` interfaces, `ErrChatOff`, the typed errors (not found, not a kid, invalid message), `PersonaFor` and `CrisisResources`. Implement `List`, `Start`, `Get` and `Send` as design decision 4 describes, with attribution to feature `kid_chat`. Tests with a fake agent and a temporary store:
+- [x] 3.1 Add `chat.Service` with its `Agent` and `Store` interfaces, `ErrChatOff`, the typed errors (not found, not a kid, invalid message), `PersonaFor` and `CrisisResources`. Implement `List`, `Start`, `Get` and `Send` as design decision 4 describes, with attribution to feature `kid_chat`. Tests with a fake agent and a temporary store:
   - the gate refuses and stores nothing;
   - a parent is refused;
   - another kid's chat is not found;
