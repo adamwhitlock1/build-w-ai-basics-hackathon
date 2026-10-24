@@ -14,7 +14,6 @@ import (
 	"porchlight/internal/auth"
 	"porchlight/internal/calendar"
 	"porchlight/internal/respond"
-	"porchlight/internal/store"
 )
 
 // TodayFreshFor is how long the Today card's events stay fresh. Fetching a
@@ -53,14 +52,15 @@ type CalendarStore interface {
 	DeleteCuratedResult(ctx context.Context, userID int64, kind string) error
 }
 
-// TodayHandler serves the Today card and the endpoints that connect and
-// remove a member's calendar. Like CuratedHandler, it acts on the request's
-// subject: the logged-in user, or the family member a parent is looking at.
+// TodayHandler serves the Today card (worked out by an Agenda) and the
+// endpoints that connect and remove a member's calendar. Like
+// CuratedHandler, it acts on the request's subject: the logged-in user, or
+// the family member a parent is looking at.
 //
-// A calendar link is a secret. It's read from the store, handed to the
-// fetcher, and hashed into the remembered result's inputs; it is never
-// written to a response or a log line.
+// A calendar link is a secret: it is never written to a response or a log
+// line.
 type TodayHandler struct {
+	agenda  *Agenda
 	fetcher CalendarFetcher
 	store   CalendarStore
 	logger  *slog.Logger
@@ -69,7 +69,7 @@ type TodayHandler struct {
 // NewTodayHandler returns a TodayHandler that fetches calendars with
 // fetcher and keeps links and remembered events in st.
 func NewTodayHandler(fetcher CalendarFetcher, st CalendarStore, logger *slog.Logger) *TodayHandler {
-	return &TodayHandler{fetcher: fetcher, store: st, logger: logger}
+	return &TodayHandler{agenda: NewAgenda(fetcher, st, logger), fetcher: fetcher, store: st, logger: logger}
 }
 
 // TodayEvent is one event on the Today card.
@@ -113,58 +113,18 @@ func (h *TodayHandler) Today(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	loc := locationFrom(r, h.logger)
-	now := timeNow()
-	day := todayDay{Date: now.In(loc).Format(time.DateOnly), TimeZone: loc.String(), Today: []TodayEvent{}, Tomorrow: []TodayEvent{}}
-
-	link, err := h.store.GetCalendarLink(r.Context(), member.ID)
+	day, err := h.agenda.Day(r.Context(), member, loc, DayOptions{Refresh: wantsRefresh(r)})
 	if err != nil {
-		h.serverError(w, r, "load calendar link", err)
+		writeServiceError(w, r, h.logger, err)
 		return
 	}
-	if link == "" {
-		day.EmptyReason = EmptyNoCalendar
-		respond.JSON(w, http.StatusOK, TodayWidget{todayDay: day, Freshness: justUpdated(now)})
-		return
-	}
-	day.Provider = calendar.Provider(link)
-	inputs := linkHash(link) + "\n" + day.TimeZone + "\n" + day.Date
-	if h.sendRemembered(w, r, member.ID, inputs, now) {
-		return
-	}
+	respond.JSON(w, http.StatusOK, day)
+}
 
-	ctx, cancel := context.WithTimeout(r.Context(), todayBudget)
-	defer cancel()
-	feed, err := h.fetcher.Fetch(ctx, link)
-	if errors.Is(err, calendar.ErrLinkGone) {
-		// The link was revoked or deleted: say so, and forget its events.
-		h.logger.InfoContext(ctx, "calendar link stopped working", "user_id", member.ID, "provider", day.Provider)
-		if err := h.store.DeleteCuratedResult(context.WithoutCancel(ctx), member.ID, kindToday); err != nil {
-			h.logger.WarnContext(ctx, "couldn't forget the remembered events", "user_id", member.ID, "err", err)
-		}
-		day.EmptyReason = EmptyCalendarGone
-		respond.JSON(w, http.StatusOK, TodayWidget{todayDay: day, Freshness: justUpdated(now)})
-		return
-	}
-	if err != nil {
-		writeServiceError(w, r, h.logger, stepError(StepCalendar, err, "user_id", member.ID, "provider", day.Provider))
-		return
-	}
-
-	// Today and tomorrow, as calendar days in the member's time zone.
-	y, m, d := now.In(loc).Date()
-	todayStart := time.Date(y, m, d, 0, 0, 0, 0, loc)
-	tomorrowStart := todayStart.AddDate(0, 0, 1)
-	events, err := calendar.Between(feed, todayStart, tomorrowStart.AddDate(0, 0, 1), loc)
-	if err != nil {
-		writeServiceError(w, r, h.logger, stepError(StepCalendar, err, "user_id", member.ID, "provider", day.Provider))
-		return
-	}
-	day.Today, day.MoreToday = eventsOn(events, todayStart, tomorrowStart)
-	day.Tomorrow, day.MoreTomorrow = eventsOn(events, tomorrowStart, tomorrowStart.AddDate(0, 0, 1))
-
-	h.remember(r.Context(), member.ID, inputs, day, now)
-	h.logger.InfoContext(ctx, "today's events fetched", "user_id", member.ID, "provider", day.Provider, "today", len(day.Today)+day.MoreToday, "tomorrow", len(day.Tomorrow)+day.MoreTomorrow)
-	respond.JSON(w, http.StatusOK, TodayWidget{todayDay: day, Freshness: justUpdated(now)})
+// wantsRefresh reports whether the request asks for new results
+// (?refresh=1) rather than remembered ones.
+func wantsRefresh(r *http.Request) bool {
+	return r.URL.Query().Get("refresh") == "1"
 }
 
 // locationFrom returns the time zone in the request's tz parameter, or UTC
@@ -206,54 +166,6 @@ func eventsOn(events []calendar.Event, from, to time.Time) (out []TodayEvent, mo
 func linkHash(link string) string {
 	sum := sha256.Sum256([]byte(link))
 	return hex.EncodeToString(sum[:8])
-}
-
-// sendRemembered sends the member's remembered events, and reports true,
-// when they were fetched for inputs (this link, time zone and day) and the
-// request doesn't need new ones. As for the curated cards, a refresh needs
-// new ones unless the remembered ones are under a minute old.
-func (h *TodayHandler) sendRemembered(w http.ResponseWriter, r *http.Request, userID int64, inputs string, now time.Time) bool {
-	ctx := r.Context()
-	remembered, err := h.store.GetCuratedResult(ctx, userID, kindToday)
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		return false
-	case err != nil:
-		h.logger.WarnContext(ctx, "couldn't load the remembered events; fetching again", "user_id", userID, "err", err)
-		return false
-	case remembered.Inputs != inputs:
-		return false
-	case r.URL.Query().Get("refresh") == "1" && !recentlyUpdated(remembered.UpdatedAt, now):
-		return false
-	}
-	var day todayDay
-	if err := json.Unmarshal(remembered.Payload, &day); err != nil {
-		h.logger.WarnContext(ctx, "couldn't read the remembered events; fetching again", "user_id", userID, "err", err)
-		return false
-	}
-	if day.Today == nil {
-		day.Today = []TodayEvent{}
-	}
-	if day.Tomorrow == nil {
-		day.Tomorrow = []TodayEvent{}
-	}
-	respond.JSON(w, http.StatusOK, TodayWidget{todayDay: day, Freshness: freshness(remembered.UpdatedAt, now, TodayFreshFor)})
-	return true
-}
-
-// remember saves day as the member's remembered events. Like
-// CuratedHandler.remember, it outlives the request, and a failure is only
-// logged.
-func (h *TodayHandler) remember(ctx context.Context, userID int64, inputs string, day todayDay, now time.Time) {
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), saveTimeout)
-	defer cancel()
-	payload, err := json.Marshal(day)
-	if err == nil {
-		err = h.store.PutCuratedResult(ctx, store.CuratedResult{UserID: userID, Kind: kindToday, Inputs: inputs, Payload: payload, UpdatedAt: now})
-	}
-	if err != nil {
-		h.logger.WarnContext(ctx, "couldn't remember today's events", "user_id", userID, "err", err)
-	}
 }
 
 // CalendarResponse is the response body of SetCalendar and RemoveCalendar.
