@@ -10,7 +10,7 @@
   - The client must read `"first"` before the test releases the handler.
 
   Also assert that `SetWriteDeadline` returns no error. Verify the test fails without `Unwrap` (temporarily remove it) and passes with it. Commit.
-- [ ] 2.2 Delegate the origin check for writes in `rejectCrossSite` to a package-level `http.CrossOriginProtection`, whose deny handler writes the same `respond.Error(403, "That request came from another site.", "")`. Remove `sameHost`. Keep the cross-site-read and JSON-body rules. Verify with `TestCrossSiteWritesRejected`, `TestCrossSiteReadsRejected` and `make test`, all unchanged and passing. Commit.
+- [x] 2.2 Delegate the origin check for writes in `rejectCrossSite` to a package-level `http.CrossOriginProtection`, whose deny handler writes the same `respond.Error(403, "That request came from another site.", "")`. Remove `sameHost`. Keep the cross-site-read and JSON-body rules. Verify with `TestCrossSiteWritesRejected`, `TestCrossSiteReadsRejected` and `make test`, all unchanged and passing. Commit.
 
 ## 3. Services out of handlers
 
