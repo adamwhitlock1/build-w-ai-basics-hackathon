@@ -94,11 +94,18 @@
 
 ## 6. End to end
 
-- [ ] 6.1 With real keys, run `make demo` and then `make demo-serve` on a side port with the frontend:
+- [x] 6.1 With real keys, run `make demo` and then `make demo-serve` on a side port with the frontend:
   - with the default Genkit briefer, Maya's and Jordan's briefings are written and read naturally, and Jordan's follows kid guidance;
   - `llm_usage` has `morning_briefing` rows from the Genkit path, with token counts;
   - the same check with `PORCHLIGHT_BRIEFER=legacy`;
   - the API log has no warnings beyond the expected fixture notice.
 
   Record the results here.
+  - Result (2026-10-24), with real keys, `make demo` then `make demo-serve` on 8080 and the frontend on 5174:
+    - Genkit briefer (the default; the log says `briefer=genkit`):
+      - Maya: "It's an overcast day with a high of 58 and a low of 47. Don't forget recycling today. You have a dentist appointment at half past six this evening."
+      - Jordan, opened by Maya and marked kid-safe: "It's a cool, overcast day with a high near 58. You might be interested in the youth soccer clinic on Tuesday or the teen game design workshop on Wednesday if you want to try something new soon."
+      - `llm_usage` has 2 `morning_briefing` rows for `openai/gpt-4.1-mini`, attributed to member 1 and member 3, both with viewer 1, at 448+41 and 498+48 tokens.
+    - Legacy (`make demo` again, `PORCHLIGHT_BRIEFER=legacy`): equivalent briefings for both members, and 2 rows of the same shape at 433+56 and 483+62 tokens. Genkit's prompt is about 15 tokens longer, because the schema goes in the prompt rather than in `response_format`.
+    - In both runs the API log has no warnings except the expected fixture notice.
 - [ ] 6.2 Run `openspec validate genkit-integration`, and confirm CI passes on the PR. Add the "Genkit integration" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
