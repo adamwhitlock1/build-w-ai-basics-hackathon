@@ -99,7 +99,7 @@
 
 ## 6. Docs and end-to-end
 
-- [ ] 6.1 Update `README.md`:
+- [x] 6.1 Update `README.md`:
   - "Tests" mentions CI and its three jobs.
   - A short "AI usage" note says every AI call records token counts per member and feature in `llm_usage`, with no message content, and that there's no screen for it yet.
   - The comments on `routes()` and the services describe the new structure.
