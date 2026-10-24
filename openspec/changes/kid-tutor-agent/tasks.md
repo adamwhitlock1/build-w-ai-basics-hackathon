@@ -38,7 +38,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
   - usage is recorded under `kid_chat_check`.
 
   Verify with `go test ./internal/aikit/`.
-- [ ] 2.3 Add `KidAgent.Reply`, a streaming `genkit.Generate` (`ai.WithStreaming`) with the system prompt, the last 30 turns (kid turns as user, agent turns as model) and temperature 0.5. Step `kid_chat_reply`, 60 s timeout; a 429 is retried once, only before the first chunk. Extend `aitest` so scripted replies stream as several chunks. Tests:
+- [x] 2.3 Add `KidAgent.Reply`, a streaming `genkit.Generate` (`ai.WithStreaming`) with the system prompt, the last 30 turns (kid turns as user, agent turns as model) and temperature 0.5. Step `kid_chat_reply`, 60 s timeout; a 429 is retried once, only before the first chunk. Extend `aitest` so scripted replies stream as several chunks. Tests:
   - chunks arrive in order and join into the returned text;
   - the history is sent in order and capped at 30;
   - an error before any chunk is retried on a 429;

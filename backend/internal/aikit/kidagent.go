@@ -2,12 +2,15 @@ package aikit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/firebase/genkit/go/ai"
+
+	"porchlight/internal/llm"
 )
 
 // Steps under which the kid agent's model calls are recorded.
@@ -132,3 +135,66 @@ func normalizeVerdict(r verdictReply, wantTitle bool) Verdict {
 	}
 	return v
 }
+
+// replyTimeout bounds a whole streamed reply.
+const replyTimeout = 60 * time.Second
+
+// maxReplyTurns is how much of the conversation the agent sees.
+const maxReplyTurns = 30
+
+// ReplyInput is everything the agent needs to reply to a kid.
+type ReplyInput struct {
+	Persona string // PersonaYounger or PersonaTeen
+	Mode    string // ModeHomework or ModeExplore
+	// Crisis is set when the safety check marked the kid's latest message
+	// as a possible crisis.
+	Crisis bool
+	// History is the conversation so far, ending with the kid's latest
+	// message. Only the last maxReplyTurns are sent.
+	History []Turn
+}
+
+// Reply streams the agent's reply to the kid's latest message, passing each
+// piece of text to onChunk as it arrives, and returns the whole reply.
+// Failures are returned as *llm.UpstreamError, possibly after some text
+// has already been passed to onChunk.
+func (a *KidAgent) Reply(ctx context.Context, in ReplyInput, onChunk func(string)) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, replyTimeout)
+	defer cancel()
+
+	history := in.History
+	if len(history) > maxReplyTurns {
+		history = history[len(history)-maxReplyTurns:]
+	}
+	msgs := make([]*ai.Message, 0, len(history))
+	for _, t := range history {
+		if t.FromKid {
+			msgs = append(msgs, ai.NewUserTextMessage(t.Text))
+		} else {
+			msgs = append(msgs, ai.NewModelTextMessage(t.Text))
+		}
+	}
+	model := a.chatModel
+	if model == "" {
+		model = a.kit.defaultModel
+	}
+	resp, err := a.kit.stream(ctx, StepKidReply, replyTemperature, onChunk,
+		ai.WithModelName(model),
+		ai.WithSystem(kidSystemPrompt(in.Persona, in.Mode, in.Crisis)),
+		ai.WithMessages(msgs...),
+	)
+	if err != nil {
+		return "", fmt.Errorf("kid reply: %w", err)
+	}
+	text := strings.TrimSpace(resp.Text())
+	switch {
+	case resp.FinishReason == ai.FinishReasonBlocked:
+		return "", &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try asking in a different way.", Err: errors.New("finish_reason=blocked")}
+	case text == "":
+		return "", &llm.UpstreamError{Reason: "the AI model sent back an empty answer", Hint: "Try again in a moment.", Err: errors.New("empty reply")}
+	}
+	return text, nil
+}
+
+// replyTemperature leaves the agent some warmth and variety.
+const replyTemperature = 0.5
