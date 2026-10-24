@@ -1,6 +1,6 @@
 ## 1. Shared briefing rules (no behavior change)
 
-- [ ] 1.1 In `internal/llm`, export `BriefingPrompt(facts, aud) (system, user string)`, `CleanBriefing(text string) (string, error)` and `UpstreamFor(status int, err error) *UpstreamError`, carved out of `briefing.go` and `client.go`, and make `Client.WriteBriefing` and `upstreamError` use them. Add table tests for `CleanBriefing` (empty, whitespace-only, normal, over 320 cut at a sentence end, over 400 rejected) and `UpstreamFor` (401, 402, 429, 500, an unknown 4xx, deadline, cancelled). Verify with `go test ./internal/llm/` and `make test`, with all existing llm and briefing tests unchanged and passing. Commit.
+- [x] 1.1 In `internal/llm`, export `BriefingPrompt(facts, aud) (system, user string)`, `CleanBriefing(text string) (string, error)` and `UpstreamFor(status int, err error) *UpstreamError`, carved out of `briefing.go` and `client.go`, and make `Client.WriteBriefing` and `upstreamError` use them. Add table tests for `CleanBriefing` (empty, whitespace-only, normal, over 320 cut at a sentence end, over 400 rejected) and `UpstreamFor` (401, 402, 429, 500, an unknown 4xx, deadline, cancelled). Verify with `go test ./internal/llm/` and `make test`, with all existing llm and briefing tests unchanged and passing. Commit.
 
 ## 2. Genkit in the module
 

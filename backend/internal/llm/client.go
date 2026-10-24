@@ -239,7 +239,14 @@ func httpStatus(err error) int {
 // upstreamError converts a go-openai error into an *UpstreamError with a
 // reason and hint a person can act on.
 func upstreamError(err error) error {
-	status := httpStatus(err)
+	return UpstreamFor(httpStatus(err), err)
+}
+
+// UpstreamFor builds the *UpstreamError for a failed call: status is the
+// HTTP status OpenRouter answered with, or 0 if there was no answer, and err
+// is the cause. Every AI client maps its errors through here, so people see
+// the same reasons and hints whichever client made the call.
+func UpstreamFor(status int, err error) *UpstreamError {
 	e := &UpstreamError{Reason: "couldn't reach OpenRouter", Hint: "Check your internet connection, then try again.", Status: status, Err: err}
 	switch {
 	case status == http.StatusUnauthorized:
