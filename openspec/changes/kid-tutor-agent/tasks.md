@@ -18,7 +18,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 ## 2. The agent in `internal/aikit`
 
 - [x] 2.1 Add `Config.NoRetention`. When it is set, every call the Kit makes (`generate`, and the streaming path in 2.3) carries the provider routing `{"zdr": true, "dataCollection": "deny"}` in its config. Test against the fake OpenRouter that the request body has `provider.zdr = true` and `provider.data_collection = "deny"` when it's on, and no `provider` when it's off. Also map OpenRouter's 404 "no endpoints found" to an `UpstreamError` whose hint names the model setting. Verify with `go test ./internal/aikit/`.
-- [ ] 2.2 Add `aikit/kidprompts.go`, with the system prompt built by `kidSystemPrompt(persona, mode, crisis)` in the order of design decision 3, and `KidAgent.Check`:
+- [x] 2.2 Add `aikit/kidprompts.go`, with the system prompt built by `kidSystemPrompt(persona, mode, crisis)` in the order of design decision 3, and `KidAgent.Check`:
   - `generateJSON` into a verdict;
   - the category enum validated in Go, with anything unknown becoming `other`;
   - the title asked for only when `wantTitle` is set;

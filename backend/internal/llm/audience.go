@@ -10,9 +10,9 @@ const kidGuidance = `This member is a child or teenager, under 18. Everything yo
 - Steer search queries toward age-appropriate angles of what they asked for.
 - If you are unsure whether something is suitable, leave it out.`
 
-// forAudience returns system with kidGuidance appended when aud is
+// ForAudience returns system with kidGuidance appended when aud is
 // sources.Kids, and unchanged otherwise.
-func forAudience(system string, aud sources.Audience) string {
+func ForAudience(system string, aud sources.Audience) string {
 	if aud != sources.Kids {
 		return system
 	}

@@ -68,7 +68,7 @@ func (c *Client) ExtractEvents(ctx context.Context, interests, location string, 
 		name:   "local_events",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: forAudience(extractEventsSystemPrompt(now), aud)},
+			{Role: openai.ChatMessageRoleSystem, Content: ForAudience(extractEventsSystemPrompt(now), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: user},
 		},
 	}

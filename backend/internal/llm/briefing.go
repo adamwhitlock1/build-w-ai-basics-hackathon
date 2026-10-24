@@ -94,7 +94,7 @@ func (c *Client) WriteBriefing(ctx context.Context, facts BriefingFacts, aud sou
 // briefing. Every briefer sends exactly these, so the legacy client and the
 // Genkit one can't drift apart.
 func BriefingPrompt(facts BriefingFacts, aud sources.Audience) (system, user string) {
-	return forAudience(briefingSystemPrompt(facts.Now), aud), briefingUserMessage(facts)
+	return ForAudience(briefingSystemPrompt(facts.Now), aud), briefingUserMessage(facts)
 }
 
 // CleanBriefing normalizes a model's briefing text and checks its length. A

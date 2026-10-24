@@ -13,3 +13,18 @@ var UsageModel = usageModel
 
 // SetRetryDelay shortens the rate-limit pause so tests run fast.
 func SetRetryDelay(k *Kit, d time.Duration) { k.retryDelay = d }
+
+// KidSystemPrompt is kidSystemPrompt.
+var KidSystemPrompt = kidSystemPrompt
+
+// The prompt blocks, for checking which ones a system prompt contains.
+const (
+	PersonaYoungerPrompt = personaYoungerPrompt
+	PersonaTeenPrompt    = personaTeenPrompt
+	ModeHomeworkPrompt   = modeHomeworkPrompt
+	ModeExplorePrompt    = modeExplorePrompt
+	HomeworkRule         = homeworkRule
+	CrisisPrompt         = crisisPrompt
+	InjectionRule        = injectionRule
+	SafetyTitleRequest   = safetyTitleRequest
+)
