@@ -36,6 +36,12 @@ context: |
     script against real models, not in CI.
   - The user is learning backend and API development in Go. Keep the backend
     idiomatic Go and explain new Go concepts briefly.
+  - For any work touching Genkit for Go (`internal/aikit`, the family agent,
+    tools, flows, middleware, model plugins), load the `developing-genkit-go`
+    skill (`.claude/skills/developing-genkit-go/`) for current API names and
+    patterns. Where it conflicts with a change's design decisions, the design
+    wins. Never use Genkit's `exp` packages, `genkit.Handler` for chat, or the
+    Gemini plugin, and never run the reflection server or Dev UI on the homelab.
 
 rules:
   tasks:
