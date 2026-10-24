@@ -2,12 +2,12 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
 ## 1. Data
 
-- [ ] 1.1 Add `migrations/006_kid_chat.sql`:
+- [x] 1.1 Add `migrations/006_kid_chat.sql`:
   - `member_profiles.birth_year`;
   - the `chat_conversations`, `chat_messages` and `chat_flags` tables, with CHECK constraints, ON DELETE CASCADE and the two indexes from design decision 7.
 
   Verify with a `store` test that migrates a fresh database, and with `make test` passing on existing databases.
-- [ ] 1.2 Add `internal/store/chat.go`: create, list and get conversations (scoped by family and member), add messages, set the title, list recent turns, add flags, the review queue (crisis first, then by severity, newest first), mark reviewed, unreviewed counts and crises, delete a conversation, and `SetBirthYear`/birth year in `MemberProfile`. Add table tests in `store/chat_test.go`:
+- [x] 1.2 Add `internal/store/chat.go`: create, list and get conversations (scoped by family and member), add messages, set the title, list recent turns, add flags, the review queue (crisis first, then by severity, newest first), mark reviewed, unreviewed counts and crises, delete a conversation, and `SetBirthYear`/birth year in `MemberProfile`. Add table tests in `store/chat_test.go`:
   - queue order;
   - family scoping (another family's ids find nothing);
   - delete cascades to messages and flags, and leaves `llm_usage`;
