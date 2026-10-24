@@ -104,7 +104,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
 ## 5. Frontend
 
-- [ ] 5.1 Add the API client and hooks for chats, reviews, alerts and the birth year. Add a streaming helper that POSTs and reads the SSE events with `fetch` and a `ReadableStream`, handling `message`, `delta`, `done` and `error`. Verify with `npm run lint` and `npm run build`.
+- [x] 5.1 Add the API client and hooks for chats, reviews, alerts and the birth year. Add a streaming helper that POSTs and reads the SSE events with `fetch` and a `ReadableStream`, handling `message`, `delta`, `done` and `error`. Verify with `npm run lint` and `npm run build`.
 - [ ] 5.2 Add the kids' screens: the `/chat` list with "New chat" and the two modes, `/chat/$chatId` with the transcript, composer and streaming reply, the notice "Your parents can review these chats" on both, and the "isn't set up yet" state. Add the compact Chat card at the top of a kid's homepage. Verify with `npm run lint` and `npm run build`, and in the browser on the demo as Jordan with the override on:
   - the card and the notice show;
   - a new Homework help chat streams a reply that gives a hint, not the answer;
