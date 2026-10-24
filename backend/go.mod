@@ -9,7 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/sashabaranov/go-openai v1.43.0
 	github.com/teambition/rrule-go v1.8.2
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.58.0
 	modernc.org/sqlite v1.61.0
 )
 
