@@ -445,7 +445,7 @@ func (h *BriefingHandler) todaysEvents(ctx context.Context, userID int64, date, 
 
 // rememberedItems returns the items of the member's remembered curated
 // widget of kind, if it was picked for inputs (their current profile) and
-// for aud. These are the same checks CuratedHandler.sendRemembered makes, so
+// for aud. These are the same checks Curation.remembered makes, so
 // the briefing only uses what the member's card would show.
 func (h *BriefingHandler) rememberedItems(ctx context.Context, userID int64, kind, inputs string, aud sources.Audience) ([]llm.Item, bool) {
 	r, err := h.results.GetCuratedResult(ctx, userID, kind)
