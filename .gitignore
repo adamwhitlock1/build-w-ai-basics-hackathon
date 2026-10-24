@@ -11,6 +11,8 @@
 # Local data and build output
 backend/porchlight.db*
 backend/bin/
+# Genkit Dev UI traces (make dev-ui): full prompts and replies, family data.
+backend/.genkit/
 node_modules/
 frontend/dist/
 

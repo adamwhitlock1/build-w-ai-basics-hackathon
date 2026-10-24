@@ -82,7 +82,9 @@
       - one `add` call, answering "The result of adding 2 and 3 is 5.", with usage recorded for both model calls;
       - `tool_choice=required` is honored.
     - MiniMax: skipped, because `MINIMAX_API_KEY` isn't set. Its tool, `tool_choice` and structured-output behavior is still open: add the key to `backend/.env` and rerun `make ai-smoke`. A third check, `tool choice required`, was added to settle the `tool_choice` question.
-- [ ] 5.2 Add `make dev-ui` (`GENKIT_ENV=dev npx --yes genkit-cli@1.44.1 start -- go run .`, with the Makefile's Go settings). Verify by starting it, opening the Dev UI, and seeing a briefing's model call traced after loading a page. Stop it afterwards.
+- [x] 5.2 Add `make dev-ui` (`GENKIT_ENV=dev npx --yes genkit-cli@1.44.1 start -- go run .`, with the Makefile's Go settings). Verify by starting it, opening the Dev UI, and seeing a briefing's model call traced after loading a page. Stop it afterwards.
+  - Result (2026-10-24): the CLI's first run asked for an analytics acknowledgment. With the owner's OK, analytics were turned off (`genkit config set analyticsOptOut true`), and after that it starts with no prompt. `DB_PATH=porchlight.db.demo PORCHLIGHT_DEV_FIXTURES=1 make dev-ui` started the Dev UI on :4000 and the API on :8080, with the reflection warning and the reflection server on 127.0.0.1:3100. Loading Maya's page produced a `generate` trace around `openrouter/openai/gpt-4.1-mini`: 1.39 s, 448 tokens in and 42 out, with the briefing system prompt visible. Everything was stopped afterwards.
+  - The CLI writes traces to `backend/.genkit/`, which hold full prompts with family data, so it's now in `.gitignore`.
 - [x] 5.3 Add a "Genkit" section to `README.md`:
   - which models are used and how to choose them;
   - `PORCHLIGHT_BRIEFER`;
