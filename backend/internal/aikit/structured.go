@@ -19,15 +19,36 @@ import (
 // callTimeout bounds a single model call, as in internal/llm.
 const callTimeout = 40 * time.Second
 
-// temperature is the sampling temperature for structured calls, as in
-// internal/llm. A map is the one config shape every model plugin accepts.
-var temperature = map[string]any{"temperature": 0.2}
+// structuredTemperature is the sampling temperature for structured calls,
+// as in internal/llm.
+const structuredTemperature = 0.2
+
+// callConfig is the model config for one call: temperature, plus, on a
+// no-retention Kit, OpenRouter routing that allows only zero-data-retention
+// endpoints of providers that don't collect data. A map is the one config
+// shape every model plugin accepts. Every Kit call builds its config here,
+// so none can leave the routing out.
+func (k *Kit) callConfig(temperature float64) map[string]any {
+	cfg := map[string]any{"temperature": temperature}
+	if k.noRetention {
+		cfg["provider"] = map[string]any{"zdr": true, "dataCollection": "deny"}
+	}
+	return cfg
+}
 
 // structuredCall is one request for JSON matching T's schema.
 type structuredCall struct {
 	step     string // usage step and log label, e.g. "morning_briefing"
+	model    string // Genkit model name; "" means the Kit's default
 	system   string
 	messages []*ai.Message
+}
+
+func (c structuredCall) modelName(k *Kit) string {
+	if c.model != "" {
+		return c.model
+	}
+	return k.defaultModel
 }
 
 // generateJSON asks for a T, decodes the reply and runs check on it. If the
@@ -42,12 +63,11 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 	var zero T
 	var lastErr error
 	for attempt := 1; attempt <= 2; attempt++ {
-		resp, err := k.generate(ctx, call.step,
-			ai.WithModelName(k.defaultModel),
+		resp, err := k.generate(ctx, call.step, structuredTemperature,
+			ai.WithModelName(call.modelName(k)),
 			ai.WithSystem(call.system),
 			ai.WithMessages(call.messages...),
 			ai.WithOutputType(zero),
-			ai.WithConfig(temperature),
 		)
 		if err != nil {
 			return zero, err
@@ -81,9 +101,11 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 	return zero, lastErr
 }
 
-// generate runs one Generate call with usage tracked under step. A rate
-// limit (HTTP 429) is retried once after a short pause.
-func (k *Kit) generate(ctx context.Context, step string, opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
+// generate runs one Generate call with usage tracked under step and the
+// Kit's call config at temperature. A rate limit (HTTP 429) is retried once
+// after a short pause.
+func (k *Kit) generate(ctx context.Context, step string, temperature float64, opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
+	opts = append(opts, ai.WithConfig(k.callConfig(temperature)))
 	resp, err := k.generateOnce(ctx, step, opts...)
 	var ue *llm.UpstreamError
 	if !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {

@@ -3,6 +3,7 @@ package aikit
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/firebase/genkit/go/core/status"
@@ -24,6 +25,16 @@ func upstream(err error) error {
 	switch {
 	case errors.As(err, &ue):
 		return err
+	case errors.As(err, &oaiErr) && oaiErr.StatusCode == http.StatusNotFound:
+		// OpenRouter's "no endpoints found": no provider serves the model
+		// under this call's routing, typically a model with no
+		// zero-data-retention endpoint on a no-retention Kit.
+		return &llm.UpstreamError{
+			Reason: "no provider can serve the AI model with these settings",
+			Hint:   "Pick another model in backend/.env: kid chat (KIDS_CHAT_MODEL, KIDS_SAFETY_MODEL) needs one with a zero-data-retention endpoint.",
+			Status: http.StatusNotFound,
+			Err:    err,
+		}
 	case errors.As(err, &oaiErr):
 		return llm.UpstreamFor(oaiErr.StatusCode, err)
 	case errors.As(err, &antErr):
