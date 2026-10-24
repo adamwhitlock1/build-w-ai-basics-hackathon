@@ -329,8 +329,10 @@ func TestSessionCookie(t *testing.T) {
 	if cookie == nil {
 		t.Fatalf("no %s cookie in %v", auth.CookieName, resp.Header["Set-Cookie"])
 	}
-	if !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Secure || cookie.Path != "/" || cookie.Domain != "" {
-		t.Errorf("cookie = %+v, want HttpOnly, SameSite=Lax, not Secure, Path=/, no Domain", cookie)
+	// Partitioned (scs v2.9.0+) would tie the cookie to a top-level site
+	// (CHIPS); Porchlight's cookie is first-party only, so it stays off.
+	if !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Secure || cookie.Path != "/" || cookie.Domain != "" || cookie.Partitioned {
+		t.Errorf("cookie = %+v, want HttpOnly, SameSite=Lax, not Secure, not Partitioned, Path=/, no Domain", cookie)
 	}
 	if lifetime := time.Duration(cookie.MaxAge) * time.Second; lifetime < 29*24*time.Hour {
 		t.Errorf("cookie Max-Age = %v, want about 30 days", lifetime)
