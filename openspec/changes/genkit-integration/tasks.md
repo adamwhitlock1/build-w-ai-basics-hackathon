@@ -37,7 +37,7 @@
 
 ## 4. The briefing on Genkit
 
-- [ ] 4.1 Add `aikit.Briefer` implementing `widgets.Briefer`:
+- [x] 4.1 Add `aikit.Briefer` implementing `widgets.Briefer`:
   - `genkit.GenerateData[briefingReply]`, using `llm.BriefingPrompt` and `llm.CleanBriefing`, step `morning_briefing`;
   - one retry with a correction when the reply can't be used, and one 1-second retry on a 429;
   - errors through `aikit.upstream`.
