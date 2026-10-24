@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -48,6 +49,89 @@ func TestOpenOddFileNames(t *testing.T) {
 				t.Errorf("database not created under its own name: %v", err)
 			}
 		})
+	}
+}
+
+// TestOpenConnectionSettings pins the DSN options in store.Open. The SQLite
+// driver validates its DSN parameters (since modernc.org/sqlite v1.55.0),
+// so an upgrade could quietly drop or change one; these read them back.
+func TestOpenConnectionSettings(t *testing.T) {
+	ctx := context.Background()
+	s := openTestStore(t)
+
+	// PRAGMAs are per connection, so check two different connections from
+	// the pool: holding the first open forces the pool to make a second.
+	first, err := s.DB().Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Close()
+	second, err := s.DB().Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+
+	for i, conn := range []*sql.Conn{first, second} {
+		var foreignKeys, busyTimeout int
+		var journalMode string
+		if err := conn.QueryRowContext(ctx, `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil {
+			t.Fatal(err)
+		}
+		if err := conn.QueryRowContext(ctx, `PRAGMA journal_mode`).Scan(&journalMode); err != nil {
+			t.Fatal(err)
+		}
+		if err := conn.QueryRowContext(ctx, `PRAGMA busy_timeout`).Scan(&busyTimeout); err != nil {
+			t.Fatal(err)
+		}
+		if foreignKeys != 1 || journalMode != "wal" || busyTimeout != 5000 {
+			t.Errorf("connection %d: foreign_keys=%d journal_mode=%q busy_timeout=%d, want 1, \"wal\", 5000",
+				i+1, foreignKeys, journalMode, busyTimeout)
+		}
+	}
+}
+
+// TestTransactionsTakeTheWriteLockAtBegin checks _txlock=immediate: a
+// transaction holds SQLite's write lock from BEGIN, so a second one can't
+// even begin until the first ends. With SQLite's default (deferred)
+// transactions the second BEGIN would succeed at once.
+func TestTransactionsTakeTheWriteLockAtBegin(t *testing.T) {
+	ctx := context.Background()
+	s := openTestStore(t)
+
+	first, err := s.DB().BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	began := make(chan error, 1)
+	go func() {
+		second, err := s.DB().BeginTx(ctx, nil)
+		if err == nil {
+			err = second.Rollback()
+		}
+		began <- err
+	}()
+
+	// While the first transaction is open, the second must still be
+	// waiting for the lock (busy_timeout lets it wait up to 5s).
+	select {
+	case err := <-began:
+		t.Fatalf("second transaction began while the first held the lock (err=%v); is _txlock=immediate still set?", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	if err := first.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	// Once the first ends, the second gets the lock well within busy_timeout.
+	select {
+	case err := <-began:
+		if err != nil {
+			t.Fatalf("second transaction: %v", err)
+		}
+	case <-time.After(4 * time.Second):
+		t.Fatal("second transaction never began after the first ended")
 	}
 }
 
