@@ -61,6 +61,7 @@ type Client struct {
 	baseURL    string
 	model      string
 	retryDelay time.Duration // pause before retrying a 429
+	usage      UsageRecorder // nil: usage isn't recorded
 }
 
 // NewClient returns a Client that uses model through OpenRouter. An empty
@@ -199,6 +200,9 @@ func (c *Client) completeOnce(ctx context.Context, call structuredCall) (string,
 	if err != nil {
 		return "", upstreamError(err)
 	}
+	// The provider answered, so it counted tokens, even if the answer turns
+	// out to be unusable below or fails validation later: record them now.
+	c.recordUsage(ctx, call.name, resp.Model, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, resp.Usage.TotalTokens)
 	// OpenRouter can answer HTTP 200 with an error object and no choices.
 	// go-openai reports that as success, so check for it ourselves.
 	if len(resp.Choices) == 0 {

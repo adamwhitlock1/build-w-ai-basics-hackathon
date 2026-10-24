@@ -48,7 +48,7 @@
   - a row with a null member (unattributed) kept but not attributed to anyone.
 
   Verify with `go test ./internal/store/`. Commit.
-- [ ] 4.2 In `internal/llm`, add:
+- [x] 4.2 In `internal/llm`, add:
   - `Usage{Model, Step, PromptTokens, CompletionTokens, TotalTokens}`;
   - `Attribution{MemberID, ViewerID, FamilyID, Feature}` with `WithAttribution` and `AttributionFrom`;
   - the `UsageRecorder` interface;
