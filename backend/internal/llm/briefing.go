@@ -70,29 +70,46 @@ func (c *Client) WriteBriefing(ctx context.Context, facts BriefingFacts, aud sou
 	if err != nil {
 		return "", fmt.Errorf("generate briefing schema: %w", err)
 	}
+	system, user := BriefingPrompt(facts, aud)
 	call := structuredCall{
 		name:   "morning_briefing",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: forAudience(briefingSystemPrompt(facts.Now), aud)},
-			{Role: openai.ChatMessageRoleUser, Content: briefingUserMessage(facts)},
+			{Role: openai.ChatMessageRoleSystem, Content: system},
+			{Role: openai.ChatMessageRoleUser, Content: user},
 		},
 	}
 	out, err := callJSON(ctx, c, call, func(r *briefingReply) error {
-		r.Briefing = strings.Join(strings.Fields(r.Briefing), " ")
-		switch n := utf8.RuneCountInString(r.Briefing); {
-		case n == 0:
-			return fmt.Errorf("%w: the briefing was empty", ErrNoBriefing)
-		case n > maxBriefingReply:
-			return fmt.Errorf("%w: the briefing was %d characters, over %d", ErrNoBriefing, n, MaxBriefingChars)
-		}
-		r.Briefing = trimBriefing(r.Briefing)
-		return nil
+		text, err := CleanBriefing(r.Briefing)
+		r.Briefing = text
+		return err
 	})
 	if err != nil {
 		return "", fmt.Errorf("write briefing: %w", err)
 	}
 	return out.Briefing, nil
+}
+
+// BriefingPrompt returns the system prompt and user message for a member's
+// briefing. Every briefer sends exactly these, so the legacy client and the
+// Genkit one can't drift apart.
+func BriefingPrompt(facts BriefingFacts, aud sources.Audience) (system, user string) {
+	return forAudience(briefingSystemPrompt(facts.Now), aud), briefingUserMessage(facts)
+}
+
+// CleanBriefing normalizes a model's briefing text and checks its length. A
+// blank reply, or one over maxBriefingReply characters, returns an error
+// wrapping ErrNoBriefing (a briefer retries once on it); a reply over
+// MaxBriefingChars is cut back at a sentence end.
+func CleanBriefing(text string) (string, error) {
+	text = strings.Join(strings.Fields(text), " ")
+	switch n := utf8.RuneCountInString(text); {
+	case n == 0:
+		return "", fmt.Errorf("%w: the briefing was empty", ErrNoBriefing)
+	case n > maxBriefingReply:
+		return "", fmt.Errorf("%w: the briefing was %d characters, over %d", ErrNoBriefing, n, MaxBriefingChars)
+	}
+	return trimBriefing(text), nil
 }
 
 // trimBriefing returns s if it fits in MaxBriefingChars, and otherwise cuts
