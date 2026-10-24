@@ -1,4 +1,4 @@
-# Runs Porchlight's checks on every push and pull request. The tests swap
+# Runs Porchlight's checks on pull requests and pushes to main. The tests swap
 # OpenRouter, Brave, Open-Meteo and calendars for fakes, so no secrets are
 # needed.
 name: CI
