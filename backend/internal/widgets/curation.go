@@ -221,7 +221,7 @@ func (c *Curation) Events(ctx context.Context, viewer, member store.User, opts C
 
 // loadProfile returns member's profile, trimmed. No profile yet reads as an
 // empty one. viewer, who asked for member's card, is for the log line of a
-// failure.
+// failure. The curated widgets and the briefing share it.
 func loadProfile(ctx context.Context, profiles ProfileStore, logger *slog.Logger, viewer, member store.User) (store.MemberProfile, error) {
 	profile, err := profiles.GetMemberProfile(ctx, member.ID)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
