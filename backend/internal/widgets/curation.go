@@ -63,6 +63,7 @@ type CurationOptions struct {
 // No interests is a CuratedWidget with an EmptyReason, not an error. When
 // every search fails, the error is a *StepError for StepSearch.
 func (c *Curation) Articles(ctx context.Context, viewer, member store.User, opts CurationOptions) (CuratedWidget, error) {
+	ctx = attribute(ctx, FeatureArticles, viewer, member)
 	profile, err := loadProfile(ctx, c.profiles, c.logger, viewer, member)
 	if err != nil {
 		return CuratedWidget{}, err
@@ -140,6 +141,7 @@ func (c *Curation) Articles(ctx context.Context, viewer, member store.User, opts
 // AI step is a *StepError for StepEventPlanning or StepEventExtraction, and
 // failed searches one for StepSearch.
 func (c *Curation) Events(ctx context.Context, viewer, member store.User, opts CurationOptions) (CuratedWidget, error) {
+	ctx = attribute(ctx, FeatureEvents, viewer, member)
 	profile, err := loadProfile(ctx, c.profiles, c.logger, viewer, member)
 	if err != nil {
 		return CuratedWidget{}, err

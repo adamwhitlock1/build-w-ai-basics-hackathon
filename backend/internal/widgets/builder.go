@@ -45,6 +45,7 @@ func NewWidgetBuilder(planner Planner, srcs SourceFinder, saved WidgetStore, pro
 // A plan naming no known source wraps ErrUnknownSource, and a widget that
 // was built but couldn't be saved wraps ErrNotSaved.
 func (b *WidgetBuilder) Build(ctx context.Context, member store.User, prompt string) (SavedWidget, error) {
+	ctx = attribute(ctx, FeatureDescribeWidget, member, member) // a member describes widgets only for their own page
 	// One deadline for the whole pipeline, so an HTTP reply is always
 	// written before the server's WriteTimeout would cut the connection.
 	ctx, cancel := context.WithTimeout(ctx, RequestBudget)
@@ -166,6 +167,7 @@ func (b *WidgetBuilder) save(ctx context.Context, userID int64, prompt string, w
 // ErrNoSuchWidget, like a missing one, and one whose source is no longer
 // registered wraps ErrSourceGone.
 func (b *WidgetBuilder) Refresh(ctx context.Context, member store.User, widgetID int64) (SavedWidget, error) {
+	ctx = attribute(ctx, FeatureRefreshWidget, member, member)
 	cw, err := b.saved.GetCustomWidget(ctx, member.ID, widgetID)
 	switch {
 	case errors.Is(err, store.ErrNotFound):

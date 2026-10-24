@@ -52,6 +52,7 @@ func NewBriefings(briefer Briefer, srcs SourceFinder, profiles ProfileStore, res
 // one, the briefing from earlier today is given instead if there is one;
 // otherwise the error is a *StepError for StepBriefing.
 func (b *Briefings) Today(ctx context.Context, viewer, member store.User, loc *time.Location) (BriefingWidget, error) {
+	ctx = attribute(ctx, FeatureBriefing, viewer, member)
 	aud := audienceFor(member)
 	now := b.now()
 	date := now.In(loc).Format(time.DateOnly)

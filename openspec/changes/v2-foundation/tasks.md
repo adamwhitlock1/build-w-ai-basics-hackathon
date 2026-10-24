@@ -75,7 +75,7 @@
   - an insert error is logged and the writer keeps going.
 
   Verify with `go test -race ./internal/usage/`. Commit.
-- [ ] 4.4 Wire it up:
+- [x] 4.4 Wire it up:
   - `main.go` creates the Recorder, starts `Run` on the server's context, closes it after `srv.Shutdown`, and calls `llmClient.SetUsageRecorder`.
   - Each service sets `llm.WithAttribution` before calling the planner, curator or briefer, with features `describe_widget`, `refresh_widget`, `articles`, `events` and `briefing`, the member, the viewer and the family.
 
