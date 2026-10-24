@@ -75,7 +75,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
 ## 4. HTTP
 
-- [ ] 4.1 Add the handlers and the routes of design decision 9, plus `PUT /api/members/{id}/birth-year`, which accepts only kids and ages 5 to 17, with `null` to clear.
+- [x] 4.1 Add the handlers and the routes of design decision 9, plus `PUT /api/members/{id}/birth-year`, which accepts only kids and ages 5 to 17, with `null` to clear.
   - `POST /api/me/chats/{id}/messages` streams `message`, `delta…`, then `done` or `error` as server-sent events, flushing each event.
   - Errors before streaming are JSON with the right status: 503 with "Chat isn't set up yet. Ask a parent.", 403, 404 and 400.
 

@@ -111,3 +111,30 @@ func (s *Service) Alerts(ctx context.Context, parent store.User) (Alerts, error)
 	}
 	return Alerts{Unreviewed: n, Crises: crises}, nil
 }
+
+// BirthYear returns kid's birth year for parent, and false if none is set.
+func (s *Service) BirthYear(ctx context.Context, parent, kid store.User) (int, bool, error) {
+	if err := checkParentOfKid(parent, kid); err != nil {
+		return 0, false, err
+	}
+	return s.store.GetBirthYear(ctx, kid.ID)
+}
+
+// SetBirthYear sets kid's birth year (0 clears it), which picks the
+// agent's persona. Only a parent can: kids can't change their own age.
+func (s *Service) SetBirthYear(ctx context.Context, parent, kid store.User, year int) error {
+	if err := checkParentOfKid(parent, kid); err != nil {
+		return err
+	}
+	if year != 0 {
+		age := s.now().Year() - year
+		if age < MinKidAge || age > MaxKidAge {
+			return ErrInvalidBirthYear
+		}
+	}
+	if err := s.store.SetBirthYear(ctx, kid.ID, year); err != nil {
+		return err
+	}
+	s.logger.InfoContext(ctx, "birth year set", "member_id", kid.ID, "parent_id", parent.ID, "cleared", year == 0)
+	return nil
+}

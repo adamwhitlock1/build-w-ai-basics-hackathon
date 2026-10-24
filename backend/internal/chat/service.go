@@ -58,6 +58,15 @@ var (
 	// anything is stored.
 	ErrEmptyMessage   = errors.New("the message is empty")
 	ErrMessageTooLong = fmt.Errorf("the message is longer than %d characters", MaxMessageChars)
+	// ErrInvalidBirthYear means a birth year that doesn't make the kid 5
+	// to 17 this year.
+	ErrInvalidBirthYear = fmt.Errorf("a kid's birth year must make them %d to %d this year", MinKidAge, MaxKidAge)
+)
+
+// The ages a kid's birth year may give them.
+const (
+	MinKidAge = 5
+	MaxKidAge = 17
 )
 
 // Agent is the family agent: aikit.KidAgent, or a fake in tests.
@@ -83,6 +92,7 @@ type Store interface {
 	UnreviewedCrises(ctx context.Context, familyID int64) ([]store.ChatFlag, error)
 	CountUnreviewedFlags(ctx context.Context, familyID int64) (int, error)
 	GetBirthYear(ctx context.Context, userID int64) (int, bool, error)
+	SetBirthYear(ctx context.Context, userID int64, year int) error
 }
 
 // Service is kid chat. Kids use List, Start, Get and Send; parents use the
