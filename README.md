@@ -158,7 +158,7 @@ make check   # go vet + go test + govulncheck + go build
 
 The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (calendar tests read sample feeds in `backend/internal/calendar/testdata/`), so they need no keys, spend no credit and make no network calls.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs three checks on every push and pull request:
+GitHub Actions (`.github/workflows/ci.yml`) runs three checks on every pull request and every push to `main`:
 - **Backend:** `make check`, on Go 1.27.3.
 - **Backend race detector:** `go test -race ./...`. On Linux it needs cgo, so this job turns cgo on.
 - **Frontend:** `npm run lint` and `npm run build`.

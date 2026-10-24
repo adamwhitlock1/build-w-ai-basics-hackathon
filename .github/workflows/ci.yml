@@ -3,8 +3,11 @@
 # needed.
 name: CI
 
+# Pushes to main, plus every pull request. Not every push to any branch:
+# a branch with an open PR would then run everything twice.
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
