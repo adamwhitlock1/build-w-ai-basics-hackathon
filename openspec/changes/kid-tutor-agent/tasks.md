@@ -90,13 +90,17 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
   - cross-site POSTs are rejected.
 
   Verify with `make test`.
-- [ ] 4.2 Wire it in `main.go`:
+- [x] 4.2 Wire it in `main.go`:
   - read `OPENROUTER_KIDS_API_KEY`, `KIDS_CHAT_MODEL`, `KIDS_SAFETY_MODEL` and `PORCHLIGHT_KIDS_ALLOW_RETENTION`;
   - build `kidsKit` with `NoRetention` (or with the override, logging its warning), or leave it nil;
   - give it the usage recorder, and pass a `chat.Service` in `deps`;
   - log whether kid chat is on, off, or in the override mode.
 
   Document the variables in `backend/.env.example`. Verify with `make check`, and by starting the server without the kids' key (the log says kid chat is off), with it, and with the override (the warning is logged).
+  - Result (2026-10-24), each started on a side port and stopped with SIGTERM:
+    - with no kids' key, the log says "kid chat is off: set OPENROUTER_KIDS_API_KEY to turn it on";
+    - with a kids' key, it says "kid chat is on" with `no_retention=true`;
+    - with `PORCHLIGHT_KIDS_ALLOW_RETENTION=1`, it logs the warning and says "kid chat is on" with `no_retention=false`.
 
 ## 5. Frontend
 

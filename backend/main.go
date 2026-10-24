@@ -29,6 +29,7 @@ import (
 	"porchlight/internal/aikit"
 	"porchlight/internal/auth"
 	"porchlight/internal/calendar"
+	"porchlight/internal/chat"
 	"porchlight/internal/llm"
 	"porchlight/internal/sources"
 	"porchlight/internal/store"
@@ -69,6 +70,15 @@ type config struct {
 	// "legacy" (internal/llm). A temporary switch, until the agent work has
 	// run on Genkit for a while.
 	briefer string
+	// Kid chat runs on its own OpenRouter key, restricted to
+	// zero-data-retention providers. Without the key it's off.
+	kidsKey         string
+	kidsChatModel   string
+	kidsSafetyModel string
+	// kidsAllowRetention lets kid chat run on any provider, with the main
+	// key if there's no kids' key, for prototyping with the demo family.
+	// Development only: PORCHLIGHT_KIDS_ALLOW_RETENTION=1.
+	kidsAllowRetention bool
 	// devFixtures makes the server answer the demo family's fixture
 	// calendar links itself (see calendar.FixtureFetcher). Local
 	// development only: PORCHLIGHT_DEV_FIXTURES=1.
@@ -84,18 +94,22 @@ func loadConfig() (config, error) {
 	}
 
 	cfg := config{
-		port:              envOr("PORT", "8080"),
-		dbPath:            envOr("DB_PATH", "porchlight.db"),
-		openRouterKey:     os.Getenv("OPENROUTER_API_KEY"),
-		openRouterModel:   envOr("OPENROUTER_MODEL", "openai/gpt-4.1-mini"),
-		openRouterBaseURL: envOr("OPENROUTER_BASE_URL", llm.DefaultBaseURL),
-		braveKey:          os.Getenv("BRAVE_API_KEY"),
-		braveBaseURL:      envOr("BRAVE_BASE_URL", sources.DefaultBraveBaseURL),
-		genkitModel:       os.Getenv("GENKIT_MODEL"),
-		miniMaxKey:        os.Getenv("MINIMAX_API_KEY"),
-		miniMaxBaseURL:    envOr("MINIMAX_BASE_URL", defaultMiniMaxBaseURL),
-		miniMaxModel:      envOr("MINIMAX_MODEL", aikit.DefaultMiniMaxModel),
-		devFixtures:       os.Getenv("PORCHLIGHT_DEV_FIXTURES") == "1",
+		port:               envOr("PORT", "8080"),
+		dbPath:             envOr("DB_PATH", "porchlight.db"),
+		openRouterKey:      os.Getenv("OPENROUTER_API_KEY"),
+		openRouterModel:    envOr("OPENROUTER_MODEL", "openai/gpt-4.1-mini"),
+		openRouterBaseURL:  envOr("OPENROUTER_BASE_URL", llm.DefaultBaseURL),
+		braveKey:           os.Getenv("BRAVE_API_KEY"),
+		braveBaseURL:       envOr("BRAVE_BASE_URL", sources.DefaultBraveBaseURL),
+		genkitModel:        os.Getenv("GENKIT_MODEL"),
+		miniMaxKey:         os.Getenv("MINIMAX_API_KEY"),
+		miniMaxBaseURL:     envOr("MINIMAX_BASE_URL", defaultMiniMaxBaseURL),
+		miniMaxModel:       envOr("MINIMAX_MODEL", aikit.DefaultMiniMaxModel),
+		kidsKey:            os.Getenv("OPENROUTER_KIDS_API_KEY"),
+		kidsChatModel:      envOr("KIDS_CHAT_MODEL", defaultKidsChatModel),
+		kidsSafetyModel:    envOr("KIDS_SAFETY_MODEL", defaultKidsSafetyModel),
+		kidsAllowRetention: os.Getenv("PORCHLIGHT_KIDS_ALLOW_RETENTION") == "1",
+		devFixtures:        os.Getenv("PORCHLIGHT_DEV_FIXTURES") == "1",
 	}
 
 	var missing []string
@@ -117,6 +131,14 @@ func loadConfig() (config, error) {
 	cfg.briefer = briefer
 	return cfg, nil
 }
+
+// The OpenRouter models kid chat uses unless KIDS_CHAT_MODEL and
+// KIDS_SAFETY_MODEL say otherwise. Each must have a zero-data-retention
+// endpoint on OpenRouter (make ai-smoke checks).
+const (
+	defaultKidsChatModel   = "openai/gpt-4.1-mini"
+	defaultKidsSafetyModel = "openai/gpt-4.1-nano"
+)
 
 // defaultMiniMaxBaseURL is MiniMax's Anthropic-compatible API root.
 const defaultMiniMaxBaseURL = "https://api.minimax.io/anthropic"
@@ -208,6 +230,18 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	llmClient.SetUsageRecorder(usageRecorder)
 	kit.SetUsageRecorder(usageRecorder)
 
+	// Kid chat, on its own Kit (see buildKidAgent). A Service with no
+	// agent is kid chat turned off.
+	chatService := chat.NewService(nil, st, logger)
+	kids, err := buildKidAgent(ctx, logger, cfg)
+	if err != nil {
+		return err
+	}
+	if kids != nil {
+		kids.kit.SetUsageRecorder(usageRecorder)
+		chatService = chat.NewService(kids.agent, st, logger)
+	}
+
 	// widgets.Briefer is an interface, so either implementation fits.
 	var briefer widgets.Briefer = aikit.NewBriefer(kit)
 	if cfg.briefer == "legacy" {
@@ -233,6 +267,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			Briefer:   briefer,
 			Sources:   registry,
 			Calendars: calendars,
+			Chat:      chatService,
 		}),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
@@ -275,6 +310,46 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		logger.Warn("some AI usage entries weren't recorded", "err", err)
 	}
 	return nil
+}
+
+// kidAgent is kid chat's agent and the Kit it runs on.
+type kidAgent struct {
+	kit   *aikit.Kit
+	agent *aikit.KidAgent
+}
+
+// buildKidAgent builds kid chat's agent on its own Kit, and logs which way
+// kid chat runs:
+//   - on: the kids' key, every call restricted to zero-data-retention
+//     providers that don't collect data;
+//   - prototyping (PORCHLIGHT_KIDS_ALLOW_RETENTION=1): any provider, with a
+//     warning;
+//   - off: no kids' key. It returns nil, and kids see "Chat isn't set up".
+func buildKidAgent(ctx context.Context, logger *slog.Logger, cfg config) (*kidAgent, error) {
+	key, noRetention := cfg.kidsKey, true
+	switch {
+	case cfg.kidsAllowRetention:
+		if key == "" {
+			key = cfg.openRouterKey
+		}
+		noRetention = false
+		logger.Warn("kid chat isn't restricted to no-retention providers (PORCHLIGHT_KIDS_ALLOW_RETENTION=1); for prototyping only, never once kids use it")
+	case key == "":
+		logger.Info("kid chat is off: set OPENROUTER_KIDS_API_KEY to turn it on")
+		return nil, nil
+	}
+	kit, err := aikit.New(ctx, aikit.Config{
+		OpenRouterKey:     key,
+		OpenRouterBaseURL: cfg.openRouterBaseURL,
+		OpenRouterModel:   cfg.kidsChatModel,
+		NoRetention:       noRetention,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("kid chat: %w", err)
+	}
+	agent := aikit.NewKidAgent(kit, "openrouter/"+cfg.kidsChatModel, "openrouter/"+cfg.kidsSafetyModel)
+	logger.Info("kid chat is on", "no_retention", noRetention, "chat_model", cfg.kidsChatModel, "safety_model", cfg.kidsSafetyModel)
+	return &kidAgent{kit: kit, agent: agent}, nil
 }
 
 // preflight runs the OpenRouter startup checks. Problems that would break
