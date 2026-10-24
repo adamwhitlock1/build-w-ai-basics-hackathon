@@ -95,7 +95,13 @@
   - **frontend:** `actions/setup-node` with Node 22 and an npm cache, then `npm ci`, `npm run lint` and `npm run build` in `frontend/`.
 
   Pin each action to its current major version. Verify with `actionlint` if available, or by reading the YAML; the real check is 5.2.
-- [ ] 5.2 Push the branch and confirm all three jobs pass on GitHub (the PR's checks or the Actions run). If a job fails, fix it and record the cause here.
+- [x] 5.2 Push the branch and confirm all three jobs pass on GitHub (the PR's checks or the Actions run). If a job fails, fix it and record the cause here.
+  - **Result:** run 40119204065 on `aw-/v2-foundation`; all three jobs passed on the first try:
+    - Backend (vet, test, govulncheck, build)
+    - Backend (race detector), with cgo on Linux
+    - Frontend (lint, build)
+
+    Its one annotation is GitHub's notice that `ubuntu-latest` is moving to Ubuntu 26, which is informational.
 
 ## 6. Docs and end-to-end
 
@@ -124,4 +130,4 @@
     - The table's columns are only ids, labels, the model and counts; no row contains "SpaceX".
     - There were no Brave or curating AI calls on page loads (the results were pre-filled), and no warnings or errors in the log.
     - `UsageSummary`'s per-member totals are covered by `TestUsageSummary`.
-- [ ] 6.3 Run `openspec validate v2-foundation` and confirm it passes. Add the "v2 foundation" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`. Verify that both files gain exactly one line.
+- [x] 6.3 Run `openspec validate v2-foundation` and confirm it passes. Add the "v2 foundation" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`. Verify that both files gain exactly one line.
