@@ -1,14 +1,17 @@
 # Every go command here runs with these two settings:
 #
-# CGO_ENABLED=0 -- on this Mac, Go 1.22.0 binaries linked with cgo crash at
-#   launch ("dyld: missing LC_UUID"). Porchlight is pure Go, and so is its
-#   SQLite driver (modernc.org/sqlite), so turning cgo off costs nothing and
-#   the binary runs.
-# GOTOOLCHAIN=local -- use the installed Go; never download a newer one.
+# CGO_ENABLED=0 -- build pure Go. Porchlight and its SQLite driver
+#   (modernc.org/sqlite) need no C code, so the result is one static binary
+#   that cross-compiles to Linux for the homelab (GOOS=linux make build) with
+#   no C toolchain. (It was first turned off because go1.22.0 binaries built
+#   with cgo crashed on this Mac; Go 1.24+ fixed that, so it's a choice now.)
+# GOTOOLCHAIN=local -- always use the installed Go and never download a
+#   toolchain. If go.mod ever asks for a newer Go than is installed, the
+#   build stops and says so instead.
 export CGO_ENABLED := 0
 export GOTOOLCHAIN := local
 
-.PHONY: run build vet test check seed demo demo-serve
+.PHONY: run build vet test vuln check seed demo demo-serve
 
 run:
 	go run .
@@ -22,7 +25,15 @@ vet:
 test:
 	go test ./...
 
-check: vet test build
+# Known vulnerabilities that Porchlight's code can actually reach, in Go
+# itself or any dependency. govulncheck is pinned in go.mod (the `tool` line)
+# and checks the call graph, so a vulnerable function we never call doesn't
+# fail the build. It downloads the vulnerability list from vuln.go.dev, so it
+# needs network; `make test` works offline.
+vuln:
+	go tool govulncheck ./...
+
+check: vet test vuln build
 
 # A test family to log in with, for local testing only (see cmd/seed).
 seed:
