@@ -82,7 +82,7 @@ func TestRefreshCustom(t *testing.T) {
 		},
 		{
 			name: "search finds nothing, items are kept", id: "1", widget: oldLaunches("p"),
-			planner: &fakePlanner{items: shapedItems},
+			planner:    &fakePlanner{items: shapedItems},
 			wantStatus: 200, wantItems: []string{"Old launch"}, wantSearch: true,
 		},
 		{
