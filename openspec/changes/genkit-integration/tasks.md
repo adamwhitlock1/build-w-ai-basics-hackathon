@@ -20,18 +20,19 @@
   - The default model name is `openrouter/` + `OPENROUTER_MODEL`.
 
   Verify with `go test ./internal/aikit/`.
-- [ ] 3.2 Add the usage middleware: an `ai.MiddlewareFunc` whose `WrapModel` reports each response's `Usage` to an `llm.UsageRecorder`, with the call's context and step name. Add `Kit.SetUsageRecorder`. Add `aitest` (3.3) first if that's easier. Test with the scripted model:
+- [x] 3.2 Add the usage middleware: an `ai.MiddlewareFunc` whose `WrapModel` reports each response's `Usage` to an `llm.UsageRecorder`, with the call's context and step name. Add `Kit.SetUsageRecorder`. Add `aitest` (3.3) first if that's easier. Test with the scripted model:
   - one call with usage produces one `llm.Usage`, with the attribution taken from the context;
   - a call that errors records nothing;
   - a nil recorder is fine.
 
   Verify with `go test ./internal/aikit/...`.
-- [ ] 3.3 Add `internal/aikit/aitest` with `aitest.New(t, replies...) *aikit.Kit`. It builds a real `genkit.Init` with one `DefineModelAction` model, `test/scripted`, which:
+  - As built, the middleware is `Kit.TrackUsage(step) ai.GenerateOption`, an `ai.WithUse(ai.MiddlewareFunc(...))`. It takes the model name from `WrapGenerate` and records it as the legacy client does: `openrouter/` is dropped, and `anthropic/` becomes `minimax/`.
+- [x] 3.3 Add `internal/aikit/aitest` with `aitest.New(t, replies...) *aikit.Kit`. It builds a real `genkit.Init` with one `DefineModelAction` model, `test/scripted`, which:
   - answers from a queue of `aitest.Reply` values (text, JSON, a tool request, an error with an HTTP status);
   - reports the configured usage;
   - records requests (`Requests()`).
 
-  The default model is the scripted one. Add a `TestScriptedModel` covering each reply kind and request recording. Verify with `go test ./internal/aikit/aitest/`.
+  The default model is the scripted one. (As built, `New` returns `(*aikit.Kit, *aitest.Model)`: `Requests()` lives on the Model, which the Kit can't reach.) Add a `TestScriptedModel` covering each reply kind and request recording. Verify with `go test ./internal/aikit/aitest/`.
 - [ ] 3.4 Add the error translation `aikit.upstream(err) error`. An `*openai.Error` (found with `errors.As`) becomes `llm.UpstreamFor(StatusCode, err)`. Deadline and cancellation map as today. A Genkit `status.Error` with no SDK error maps by status. Anything else becomes "couldn't reach OpenRouter". Add a table test, including an error from the real compat_oai plugin against an `httptest` server returning 401, 402, 429 and 500 through the base URL. Verify with `go test ./internal/aikit/`.
 
 ## 4. The briefing on Genkit
