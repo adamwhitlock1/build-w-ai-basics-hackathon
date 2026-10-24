@@ -4,7 +4,7 @@
 
 ## 2. Middleware
 
-- [ ] 2.1 Add `func (r *statusRecorder) Unwrap() http.ResponseWriter` in `backend/middleware.go`, with a comment on why `http.ResponseController` needs it. Add `TestFlushReachesClientThroughMiddleware` in `middleware_test.go`:
+- [x] 2.1 Add `func (r *statusRecorder) Unwrap() http.ResponseWriter` in `backend/middleware.go`, with a comment on why `http.ResponseController` needs it. Add `TestFlushReachesClientThroughMiddleware` in `middleware_test.go`:
   - The handler runs behind the full stack (`logRequests`, `recoverPanics`, `rejectCrossSite`, sessions).
   - It writes `"first"`, flushes with `http.NewResponseController(w).Flush()`, then waits on a channel.
   - The client must read `"first"` before the test releases the handler.

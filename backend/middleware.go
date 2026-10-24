@@ -69,6 +69,13 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+// Unwrap returns the wrapped ResponseWriter. Embedding an interface only
+// promotes that interface's methods, so a statusRecorder has no Flush or
+// SetWriteDeadline of its own even when the real writer does.
+// http.ResponseController looks for Unwrap and follows it down to the real
+// writer, so a handler can still stream with rc.Flush() (Go 1.20+).
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
+
 // rejectCrossSite turns away requests that another website could have sent
 // with this browser's session cookie (cross-site request forgery). The
 // cookie's SameSite=Lax setting can't do this alone: browsers ignore ports
