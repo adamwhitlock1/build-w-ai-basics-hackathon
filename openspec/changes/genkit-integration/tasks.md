@@ -33,7 +33,7 @@
   - records requests (`Requests()`).
 
   The default model is the scripted one. (As built, `New` returns `(*aikit.Kit, *aitest.Model)`: `Requests()` lives on the Model, which the Kit can't reach.) Add a `TestScriptedModel` covering each reply kind and request recording. Verify with `go test ./internal/aikit/aitest/`.
-- [ ] 3.4 Add the error translation `aikit.upstream(err) error`. An `*openai.Error` (found with `errors.As`) becomes `llm.UpstreamFor(StatusCode, err)`. Deadline and cancellation map as today. A Genkit `status.Error` with no SDK error maps by status. Anything else becomes "couldn't reach OpenRouter". Add a table test, including an error from the real compat_oai plugin against an `httptest` server returning 401, 402, 429 and 500 through the base URL. Verify with `go test ./internal/aikit/`.
+- [x] 3.4 Add the error translation `aikit.upstream(err) error`. An `*openai.Error` (found with `errors.As`) becomes `llm.UpstreamFor(StatusCode, err)`. Deadline and cancellation map as today. A Genkit `status.Error` with no SDK error maps by status. Anything else becomes "couldn't reach OpenRouter". Add a table test, including an error from the real compat_oai plugin against an `httptest` server returning 401, 402, 429 and 500 through the base URL. Verify with `go test ./internal/aikit/`.
 
 ## 4. The briefing on Genkit
 
