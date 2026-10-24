@@ -14,11 +14,26 @@ import (
 	"porchlight/internal/widgets"
 )
 
+// deps is everything routes needs to build the API. main fills it once;
+// tests fill it with fakes for the LLM (Planner, Curator and Briefer), the
+// search sources and the calendar fetcher. Named fields keep call sites
+// readable where a long list of positional arguments would not.
+type deps struct {
+	Logger    *slog.Logger
+	Store     *store.Store
+	Sessions  *scs.SessionManager
+	Planner   widgets.Planner
+	Curator   widgets.Curator
+	Briefer   widgets.Briefer
+	Sources   widgets.SourceFinder
+	Calendars widgets.CalendarFetcher
+}
+
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
-// session and logging middleware. Tests call it with fakes for the LLM
-// (planner, curator and briefer), the search sources and the calendar
-// fetcher.
-func routes(logger *slog.Logger, st *store.Store, sessions *scs.SessionManager, planner widgets.Planner, curator widgets.Curator, briefer widgets.Briefer, srcs widgets.SourceFinder, calendars widgets.CalendarFetcher) http.Handler {
+// session and logging middleware.
+func routes(d deps) http.Handler {
+	logger, st, sessions, srcs := d.Logger, d.Store, d.Sessions, d.Sources
+	planner, curator, briefer, calendars := d.Planner, d.Curator, d.Briefer, d.Calendars
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
 	layoutHandler := layout.NewHandler(st, logger)

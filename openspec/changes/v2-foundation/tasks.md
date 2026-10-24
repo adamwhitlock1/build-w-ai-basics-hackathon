@@ -1,6 +1,6 @@
 ## 1. Dependencies struct
 
-- [ ] 1.1 Add `type deps struct { Logger, Store, Sessions, Planner, Curator, Briefer, Sources, Calendars }` in `backend/routes.go` and change `routes(...)` to `routes(d deps)`. Fill it once in `main.go`, and update only the server-building helper at `routes_test.go:153`. Verify with `make test`. `git diff -- '*_test.go'` must show only that helper changed. Commit.
+- [x] 1.1 Add `type deps struct { Logger, Store, Sessions, Planner, Curator, Briefer, Sources, Calendars }` in `backend/routes.go` and change `routes(...)` to `routes(d deps)`. Fill it once in `main.go`, and update only the server-building helper at `routes_test.go:153`. Verify with `make test`. `git diff -- '*_test.go'` must show only that helper changed. Commit.
 
 ## 2. Middleware
 
