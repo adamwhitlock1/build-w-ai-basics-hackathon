@@ -26,6 +26,7 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/joho/godotenv"
 
+	"porchlight/internal/aikit"
 	"porchlight/internal/auth"
 	"porchlight/internal/calendar"
 	"porchlight/internal/llm"
@@ -56,6 +57,18 @@ type config struct {
 	openRouterBaseURL string
 	braveKey          string
 	braveBaseURL      string
+	// genkitModel is the Genkit model name the Genkit briefer uses; empty
+	// means "openrouter/" + openRouterModel.
+	genkitModel string
+	// MiniMax's Anthropic-compatible API, for the owner's own use only.
+	// Without a key it isn't registered at all.
+	miniMaxKey     string
+	miniMaxBaseURL string
+	miniMaxModel   string
+	// briefer picks the morning briefing's implementation: "genkit" or
+	// "legacy" (internal/llm). A temporary switch, until the agent work has
+	// run on Genkit for a while.
+	briefer string
 	// devFixtures makes the server answer the demo family's fixture
 	// calendar links itself (see calendar.FixtureFetcher). Local
 	// development only: PORCHLIGHT_DEV_FIXTURES=1.
@@ -78,6 +91,10 @@ func loadConfig() (config, error) {
 		openRouterBaseURL: envOr("OPENROUTER_BASE_URL", llm.DefaultBaseURL),
 		braveKey:          os.Getenv("BRAVE_API_KEY"),
 		braveBaseURL:      envOr("BRAVE_BASE_URL", sources.DefaultBraveBaseURL),
+		genkitModel:       os.Getenv("GENKIT_MODEL"),
+		miniMaxKey:        os.Getenv("MINIMAX_API_KEY"),
+		miniMaxBaseURL:    envOr("MINIMAX_BASE_URL", defaultMiniMaxBaseURL),
+		miniMaxModel:      envOr("MINIMAX_MODEL", aikit.DefaultMiniMaxModel),
 		devFixtures:       os.Getenv("PORCHLIGHT_DEV_FIXTURES") == "1",
 	}
 
@@ -92,7 +109,28 @@ func loadConfig() (config, error) {
 		return config{}, fmt.Errorf("missing %s: copy backend/.env.example to backend/.env and fill in your keys",
 			strings.Join(missing, " and "))
 	}
+
+	briefer, err := parseBriefer(os.Getenv("PORCHLIGHT_BRIEFER"))
+	if err != nil {
+		return config{}, err
+	}
+	cfg.briefer = briefer
 	return cfg, nil
+}
+
+// defaultMiniMaxBaseURL is MiniMax's Anthropic-compatible API root.
+const defaultMiniMaxBaseURL = "https://api.minimax.io/anthropic"
+
+// parseBriefer checks PORCHLIGHT_BRIEFER: "genkit" (also the default when
+// it's empty) or "legacy".
+func parseBriefer(v string) (string, error) {
+	switch v {
+	case "", "genkit":
+		return "genkit", nil
+	case "legacy":
+		return "legacy", nil
+	}
+	return "", fmt.Errorf("PORCHLIGHT_BRIEFER is %q; set it to genkit (the default) or legacy in backend/.env", v)
 }
 
 // envOr returns the environment variable key, or fallback if it is empty.
@@ -123,6 +161,26 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 
+	// Genkit's reflection server (for the Dev UI) runs any flow without a
+	// login. It starts only with these set: fine on a laptop, never on the
+	// homelab.
+	if os.Getenv("GENKIT_ENV") == "dev" || os.Getenv("GENKIT_REFLECTION_ENABLED") != "" {
+		logger.Warn("Genkit's reflection server is on: it runs AI flows without a login; never enable it in a deployment",
+			"GENKIT_ENV", os.Getenv("GENKIT_ENV"), "GENKIT_REFLECTION_ENABLED", os.Getenv("GENKIT_REFLECTION_ENABLED"))
+	}
+	kit, err := aikit.New(ctx, aikit.Config{
+		OpenRouterKey:     cfg.openRouterKey,
+		OpenRouterBaseURL: cfg.openRouterBaseURL,
+		OpenRouterModel:   cfg.openRouterModel,
+		DefaultModel:      cfg.genkitModel,
+		MiniMaxKey:        cfg.miniMaxKey,
+		MiniMaxBaseURL:    cfg.miniMaxBaseURL,
+		MiniMaxModel:      cfg.miniMaxModel,
+	})
+	if err != nil {
+		return err
+	}
+
 	// The Brave key is not checked at startup: every Brave call costs credit.
 	brave := sources.NewBraveClient(cfg.braveKey, cfg.braveBaseURL)
 	// Open-Meteo is free and needs no key.
@@ -148,6 +206,13 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	usageRecorder := usage.New(st, logger, 256)
 	go usageRecorder.Run(ctx)
 	llmClient.SetUsageRecorder(usageRecorder)
+	kit.SetUsageRecorder(usageRecorder)
+
+	// widgets.Briefer is an interface, so either implementation fits.
+	var briefer widgets.Briefer = aikit.NewBriefer(kit)
+	if cfg.briefer == "legacy" {
+		briefer = llmClient
+	}
 
 	// The Today card fetches calendars through this. With dev fixtures on,
 	// links on calendar.FixtureHost are answered in-process and every other
@@ -165,7 +230,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			Sessions:  sessions,
 			Planner:   llmClient,
 			Curator:   llmClient,
-			Briefer:   llmClient,
+			Briefer:   briefer,
 			Sources:   registry,
 			Calendars: calendars,
 		}),
@@ -186,7 +251,8 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
-	logger.Info("porchlight API listening", "addr", "http://"+ln.Addr().String(), "model", cfg.openRouterModel, "db", cfg.dbPath)
+	logger.Info("porchlight API listening", "addr", "http://"+ln.Addr().String(), "model", cfg.openRouterModel,
+		"briefer", cfg.briefer, "genkit_model", kit.DefaultModel(), "db", cfg.dbPath)
 
 	select {
 	case err := <-serveErr:

@@ -59,13 +59,14 @@
 
   Verify with `go test ./internal/aikit/`.
   - As built: 12 scenarios. The Genkit briefer also runs through the real OpenRouter plugin against the same fake, and its outcomes match too. The one allowed difference is the JSON parser's own wording inside the correction message after an unreadable reply (`encoding/json` and Genkit describe bad JSON differently).
-- [ ] 4.3 Wire it in `main.go`:
+- [x] 4.3 Wire it in `main.go`:
   - build the Kit after the preflight checks;
   - read `PORCHLIGHT_BRIEFER` (`genkit` by default, or `legacy`; anything else exits with a clear message) and pass the chosen briefer in `deps.Briefer`;
   - give the Kit the same usage recorder;
   - log a warning when `GENKIT_ENV=dev` or `GENKIT_REFLECTION_ENABLED` is set.
 
   Add the new variables, commented, to `backend/.env.example`. Verify with `make check`, and by starting the server with each `PORCHLIGHT_BRIEFER` value and with an invalid one.
+  - Result (2026-10-24): unset and `genkit` start with `briefer=genkit`, and `legacy` with `briefer=legacy`; all three shut down cleanly on SIGTERM. `bogus` exits 1 with `PORCHLIGHT_BRIEFER is "bogus"; set it to genkit (the default) or legacy`. `GENKIT_ENV=dev` logs the reflection warning, and the reflection server listens on 127.0.0.1:3100 only. `TestParseBriefer` covers the parsing.
 
 ## 5. Tooling and docs
 
