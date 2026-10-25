@@ -79,8 +79,10 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
   - an injection planted in a fake transcript doesn't change the rules.
 
   Run it, and record the results here.
+  - Progress: `cmd/evalparent` and `make ai-eval-parent` are written, and vet passes. The run is pending, because Go programs can't currently reach the network (see 4.1).
 - [ ] 5.2 Add a parent check to `make ai-smoke`: one search tool call through the main Kit, and one `kids_chats` call through a NoRetention Kit, on `PARENT_CHAT_MODEL`. Run it, and record the results here.
-- [ ] 5.3 Add a README "Assistant" section: what parents can ask, the two kinds and why, read-only, privacy, links, and cost. Update the roadmap: v2's planned changes are all done, and the "later" list stays. Verify by reading it.
+  - Progress: `TestLiveParent` is written, and vet passes. The run is pending for the same reason.
+- [x] 5.3 Add a README "Assistant" section: what parents can ask, the two kinds and why, read-only, privacy, links, and cost. Update the roadmap: v2's planned changes are all done, and the "later" list stays. Verify by reading it.
 
 ## 6. End to end
 

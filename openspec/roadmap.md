@@ -108,4 +108,6 @@ Each item is one OpenSpec change, each shippable and testable on its own. Change
 5. **`agent-tools`:** the kid agent's tools: weather, my day, my picks, and kid-safe search (Explore only, at most 2 per message). Kids and parents see each tool use in the chat.
 6. **`parent-agent`:** the parent assistant, its adult tools (web research, …), and tools for reviewing the kids' chats.
 
+All six v2 changes are planned and built (see `openspec/changes/archive/`).
+
 Later, as they become useful: phone push for flags, streaming polish, cost ceilings, long-term agent memory, homework photos, and the unbuilt hackathon items above.
