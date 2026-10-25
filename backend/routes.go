@@ -3,6 +3,8 @@ package main
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/alexedwards/scs/v2"
 
@@ -13,6 +15,7 @@ import (
 	"kinlight/internal/layout"
 	"kinlight/internal/respond"
 	"kinlight/internal/store"
+	"kinlight/internal/web"
 	"kinlight/internal/widgets"
 )
 
@@ -35,6 +38,16 @@ type deps struct {
 	// Assistant is the parents' Assistant. nil means it's off: routes
 	// builds a Service with no agents.
 	Assistant *assistant.Service
+
+	// PublicURL is the https:// address people use; set, it's production
+	// mode (secure cookies, security headers, closed sign-up). Empty is
+	// development.
+	PublicURL string
+	// WebDir is the built frontend to serve beside the API; empty serves
+	// only the API.
+	WebDir string
+	// TrustCloudflare takes the client's address from CF-Connecting-IP.
+	TrustCloudflare bool
 }
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
@@ -42,8 +55,16 @@ type deps struct {
 func routes(d deps) http.Handler {
 	logger, st, sessions, srcs := d.Logger, d.Store, d.Sessions, d.Sources
 	planner, curator, briefer, calendars := d.Planner, d.Curator, d.Briefer, d.Calendars
+	// In production the session cookie only travels over HTTPS.
+	sessions.Cookie.Secure = d.PublicURL != ""
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
+	if d.PublicURL != "" {
+		familyHandler.CloseSignupAfterFirstFamily()
+	}
+	familyHandler.ThrottleLogins(auth.NewThrottle(), func(r *http.Request) string {
+		return auth.ClientIP(r, d.TrustCloudflare)
+	})
 	layoutHandler := layout.NewHandler(st, logger)
 	// New widgets go onto the member's saved layout, and deleted ones come
 	// off it, through layoutHandler.
@@ -93,6 +114,7 @@ func routes(d deps) http.Handler {
 
 	// Public.
 	mux.HandleFunc("GET /api/health", handleHealth)
+	mux.HandleFunc("GET /api/signup", familyHandler.SignupState)
 	mux.HandleFunc("POST /api/signup", familyHandler.Signup)
 	mux.HandleFunc("POST /api/login", familyHandler.Login)
 	mux.HandleFunc("POST /api/logout", familyHandler.Logout)
@@ -167,7 +189,30 @@ func routes(d deps) http.Handler {
 	// The first wrapper listed runs first: log, recover from panics, turn
 	// away forged cross-site requests, then load the session (and save it as
 	// the response is written).
-	return logRequests(logger, recoverPanics(logger, rejectCrossSite(sessions.LoadAndSave(mux))))
+	// The built web app, beside the API: the lowest-priority pattern, with
+	// unknown GET /api/ paths kept to the API's JSON 404 rather than the page.
+	if d.WebDir != "" {
+		mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) {
+			respond.Error(w, http.StatusNotFound, "There's nothing at that address.", "")
+		})
+		mux.Handle("GET /", web.App(d.WebDir))
+	}
+
+	var handler http.Handler = rejectCrossSite(sessions.LoadAndSave(mux))
+	if d.PublicURL != "" {
+		// The page's inline scripts are allowed by hash, so the policy
+		// follows whatever index.html the server actually serves.
+		var hashes []string
+		if d.WebDir != "" {
+			if page, err := os.ReadFile(filepath.Join(d.WebDir, "index.html")); err == nil {
+				hashes = web.InlineScriptHashes(page)
+			} else {
+				logger.Warn("can't read the web app's index.html for its script hashes", "err", err)
+			}
+		}
+		handler = web.SecurityHeaders(hashes, handler)
+	}
+	return logRequests(logger, recoverPanics(logger, handler))
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {

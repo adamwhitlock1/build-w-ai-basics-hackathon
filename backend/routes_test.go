@@ -143,6 +143,16 @@ func startServerWith(t *testing.T, dbPath string, briefer widgets.Briefer) (*htt
 // calendar feeds.
 func startServerWithAll(t *testing.T, dbPath string, briefer widgets.Briefer, calendars widgets.CalendarFetcher) (*httptest.Server, *store.Store) {
 	t.Helper()
+	return startServerOpts(t, dbPath, func(d *deps) {
+		d.Briefer = briefer
+		d.Calendars = calendars
+	})
+}
+
+// startServerOpts starts the server on dbPath with the test fakes, after
+// set adjusts its deps (production mode, a web dir, and so on).
+func startServerOpts(t *testing.T, dbPath string, set func(*deps)) (*httptest.Server, *store.Store) {
+	t.Helper()
 	st, err := store.Open(context.Background(), dbPath)
 	if err != nil {
 		t.Fatal(err)
@@ -150,16 +160,20 @@ func startServerWithAll(t *testing.T, dbPath string, briefer widgets.Briefer, ca
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// A cleanup interval of 0 means no background goroutine to stop.
 	sessions := auth.NewSessionManager(sqlite3store.NewWithCleanupInterval(st.DB(), 0), logger)
-	srv := httptest.NewServer(routes(deps{
+	d := deps{
 		Logger:    logger,
 		Store:     st,
 		Sessions:  sessions,
 		Planner:   fakePlanner{},
 		Curator:   fakeCurator{},
-		Briefer:   briefer,
+		Briefer:   &countingBriefer{},
 		Sources:   sources.NewRegistry(fakeNews{}, fakeSource{}, fakeWeather{}),
-		Calendars: calendars,
-	}))
+		Calendars: fakeCalendars{},
+	}
+	if set != nil {
+		set(&d)
+	}
+	srv := httptest.NewServer(routes(d))
 	// Cleanups run last-in, first-out: the server stops before the store closes.
 	t.Cleanup(func() { st.Close() })
 	t.Cleanup(srv.Close)

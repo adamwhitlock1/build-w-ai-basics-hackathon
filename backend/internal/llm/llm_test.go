@@ -459,3 +459,17 @@ func TestStartupChecks(t *testing.T) {
 		}
 	})
 }
+
+// A deployment tells OpenRouter its real address.
+func TestNewClientForSite(t *testing.T) {
+	f := &fakeOpenRouter{t: t, replies: []reply{ok(validSpec)}}
+	srv := httptest.NewServer(f)
+	t.Cleanup(srv.Close)
+	client := llm.NewClientForSite("test-key", "test/model", srv.URL, "https://kinlight.example.test")
+	if _, err := client.PickWidgetSpec(context.Background(), "show me upcoming SpaceX launches", testCatalog, sources.Everyone, ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.headers[0].Get("HTTP-Referer"); got != "https://kinlight.example.test" {
+		t.Errorf("HTTP-Referer = %q, want the public URL", got)
+	}
+}

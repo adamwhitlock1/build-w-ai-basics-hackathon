@@ -150,6 +150,8 @@ Apply the identity in `brand/` to the app, then run it for the family on the hom
    - the kids' zero-retention key;
    - the family's real accounts.
 
+All four series-2 changes are done (see `openspec/changes/archive/`). The deployment steps are in `docs/deploy.md`.
+
 **Later, from the lantern doc:**
 - "Off you go" needs morning steps, which aren't built (the chore checklist was never built).
 - "Who's home" needs check-in presence.

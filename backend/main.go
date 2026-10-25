@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -53,6 +54,10 @@ func main() {
 
 // config is everything the server reads from the environment.
 type config struct {
+	// host is the address the server listens on: 127.0.0.1 (this machine
+	// only) unless KINLIGHT_HOST says otherwise, as the container image
+	// does (0.0.0.0) so the tunnel can reach it on its network.
+	host              string
 	port              string
 	dbPath            string
 	openRouterKey     string
@@ -88,6 +93,26 @@ type config struct {
 	// calendar links itself (see calendar.FixtureFetcher). Local
 	// development only: KINLIGHT_DEV_FIXTURES=1.
 	devFixtures bool
+	// publicURL is the https:// address people use, e.g.
+	// https://kinlight.codestuff.io. Setting it is production mode: secure
+	// cookies, security headers, closed sign-up, and no development
+	// settings. Empty is local development.
+	publicURL string
+	// webDir is the built frontend (frontend/dist) to serve beside the
+	// API; empty serves only the API, as in development.
+	webDir string
+	// trustCloudflare reads the client's address from Cloudflare's
+	// CF-Connecting-IP header, for login throttling. Only when a Cloudflare
+	// Tunnel is the only way in.
+	trustCloudflare bool
+}
+
+// siteURL is the address OpenRouter is told the app serves.
+func (c config) siteURL() string {
+	if c.publicURL != "" {
+		return c.publicURL
+	}
+	return llm.DefaultSiteURL
 }
 
 // loadConfig reads backend/.env (if present) and then the environment.
@@ -102,6 +127,7 @@ func loadConfig() (config, error) {
 	}
 
 	cfg := config{
+		host:               envOr("KINLIGHT_HOST", "127.0.0.1"),
 		port:               envOr("PORT", "8080"),
 		dbPath:             envOr("DB_PATH", "kinlight.db"),
 		openRouterKey:      os.Getenv("OPENROUTER_API_KEY"),
@@ -119,6 +145,18 @@ func loadConfig() (config, error) {
 		kidsAllowRetention: os.Getenv("KINLIGHT_KIDS_ALLOW_RETENTION") == "1",
 		parentChatModel:    envOr("PARENT_CHAT_MODEL", defaultParentChatModel),
 		devFixtures:        os.Getenv("KINLIGHT_DEV_FIXTURES") == "1",
+		webDir:             os.Getenv("KINLIGHT_WEB_DIR"),
+		trustCloudflare:    os.Getenv("KINLIGHT_TRUST_CLOUDFLARE") == "1",
+	}
+	publicURL, err := parsePublicURL(os.Getenv("KINLIGHT_PUBLIC_URL"))
+	if err != nil {
+		return config{}, err
+	}
+	cfg.publicURL = publicURL
+	if publicURL != "" {
+		if on := devOnlySettings(os.Getenv); len(on) > 0 {
+			return config{}, fmt.Errorf("KINLIGHT_PUBLIC_URL is set (production), so these development-only settings must be off: %s", strings.Join(on, ", "))
+		}
 	}
 
 	var missing []string
@@ -167,6 +205,39 @@ func parseBriefer(v string) (string, error) {
 		return "legacy", nil
 	}
 	return "", fmt.Errorf("KINLIGHT_BRIEFER is %q; set it to genkit (the default) or legacy in backend/.env", v)
+}
+
+// parsePublicURL checks KINLIGHT_PUBLIC_URL: empty (development), or an
+// absolute https:// URL with no path, returned without a trailing slash.
+func parsePublicURL(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" {
+		return "", fmt.Errorf("KINLIGHT_PUBLIC_URL is %q; set it to the https:// address people use, with no path, e.g. https://kinlight.codestuff.io", raw)
+	}
+	return "https://" + u.Host, nil
+}
+
+// devOnlySettings lists the development-only settings that are on, by
+// name: none may be in production. getenv is os.Getenv, or a fake in tests.
+func devOnlySettings(getenv func(string) string) []string {
+	var on []string
+	if getenv("KINLIGHT_DEV_FIXTURES") == "1" {
+		on = append(on, "KINLIGHT_DEV_FIXTURES (fixture calendars)")
+	}
+	if getenv("KINLIGHT_KIDS_ALLOW_RETENTION") == "1" {
+		on = append(on, "KINLIGHT_KIDS_ALLOW_RETENTION (kid chat on retaining providers)")
+	}
+	if getenv("GENKIT_ENV") == "dev" {
+		on = append(on, "GENKIT_ENV=dev (Genkit's reflection server)")
+	}
+	if getenv("GENKIT_REFLECTION_ENABLED") != "" {
+		on = append(on, "GENKIT_REFLECTION_ENABLED (Genkit's reflection server)")
+	}
+	return on
 }
 
 // oldSettings are the settings renamed when Porchlight became Kinlight,
@@ -223,7 +294,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 
-	llmClient := llm.NewClient(cfg.openRouterKey, cfg.openRouterModel, cfg.openRouterBaseURL)
+	llmClient := llm.NewClientForSite(cfg.openRouterKey, cfg.openRouterModel, cfg.openRouterBaseURL, cfg.siteURL())
 	if err := preflight(ctx, logger, llmClient); err != nil {
 		return err
 	}
@@ -243,6 +314,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		MiniMaxKey:        cfg.miniMaxKey,
 		MiniMaxBaseURL:    cfg.miniMaxBaseURL,
 		MiniMaxModel:      cfg.miniMaxModel,
+		SiteURL:           cfg.siteURL(),
 	})
 	if err != nil {
 		return err
@@ -329,16 +401,19 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	srv := &http.Server{
 		Handler: routes(deps{
-			Logger:    logger,
-			Store:     st,
-			Sessions:  sessions,
-			Planner:   llmClient,
-			Curator:   llmClient,
-			Briefer:   briefer,
-			Sources:   registry,
-			Calendars: calendars,
-			Chat:      chatService,
-			Assistant: assistantService,
+			Logger:          logger,
+			Store:           st,
+			Sessions:        sessions,
+			Planner:         llmClient,
+			Curator:         llmClient,
+			Briefer:         briefer,
+			Sources:         registry,
+			Calendars:       calendars,
+			Chat:            chatService,
+			Assistant:       assistantService,
+			PublicURL:       cfg.publicURL,
+			WebDir:          cfg.webDir,
+			TrustCloudflare: cfg.trustCloudflare,
 		}),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,
@@ -350,7 +425,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	// Listening before serving surfaces "port already in use" right away.
-	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", cfg.port))
+	ln, err := net.Listen("tcp", net.JoinHostPort(cfg.host, cfg.port))
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
@@ -414,6 +489,7 @@ func buildKidAgent(ctx context.Context, logger *slog.Logger, cfg config) (*kidAg
 		OpenRouterBaseURL: cfg.openRouterBaseURL,
 		OpenRouterModel:   cfg.kidsChatModel,
 		NoRetention:       noRetention,
+		SiteURL:           cfg.siteURL(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("kid chat: %w", err)

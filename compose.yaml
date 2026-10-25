@@ -1,0 +1,39 @@
+# Kinlight on the homelab, for Coolify (see docs/deploy.md). Coolify lists
+# every ${…} below as an environment variable to fill in; the ones ending
+# in :? are required. No port is published: the Cloudflare Tunnel reaches
+# the service on Coolify's network, and nothing else should.
+services:
+  kinlight:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "8080"
+    volumes:
+      - kinlight-data:/data
+    environment:
+      # The address people use; it turns on production mode.
+      KINLIGHT_PUBLIC_URL: ${KINLIGHT_PUBLIC_URL:?the https:// address, e.g. https://kinlight.codestuff.io}
+      # 1 only when the Cloudflare Tunnel is the only way in.
+      KINLIGHT_TRUST_CLOUDFLARE: ${KINLIGHT_TRUST_CLOUDFLARE:-}
+      # AI and search.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      GENKIT_MODEL: ${GENKIT_MODEL:-}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:?}
+      # Kid chat and "About the kids": the kids' zero-retention key. Without
+      # it, kid chat stays off.
+      OPENROUTER_KIDS_API_KEY: ${OPENROUTER_KIDS_API_KEY:-}
+      KIDS_CHAT_MODEL: ${KIDS_CHAT_MODEL:-}
+      KIDS_SAFETY_MODEL: ${KIDS_SAFETY_MODEL:-}
+      PARENT_CHAT_MODEL: ${PARENT_CHAT_MODEL:-}
+      # Backups: Litestream to S3-compatible storage.
+      LITESTREAM_BUCKET: ${LITESTREAM_BUCKET:?the backup bucket}
+      LITESTREAM_PATH: ${LITESTREAM_PATH:-kinlight}
+      LITESTREAM_ENDPOINT: ${LITESTREAM_ENDPOINT:-}
+      LITESTREAM_REGION: ${LITESTREAM_REGION:-us-east-1}
+      LITESTREAM_FORCE_PATH_STYLE: ${LITESTREAM_FORCE_PATH_STYLE:-false}
+      LITESTREAM_ACCESS_KEY_ID: ${LITESTREAM_ACCESS_KEY_ID:?}
+      LITESTREAM_SECRET_ACCESS_KEY: ${LITESTREAM_SECRET_ACCESS_KEY:?}
+
+volumes:
+  kinlight-data:

@@ -268,3 +268,12 @@ func (s *Store) SetTheme(ctx context.Context, userID int64, theme string) (User,
 	}
 	return u, nil
 }
+
+// CountFamilies returns how many families there are.
+func (s *Store) CountFamilies(ctx context.Context) (int, error) {
+	var n int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM families`).Scan(&n); err != nil {
+		return 0, fmt.Errorf("count families: %w", err)
+	}
+	return n, nil
+}

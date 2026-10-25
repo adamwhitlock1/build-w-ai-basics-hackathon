@@ -49,6 +49,10 @@ type Config struct {
 	// zero-data-retention endpoints of providers that don't collect data.
 	// Kid chat runs only on a Kit with it set.
 	NoRetention bool
+
+	// SiteURL is the address OpenRouter is told the app serves; empty means
+	// llm.DefaultSiteURL (the Vite dev server).
+	SiteURL string
 }
 
 // Kit wraps a Genkit instance with Kinlight's choices: the default model,
@@ -76,6 +80,10 @@ func New(ctx context.Context, cfg Config) (kit *Kit, err error) {
 	if baseURL == "" {
 		baseURL = llm.DefaultBaseURL
 	}
+	siteURL := cfg.SiteURL
+	if siteURL == "" {
+		siteURL = llm.DefaultSiteURL
+	}
 	defaultModel := cfg.DefaultModel
 	if defaultModel == "" {
 		defaultModel = "openrouter/" + cfg.OpenRouterModel
@@ -85,7 +93,7 @@ func New(ctx context.Context, cfg Config) (kit *Kit, err error) {
 	// exactly as internal/llm does, so latency and cost don't change.
 	plugins := []api.Plugin{&openrouter.OpenRouter{
 		APIKey:  cfg.OpenRouterKey,
-		SiteURL: "http://localhost:5174",
+		SiteURL: siteURL,
 		AppName: "Kinlight",
 		Opts:    []option.RequestOption{option.WithBaseURL(strings.TrimRight(baseURL, "/") + "/"), option.WithMaxRetries(0)},
 	}}

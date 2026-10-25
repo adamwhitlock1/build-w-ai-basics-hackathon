@@ -64,9 +64,19 @@ type Client struct {
 	usage      UsageRecorder // nil: usage isn't recorded
 }
 
+// DefaultSiteURL is the site OpenRouter is told it's serving in
+// development: the Vite dev server.
+const DefaultSiteURL = "http://localhost:5174"
+
 // NewClient returns a Client that uses model through OpenRouter. An empty
 // baseURL means DefaultBaseURL; tests point it at a fake server.
 func NewClient(apiKey, model, baseURL string) *Client {
+	return NewClientForSite(apiKey, model, baseURL, DefaultSiteURL)
+}
+
+// NewClientForSite is NewClient for a deployment: OpenRouter's attribution
+// header names siteURL, the address people use.
+func NewClientForSite(apiKey, model, baseURL, siteURL string) *Client {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
@@ -78,7 +88,7 @@ func NewClient(apiKey, model, baseURL string) *Client {
 			base: http.DefaultTransport,
 			// Optional OpenRouter attribution headers.
 			headers: map[string]string{
-				"HTTP-Referer":       "http://localhost:5174",
+				"HTTP-Referer":       siteURL,
 				"X-Title":            "Kinlight",
 				"X-OpenRouter-Title": "Kinlight",
 			},
