@@ -184,15 +184,6 @@
     }
   }
 
-  /* Reduced motion: each moment fades instead of moving. */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
 }
 
 @layer base {
@@ -212,6 +203,18 @@
    * swing, flicker or spreading; the breathing light only brightens and
    * dims, without growing.
    */
+  /* Outside @theme, so it's always emitted: Tailwind keeps @theme keyframes
+     only when a utility it can see uses them, and these are only reached
+     through the variables below. */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     :root {
       --animate-kindle-glass: fade-in var(--duration-kindle) linear both;

@@ -28,6 +28,7 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
     - Moving to Reviews and back, which remounts the sidebar, doesn't.
     - **Not emulated:** the browser pane can emulate the color scheme but not `prefers-reduced-motion`. The built CSS maps all three kindle animations to the plain `fade-in` of the same length under that query.
     - **Fixed during apply:** React's StrictMode runs the `useState` initializer twice in development, and the second call found the flag already set. `takeKindle` now returns the same answer to calls in the same task.
+    - **Also fixed (found during 3.1):** the `fade-in` keyframes the reduced-motion fades use weren't in the build. Tailwind keeps `@theme` keyframes only when a utility it can see uses them, and these are reached through variables. Without the fix, reduced motion would have shown no kindle at all, rather than a fade. The keyframes now sit outside `@theme`, and the build has them.
 
 ## 3. Thinking
 
