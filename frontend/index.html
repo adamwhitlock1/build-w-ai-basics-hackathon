@@ -2,10 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#fafaf7" />
-    <title>Porchlight</title>
+    <!-- The browser bar's color: each theme's ground (src/theme.ts updates it
+         when a member picks a theme that differs from the device's). -->
+    <meta name="theme-color" content="#f7f2ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#18120e" media="(prefers-color-scheme: dark)" />
+    <title>Kinlight</title>
   </head>
   <body>
     <div id="root"></div>
