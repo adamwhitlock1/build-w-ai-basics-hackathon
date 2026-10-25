@@ -52,6 +52,7 @@ type Store interface {
 	GetInviteByToken(ctx context.Context, token string) (store.Invite, error)
 	AcceptInvite(ctx context.Context, token string, passwordHash []byte) (store.User, error)
 	SetTheme(ctx context.Context, userID int64, theme string) (store.User, error)
+	CountFamilies(ctx context.Context) (int, error)
 }
 
 // Sessions logs users in and out. *auth.Authenticator satisfies it.
@@ -65,6 +66,36 @@ type Handler struct {
 	store    Store
 	sessions Sessions
 	logger   *slog.Logger
+	// closedSignup closes sign-up once a family exists: in production, the
+	// public page can't create accounts, and members join by invite.
+	closedSignup bool
+}
+
+// CloseSignupAfterFirstFamily lets only the first account sign up; after
+// that, people join through an invite. For production.
+func (h *Handler) CloseSignupAfterFirstFamily() { h.closedSignup = true }
+
+// signupClosedMessage is the refusal, and what the sign-up page says.
+const signupClosedMessage = "Sign-up is closed. Ask a parent in your family for an invite."
+
+// signupOpen says whether a new account may sign up now.
+func (h *Handler) signupOpen(ctx context.Context) (bool, error) {
+	if !h.closedSignup {
+		return true, nil
+	}
+	n, err := h.store.CountFamilies(ctx)
+	return n == 0, err
+}
+
+// SignupState handles GET /api/signup: whether the sign-up page should
+// show its form, as {"open": true}.
+func (h *Handler) SignupState(w http.ResponseWriter, r *http.Request) {
+	open, err := h.signupOpen(r.Context())
+	if err != nil {
+		h.serverError(w, r, "check sign-up", err)
+		return
+	}
+	respond.JSON(w, http.StatusOK, map[string]bool{"open": open})
 }
 
 // NewHandler returns a Handler backed by st and sessions.
@@ -118,6 +149,14 @@ const credentialsExample = `Send JSON like {"email": "you@example.com", "passwor
 // Signup handles POST /api/signup: it creates a family, makes the new user
 // its admin, logs them in, and responds 201 with Me.
 func (h *Handler) Signup(w http.ResponseWriter, r *http.Request) {
+	switch open, err := h.signupOpen(r.Context()); {
+	case err != nil:
+		h.serverError(w, r, "check sign-up", err)
+		return
+	case !open:
+		respond.Error(w, http.StatusForbidden, signupClosedMessage, "")
+		return
+	}
 	var req credentials
 	if !decodeJSON(w, r, &req, credentialsExample) {
 		return

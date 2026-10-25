@@ -30,12 +30,18 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
 
 ## 3. Sign-up and login
 
-- [ ] 3.1 Close sign-up after the first family in production, with `GET /api/signup` and the sign-up page's closed state (design decision 4). Tests:
+- [x] 3.1 Close sign-up after the first family in production, with `GET /api/signup` and the sign-up page's closed state (design decision 4). Tests:
   - the first sign-up works and the second is refused in production;
   - both work in development;
   - `GET /api/signup` reports the state.
 
   Verify with `make check`, lint and build, and the closed page in the browser.
+  - Done.
+    - **Backend:** `store.CountFamilies`, plus `family.Handler.CloseSignupAfterFirstFamily`, which `routes` calls in production. `GET /api/signup` answers `{"open": …}`.
+    - **Tests:** in production the first sign-up works and the next gets 403 "Sign-up is closed. Ask a parent in your family for an invite."; in development two families sign up and it stays open.
+    - **The sign-up page** reads the state in its loader, and when it's closed shows "Joining Kinlight" with that sentence and a link to log in.
+    - **Checked in the browser:** the built binary in production mode, serving `frontend/dist` on a copy of the demo database. The closed page, fonts and theme all worked, with no CSP violations in the console, so the hashed theme script ran.
+    - `make check`, lint, build and `check:copy` pass.
 - [ ] 3.2 Add login throttling, with the client-address rule (design decision 5). Tests:
   - the sixth failure in 15 minutes is refused, even with the right password, and with the same message whether or not the email exists;
   - success clears the email's count;

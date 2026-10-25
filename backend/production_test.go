@@ -160,3 +160,33 @@ func TestNoWebDirServesOnlyTheAPI(t *testing.T) {
 		t.Errorf("/invite/abc without a web dir: %d, want 404", resp.StatusCode)
 	}
 }
+
+func TestSignupClosesAfterTheFirstFamilyInProduction(t *testing.T) {
+	type state struct {
+		Open bool `json:"open"`
+	}
+	t.Run("production", func(t *testing.T) {
+		srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), func(d *deps) { d.PublicURL = "https://kinlight.example.test" })
+		var s state
+		newClient(t, srv).do("GET", "/api/signup", nil, http.StatusOK, &s)
+		if !s.Open {
+			t.Fatal("an empty Kinlight reports sign-up closed")
+		}
+		newClient(t, srv).signup("maya@example.com")
+		newClient(t, srv).do("GET", "/api/signup", nil, http.StatusOK, &s)
+		if s.Open {
+			t.Error("sign-up still open after the first family")
+		}
+		newClient(t, srv).wantError("POST", "/api/signup", creds{"stranger@example.com", "correct horse"}, http.StatusForbidden, "Sign-up is closed. Ask a parent in your family for an invite.")
+	})
+	t.Run("development", func(t *testing.T) {
+		srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), nil)
+		newClient(t, srv).signup("maya@example.com")
+		newClient(t, srv).signup("sam@example.com")
+		var s state
+		newClient(t, srv).do("GET", "/api/signup", nil, http.StatusOK, &s)
+		if !s.Open {
+			t.Error("development reports sign-up closed")
+		}
+	})
+}

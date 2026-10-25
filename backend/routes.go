@@ -59,6 +59,9 @@ func routes(d deps) http.Handler {
 	sessions.Cookie.Secure = d.PublicURL != ""
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
+	if d.PublicURL != "" {
+		familyHandler.CloseSignupAfterFirstFamily()
+	}
 	layoutHandler := layout.NewHandler(st, logger)
 	// New widgets go onto the member's saved layout, and deleted ones come
 	// off it, through layoutHandler.
@@ -108,6 +111,7 @@ func routes(d deps) http.Handler {
 
 	// Public.
 	mux.HandleFunc("GET /api/health", handleHealth)
+	mux.HandleFunc("GET /api/signup", familyHandler.SignupState)
 	mux.HandleFunc("POST /api/signup", familyHandler.Signup)
 	mux.HandleFunc("POST /api/login", familyHandler.Login)
 	mux.HandleFunc("POST /api/logout", familyHandler.Logout)
