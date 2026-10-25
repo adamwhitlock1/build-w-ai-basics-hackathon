@@ -1,3 +1,4 @@
+import { ChoreChecklist, FamilyChoreProgress } from '../../chores/ChoreCards'
 import { useIsMutating } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react'
@@ -296,6 +297,8 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
       {/* Kids get the Chat card above their cards. It isn't one of the
           arranged cards, so it steps aside while arranging. */}
       {me && !me.user.isAdmin && !arranging && <ChatCard />}
+      {me && <ChoreChecklist key={me.user.id} viewer={me.user.id} subject={me.user.id} parent={me.user.isAdmin} />}
+      {me?.user.isAdmin && <FamilyChoreProgress viewer={me.user.id} />}
 
       {editor.focusRequest && (
         <div className="mb-6 max-w-2xl sm:mb-8">
