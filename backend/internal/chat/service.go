@@ -229,7 +229,12 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 	verdict := s.check(ctx, kid, c, kidMsg, turns(before), first)
 	if first {
 		title := verdict.Title
-		if title == "" {
+		switch {
+		case verdict.Flag:
+			// The kid sees their list of chats: nothing there should name
+			// what a worrying message was about.
+			title = NeutralTitle
+		case title == "":
 			title = fallbackTitle(text)
 		}
 		if err := s.store.SetConversationTitle(ctx, c.ID, title); err != nil {
@@ -315,6 +320,10 @@ func turns(msgs []store.ChatMessage) []aikit.Turn {
 	}
 	return out
 }
+
+// NeutralTitle is the title of a conversation whose first message the
+// safety check flagged, or couldn't check.
+const NeutralTitle = "A conversation"
 
 // maxTitleChars is the longest fallback title.
 const maxTitleChars = 60

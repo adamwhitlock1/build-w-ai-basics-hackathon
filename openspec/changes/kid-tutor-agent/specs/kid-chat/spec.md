@@ -75,11 +75,15 @@ The agent SHALL speak at the kid's age, using a younger persona for kids aged 12
 - **THEN** the change is refused and the birth year stays as the parent set it
 
 ### Requirement: Conversations are titled and kept
-Each conversation SHALL get a short title from its first message, and SHALL keep every message, the kid's and the agent's, with the time it was sent. Conversations SHALL be kept until a parent deletes them; kids SHALL NOT be able to delete or edit them. The agent SHALL see the conversation so far when replying, up to a limit, after which only the most recent messages are used.
+Each conversation SHALL get a short title from its first message; when the safety check flags that message (or couldn't check it), the title SHALL be the neutral "A conversation" instead, so nothing upsetting shows in the kid's list. Each conversation SHALL keep every message, the kid's and the agent's, with the time it was sent. Conversations SHALL be kept until a parent deletes them; kids SHALL NOT be able to delete or edit them. The agent SHALL see the conversation so far when replying, up to a limit, after which only the most recent messages are used.
 
 #### Scenario: A new conversation gets a title
 - **WHEN** a kid starts a conversation with "how do volcanoes form?"
 - **THEN** the conversation appears in their list with a short title such as "How volcanoes form"
+
+#### Scenario: A flagged first message gets a neutral title
+- **WHEN** a kid starts a conversation with a message the safety check flags as a possible crisis
+- **THEN** the conversation is titled "A conversation", not after what the message says
 
 #### Scenario: Coming back later
 - **WHEN** a kid opens a conversation from last week

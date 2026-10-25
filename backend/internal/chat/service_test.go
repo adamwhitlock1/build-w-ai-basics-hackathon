@@ -277,7 +277,7 @@ func TestKidChat(t *testing.T) {
 	t.Run("a crisis ends with the resources", func(t *testing.T) {
 		f := newFamily(t)
 		// The model mentions 988 itself; the resources are still added.
-		agent := &fakeAgent{verdict: aikit.Verdict{Flag: true, Category: aikit.CategorySelfHarm, Severity: "high", Crisis: true, Reason: "Said they don't want to be alive."},
+		agent := &fakeAgent{verdict: aikit.Verdict{Flag: true, Category: aikit.CategorySelfHarm, Severity: "high", Crisis: true, Reason: "Said they don't want to be alive.", Title: "Feelings of hopelessness"},
 			reply: "I'm really glad you told me. You could call 988."}
 		svc := newService(f, agent)
 		c, _ := svc.Start(ctx, f.kid, aikit.ModeExplore)
@@ -294,6 +294,9 @@ func TestKidChat(t *testing.T) {
 		crises, _ := f.st.UnreviewedCrises(ctx, f.kid.FamilyID)
 		if len(crises) != 1 || crises[0].Severity != "high" {
 			t.Errorf("crises = %+v, want one high-severity crisis flag", crises)
+		}
+		if tr, _ := svc.Get(ctx, f.kid, c.ID); tr.Conversation.Title != chat.NeutralTitle {
+			t.Errorf("title = %q, want the neutral title", tr.Conversation.Title)
 		}
 	})
 
@@ -313,8 +316,8 @@ func TestKidChat(t *testing.T) {
 		if len(queue) != 1 || queue[0].Category != aikit.CategoryCouldntCheck || queue[0].Severity != "low" {
 			t.Errorf("queue = %+v, want one low couldnt_check flag", queue)
 		}
-		if tr, _ := svc.Get(ctx, f.kid, c.ID); tr.Conversation.Title != "tell me about sharks" {
-			t.Errorf("title = %q, want the first message", tr.Conversation.Title)
+		if tr, _ := svc.Get(ctx, f.kid, c.ID); tr.Conversation.Title != chat.NeutralTitle {
+			t.Errorf("title = %q, want the neutral title for an unchecked message", tr.Conversation.Title)
 		}
 	})
 
