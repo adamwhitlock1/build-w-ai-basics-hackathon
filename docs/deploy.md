@@ -14,12 +14,24 @@ Before deploying a new version, you can check the image on a laptop with Docker:
 
 ## 1. A bucket for backups
 
-Any S3-compatible store works. Cloudflare R2 is the simplest, since you're already on Cloudflare:
+The backups go to Backblaze B2, through its S3-compatible API.
 
-1. **Create the bucket.** In the Cloudflare dashboard, open **R2 → Create bucket**, named for example `kinlight-backups`.
-2. **Create an API token.** Under **R2 → Manage API tokens**, create a token with **Object Read & Write** on that bucket only. Note the **Access Key ID**, the **Secret Access Key**, and the S3 endpoint, which looks like `https://<account id>.r2.cloudflarestorage.com`.
+1. **Create the bucket.** In the Backblaze web console, open **B2 Cloud Storage → Buckets → Create a Bucket**:
+   - **Name:** for example `kinlight-backups`. B2 bucket names are global, so add something of your own if it's taken.
+   - **Files in Bucket are:** **Private**.
+   - **Default Encryption:** **Enable** (server-side, B2-managed keys). It costs nothing and changes nothing for Litestream.
+   - **Object Lock:** leave it off.
+2. **Note the bucket's S3 endpoint.** It's shown under the bucket and looks like `s3.us-west-004.backblazeb2.com`. The part after `s3.` and before `.backblazeb2.com` is the bucket's region, here `us-west-004`. You need both.
+3. **Keep only the latest version of each file.** B2 keeps every version of every file by default, and "deleting" a file only hides it. Litestream deletes old backup files as it compacts them, so without this setting the bucket would grow forever. On the bucket, open **Lifecycle Settings** and choose **Keep only the last version of the file**.
+4. **Create an application key for this bucket only.** In **Application Keys → Add a New Application Key**:
+   - **Name:** `kinlight-litestream`;
+   - **Allow access to Bucket(s):** only `kinlight-backups`;
+   - **Type of Access:** **Read and Write**;
+   - leave the file-name prefix and duration empty.
 
-With Backblaze B2, AWS or another store, create a bucket and a key limited to it, and note its endpoint and region.
+   B2 shows the **keyID** and the **applicationKey** once: copy both now. The keyID is the access key ID, and the applicationKey is the secret access key.
+
+Don't use your account's master application key: a key limited to this bucket can't touch anything else if it leaks.
 
 ## 2. The app in Coolify
 
@@ -35,10 +47,11 @@ With Backblaze B2, AWS or another store, create a bucket and a key limited to it
    | `OPENROUTER_KIDS_API_KEY` | The kids' separate key (section 5). Empty keeps kid chat and "About the kids" off. |
    | `OPENROUTER_MODEL`, `GENKIT_MODEL`, `KIDS_CHAT_MODEL`, `KIDS_SAFETY_MODEL`, `PARENT_CHAT_MODEL` | Leave empty for the defaults in the README. |
    | `LITESTREAM_BUCKET` | The bucket's name. |
-   | `LITESTREAM_ENDPOINT` | The S3 endpoint, e.g. `https://<account id>.r2.cloudflarestorage.com`. Empty means AWS. |
-   | `LITESTREAM_REGION` | `auto` for R2, or your store's region. |
-   | `LITESTREAM_FORCE_PATH_STYLE` | `true` if your store needs path-style URLs (MinIO, SeaweedFS); otherwise `false`. |
-   | `LITESTREAM_ACCESS_KEY_ID`, `LITESTREAM_SECRET_ACCESS_KEY` | The bucket key from step 1. |
+   | `LITESTREAM_ENDPOINT` | The bucket's S3 endpoint with `https://`, e.g. `https://s3.us-west-004.backblazeb2.com`. |
+   | `LITESTREAM_REGION` | The region from that endpoint, e.g. `us-west-004`. It must match, or B2 refuses the requests. |
+   | `LITESTREAM_FORCE_PATH_STYLE` | `false`. B2 accepts the usual bucket-in-the-hostname requests. |
+   | `LITESTREAM_ACCESS_KEY_ID` | The application key's **keyID** from step 1. |
+   | `LITESTREAM_SECRET_ACCESS_KEY` | The application key's **applicationKey** from step 1. |
    | `LITESTREAM_PATH` | Leave as `kinlight`. It's the folder inside the bucket. |
 
    Mark the keys as secrets in Coolify so they don't show in its logs.
@@ -48,6 +61,13 @@ With Backblaze B2, AWS or another store, create a bucket and a key limited to it
 **What the log should show:** "kinlight API listening", Litestream starting replication, and, on a first run, "no database … restoring from the backup if there is one". If it says the database is NOT being backed up, `LITESTREAM_BUCKET` is empty.
 
 **If it refuses to start**, the log says why: a development setting in production, a non-`https` public URL, or a key OpenRouter rejected.
+
+**If Litestream can't reach B2,** its lines in the log name the problem:
+- **"AuthorizationHeaderMalformed" or a signature error:** `LITESTREAM_REGION` doesn't match the endpoint.
+- **"AccessDenied":** the key isn't allowed on this bucket, or it's read-only.
+- **"NoSuchBucket":** `LITESTREAM_BUCKET` doesn't match the bucket's name.
+
+The server keeps running either way, but nothing is backed up until it's fixed. You can check in the B2 console that files appear under `kinlight/` within a minute of the first sign-up.
 
 ## 3. The Cloudflare Tunnel
 
