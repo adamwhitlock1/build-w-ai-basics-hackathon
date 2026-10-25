@@ -167,8 +167,11 @@ export interface BriefingWidget extends Freshness {
 }
 
 /** Response of GET /api/me (and of signup, login, create-family and accepting an invite). */
+/** A member's theme: follow the device, Daybreak, or Porch light. */
+export type Theme = 'auto' | 'light' | 'dark'
+
 export interface Me {
-  user: { id: number; email: string; isAdmin: boolean }
+  user: { id: number; email: string; isAdmin: boolean; theme: Theme }
   family: { id: number; name: string }
   /** True until the create-family intro is done (the family has no name yet). */
   needsFamilySetup: boolean

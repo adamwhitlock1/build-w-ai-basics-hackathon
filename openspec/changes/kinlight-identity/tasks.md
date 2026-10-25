@@ -78,11 +78,20 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 
   Verify with `make check`.
   - Done: `store.User.Theme` comes with every user load, so the session's user carries it. A store test covers the default, saving, another member, a refused value and a missing user. `TestTheme` covers the routes, and `/api/me/theme` is in the login-required list. `TestAcceptInvite` compares the whole `Me`, so it now expects `auto`.
-- [ ] 4.2 Add the frontend theme module (apply `data-theme`, theme-color and the `localStorage` cache on every `me.theme`, and clear the cache on logout), the pre-paint script in `index.html`, and the Theme switch in the sidebar footer (design decision 6). Verify in the browser:
+- [x] 4.2 Add the frontend theme module (apply `data-theme`, theme-color and the `localStorage` cache on every `me.theme`, and clear the cache on logout), the pre-paint script in `index.html`, and the Theme switch in the sidebar footer (design decision 6). Verify in the browser:
   - choosing Porch light persists across a reload with no flash;
   - Automatic follows an emulated dark/light color scheme without a reload;
   - a failed save reverts and shows an error;
   - signing in as another member applies their theme.
+  - Done (2026-10-25), on the demo with the device emulated light or dark:
+    - Choosing Porch light saved `dark`, and a reload on a light device stays Porch light.
+    - The pre-paint script is the only blocking script in `<head>`. Run on its own, it resolves all five cases (each stored choice, and none stored, against each device scheme) to the right theme.
+    - On Automatic, the page followed the device from light to dark and back without a reload.
+    - With saving made to fail, the switch went back to Porch light and said "Your theme wasn't saved. Try again in a moment."
+    - Logging out forgets the choice: the sign-in page follows the device.
+    - Signing in as Sam (Automatic) and then Maya (Porch light), without reloading, applied each one's theme.
+  - Bug found and fixed: signing in didn't apply a member's saved theme until a reload. `startSession` removed the cached `me` query before setting the new one, so the root, which applies the theme, kept watching the removed query. `startSession` now overwrites `me` in place, as `endSession` already did.
+  - The sidebar footer now shows at every width, with the switch. Its "Log out" is wide-screen only, since narrow screens have it in the top strip.
 
 ## 5. Kids by name
 

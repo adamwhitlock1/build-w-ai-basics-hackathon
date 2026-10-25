@@ -11,6 +11,19 @@
     <meta name="theme-color" content="#f7f2ea" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#18120e" media="(prefers-color-scheme: dark)" />
     <title>Kinlight</title>
+    <script>
+      // Before the first paint: show the theme this device last showed the
+      // member (src/theme.ts remembers it), so the page never flashes the
+      // other one. "auto" follows the device.
+      ;(function () {
+        var theme = 'auto'
+        try {
+          theme = localStorage.getItem('kinlight.theme') || 'auto'
+        } catch (e) {}
+        var dark = theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
