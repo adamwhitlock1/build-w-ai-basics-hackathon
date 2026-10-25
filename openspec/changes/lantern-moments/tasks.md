@@ -47,11 +47,16 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 ## 4. Light on cards
 
-- [ ] 4.1 Add `LightProvider` and `useLight` at the root (design decision 5), with thinking, arrival and briefing claims wired. Verify in the browser:
+- [x] 4.1 Add `LightProvider` and `useLight` at the root (design decision 5), with thinking, arrival and briefing claims wired. Verify in the browser:
   - before noon, the briefing is lit when nothing else is;
   - while the Assistant writes, nothing else glows at full strength.
 
   Test the morning case by overriding the clock in devtools if it's after noon.
+  - Done (2026-10-25). With the page's clock set to 8 am:
+    - The briefing read "Good morning, Maya", and its top edge was fully lit.
+    - Describing a card (held by a patched `fetch`) moved the glow to the breathing light, and the briefing's edge went to 0.
+    - When the request ended, the briefing took the light back.
+  - **Changed from the design:** the claims live in a module-level store read with `useSyncExternalStore`, not in a `LightProvider` component. It's the same single source of truth, with nothing to wrap the app in. Every breathing light claims `thinking`. One that doesn't hold the glow shows its light at half strength, without the glow.
 - [ ] 4.2 Add the arrival (design decision 6): the card's catch, the claim and the header lantern's swing. Remove `widget-in` and the amber ring. Verify:
   - describing a card catches it, swings the lantern, and the card keeps focus;
   - refreshing one card catches only that card;

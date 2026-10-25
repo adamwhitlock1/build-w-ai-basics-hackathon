@@ -3,6 +3,8 @@ import type { BriefingUse } from '../api/client'
 import { useBriefing, useFamilyMember, useMe, usePageOwner, useShowKidSafe } from '../api/hooks'
 import { nameFor } from '../family/people'
 import { LoadError, MissingNudge } from './CuratedWidgetCard'
+import { isMorning } from '../motion/light'
+import { useLight } from '../motion/useLight'
 import { useNow } from './updatedAgo'
 import { WidgetCard } from './WidgetCard'
 
@@ -67,6 +69,9 @@ export function BriefingWidget() {
 
   const written = data && !nothingYet && data.text ? data : null
   const uses = written?.uses.map((use) => USE_LABELS[use]) ?? []
+  // In the morning, a written briefing is the screen's lit thing, unless
+  // the AI is working or a card just arrived.
+  const lit = useLight('briefing', !!written && isMorning(new Date(now)))
 
   return (
     <WidgetCard
@@ -77,6 +82,7 @@ export function BriefingWidget() {
       notice={notice}
       footerNote={uses.length > 0 ? `From ${your} ${list.format(uses)}` : undefined}
       updatedAt={written?.updatedAt}
+      lit={lit}
       headerAction={
         // Always mounted, so screen readers hear it when the text changes.
         <span role="status" className="sr-only">

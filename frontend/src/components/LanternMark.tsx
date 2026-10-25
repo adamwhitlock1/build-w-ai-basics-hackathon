@@ -11,6 +11,8 @@ interface LanternMarkProps {
   kindling?: boolean
   /** Thinking: the light brightens and settles, on a loop. */
   breathing?: boolean
+  /** Not the screen's one lit thing: the light shows at half strength, without its glow. */
+  dim?: boolean
   /** Swing on the ring and settle; change `swingKey` to swing again. */
   swingKey?: number
   /** Marks the header lantern, where the dusk spreads from. */
@@ -23,8 +25,8 @@ const CAP = 'M32 10.5 L18 21 L46 21 Z'
 const AROUND_GLOW = { transformBox: 'view-box', transformOrigin: '32px 34.5px' } as const
 const AROUND_RING = { transformBox: 'view-box', transformOrigin: '32px 6.5px' } as const
 
-export function LanternMark({ className, kindling, breathing, swingKey, header }: LanternMarkProps) {
-  const glow = kindling ? 'animate-kindle-glow' : breathing ? 'animate-breathe-glow' : ''
+export function LanternMark({ className, kindling, breathing, dim, swingKey, header }: LanternMarkProps) {
+  const glow = dim ? 'opacity-0' : kindling ? 'animate-kindle-glow' : breathing ? 'animate-breathe-glow' : ''
   const glass = kindling ? 'animate-kindle-glass' : breathing ? 'animate-breathe' : ''
   const flame = kindling ? 'animate-kindle-flame' : breathing ? 'animate-breathe' : ''
   return (
@@ -47,8 +49,10 @@ export function LanternMark({ className, kindling, breathing, swingKey, header }
         <rect x="19.5" y="20.5" width="25" height="4" rx="1.6" fill="currentColor" />
         {/* The pane before it's lit, then the light in it. */}
         <path d={GLASS} fill="currentColor" opacity="0.18" />
-        <path d={GLASS} fill="var(--color-accent)" className={glass} />
-        <ellipse cx="32" cy="37" rx="3.4" ry="5.4" fill="var(--color-glass-core)" className={flame} />
+        <g opacity={dim ? 0.5 : undefined}>
+          <path d={GLASS} fill="var(--color-accent)" className={glass} />
+          <ellipse cx="32" cy="37" rx="3.4" ry="5.4" fill="var(--color-glass-core)" className={flame} />
+        </g>
         <path d={`${GLASS} M32 24.5 V45`} fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
         <rect x="24.5" y="44.5" width="15" height="4" rx="1.6" fill="currentColor" />
         <rect x="28.5" y="48.5" width="7" height="3" rx="1.2" fill="currentColor" />

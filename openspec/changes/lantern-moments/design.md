@@ -75,6 +75,8 @@ Components without the glow still show their words, and their light at the reduc
 
 *Alternative:* each component decides alone. That can't keep the rule when two things glow on one screen. Rejected.
 
+*Revised during apply:* the claims live in a module-level store (`motion/useLight.ts`) read with `useSyncExternalStore`, rather than in a `LightProvider` component's state. Every component on the screen shares the one module, so there's nothing to wrap, and only components whose answer changes re-render.
+
 ### 6. A card arriving
 
 `WidgetCard` remembers when it mounted and the `updatedAt` it last saw. The pure function `arrived(prev, next, mountedAt)` says a card arrived when:

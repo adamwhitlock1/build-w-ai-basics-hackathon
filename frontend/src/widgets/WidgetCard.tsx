@@ -20,6 +20,11 @@ interface WidgetCardProps {
   title?: string
   /** Just arrived: amber border plus a soft fade-and-slide in. */
   fresh?: boolean
+  /**
+   * The screen's one lit thing (useLight): the card's top edge shows full
+   * light. Without it, the edge shows how fresh the card is.
+   */
+  lit?: boolean
   /** A small control beside the heading, such as a refresh button. */
   headerAction?: ReactNode
   /** Show the "Kid-safe" marker by the heading (see useShowKidSafe). */
@@ -67,6 +72,7 @@ export function WidgetCard({
   widget,
   title,
   fresh = false,
+  lit = false,
   headerAction,
   showKidSafe = false,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
@@ -92,10 +98,11 @@ export function WidgetCard({
       ref={ref}
       tabIndex={-1}
       // @container lets renderers adapt to the card's width, not the window's.
-      className={`@container flex flex-col rounded-3xl border bg-surface p-6 shadow-card transition-[border-color,box-shadow] duration-1000 focus:outline-none sm:p-7 ${
+      className={`@container relative flex flex-col rounded-3xl border bg-surface p-6 shadow-card transition-[border-color,box-shadow] duration-1000 focus:outline-none sm:p-7 ${
         fresh ? 'border-accent ring-4 ring-accent/15 motion-safe:animate-widget-in' : 'border-line'
       }`}
     >
+      <CardEdge level={lit ? 1 : 0} />
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{title || widget?.title}</h2>
@@ -206,6 +213,22 @@ const PLACEHOLDER_WIDTHS = [
 ]
 
 /** Soft, gently pulsing placeholder rows while a widget's first load runs. */
+/**
+ * The light along a card's top edge: a line of lamplight, brightest in the
+ * middle, with a soft glow beneath. `level` is its strength, from 0 (none)
+ * to 1 (the screen's one lit thing). It's inset from the rounded corners,
+ * and changes in strength fade, slowly, as a lamp dims.
+ */
+function CardEdge({ level }: { level: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{ opacity: level }}
+      className="pointer-events-none absolute inset-x-10 -top-px h-0.5 rounded-full bg-[linear-gradient(90deg,transparent,var(--color-accent),transparent)] shadow-[0_2px_16px_1px_color-mix(in_srgb,var(--color-accent)_55%,transparent)] transition-opacity duration-700 ease-(--ease-cool)"
+    />
+  )
+}
+
 function LoadingRows({ message }: { message: string }) {
   return (
     <div>
