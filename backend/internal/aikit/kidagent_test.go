@@ -55,7 +55,7 @@ func verdictJSON(flag bool, category, severity string, crisis bool, reason, titl
 
 func TestKidAgentCheck(t *testing.T) {
 	ctx := context.Background()
-	recent := []aikit.Turn{{FromKid: true, Text: "hi"}, {FromKid: false, Text: "Hi! What are we exploring?"}}
+	recent := []aikit.Turn{{FromUser: true, Text: "hi"}, {FromUser: false, Text: "Hi! What are we exploring?"}}
 
 	t.Run("clean, with a title", func(t *testing.T) {
 		kit, model := aitest.New(t, verdictJSON(false, "none", "none", false, "", "How volcanoes form").WithUsage(50, 10))

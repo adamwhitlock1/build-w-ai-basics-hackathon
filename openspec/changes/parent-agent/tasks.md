@@ -10,7 +10,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 2. Agent
 
-- [ ] 2.1 Generalize `aikit`'s tool building into a shared internal builder, keeping `KidTools` and its tests passing unchanged. Add `ParentTools` and `ParentAgent` (with its prompt, step `parent_chat_reply`, a search cap of 4, results with URLs, and the `kids_chats` tool only when set). Tests with `aitest`:
+- [x] 2.1 Generalize `aikit`'s tool building into a shared internal builder, keeping `KidTools` and its tests passing unchanged. Add `ParentTools` and `ParentAgent` (with its prompt, step `parent_chat_reply`, a search cap of 4, results with URLs, and the `kids_chats` tool only when set). Tests with `aitest`:
   - the parent tools run, and their wrapped results reach the model;
   - search returns URLs and is capped at 4;
   - `kids_chats` is offered only when set;
@@ -18,6 +18,10 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
   - usage per model call;
   - no retry after a tool has run;
   - `go test ./internal/aikit/...` passes, with every kid test unchanged.
+  - As built:
+    - `tools.go` holds the shared `toolBuilder`, and `streamReply` is the shared reply loop.
+    - `Turn.FromKid` was renamed `FromUser`, a mechanical rename in the kid tests.
+    - The tool-loop limit is per agent: 4 for kids, 6 for parents, so 4 searches plus other tools fit.
 
 ## 3. Service and HTTP
 

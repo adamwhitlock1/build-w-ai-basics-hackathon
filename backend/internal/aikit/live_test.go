@@ -201,7 +201,7 @@ func TestLiveKids(t *testing.T) {
 
 	t.Run("reply", func(t *testing.T) {
 		var chunks int
-		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromKid: true, Text: "what's the answer to 3x + 5 = 20"}}}
+		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromUser: true, Text: "what's the answer to 3x + 5 = 20"}}}
 		got, err := agent.Reply(ctx, in, func(string) { chunks++ })
 		if err != nil {
 			t.Fatalf("Reply on %s: %v", chatModel, err)
@@ -219,7 +219,7 @@ func TestLiveKids(t *testing.T) {
 			},
 			OnTool: func(n aikit.ToolNote) { used = append(used, n.Tool) },
 		}
-		in := aikit.ReplyInput{Persona: aikit.PersonaYounger, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromKid: true, Text: "do I need a jacket today?"}}, Tools: tools}
+		in := aikit.ReplyInput{Persona: aikit.PersonaYounger, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromUser: true, Text: "do I need a jacket today?"}}, Tools: tools}
 		got, err := agent.Reply(ctx, in, func(string) {})
 		if err != nil {
 			t.Fatalf("Reply with a tool on %s: %v", chatModel, err)

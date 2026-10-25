@@ -246,7 +246,7 @@ func TestKidChat(t *testing.T) {
 			t.Errorf("first check = %+v, want a title request and no earlier turns", agent.checks[0])
 		}
 		in := agent.replies[0]
-		if in.Mode != aikit.ModeHomework || in.Crisis || len(in.History) != 1 || !in.History[0].FromKid {
+		if in.Mode != aikit.ModeHomework || in.Crisis || len(in.History) != 1 || !in.History[0].FromUser {
 			t.Errorf("reply input = %+v, want homework, no crisis, the kid's message", in)
 		}
 		if a := agent.attrs[0]; a.Feature != chat.Feature || a.MemberID != f.kid.ID || a.ViewerID != f.kid.ID {

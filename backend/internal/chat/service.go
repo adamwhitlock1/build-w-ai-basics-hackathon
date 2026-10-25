@@ -443,7 +443,7 @@ func PersonaFor(birthYear int, ok bool, now time.Time) string {
 func turns(msgs []store.ChatMessage) []aikit.Turn {
 	out := make([]aikit.Turn, len(msgs))
 	for i, m := range msgs {
-		out[i] = aikit.Turn{FromKid: m.Role == store.RoleKid, Text: m.Text}
+		out[i] = aikit.Turn{FromUser: m.Role == store.RoleKid, Text: m.Text}
 	}
 	return out
 }

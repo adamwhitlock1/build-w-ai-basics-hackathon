@@ -23,7 +23,7 @@ func newKidAgent(t *testing.T, replies ...aitest.Reply) (*aikit.KidAgent, *aites
 }
 
 func kidAsks(text string) aikit.ReplyInput {
-	return aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromKid: true, Text: text}}}
+	return aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromUser: true, Text: text}}}
 }
 
 func TestKidAgentReply(t *testing.T) {
@@ -55,7 +55,7 @@ func TestKidAgentReply(t *testing.T) {
 		agent, model, _ := newKidAgent(t, aitest.Text("Sure."))
 		var history []aikit.Turn
 		for i := range 40 {
-			history = append(history, aikit.Turn{FromKid: i%2 == 0, Text: fmt.Sprintf("turn %d", i)})
+			history = append(history, aikit.Turn{FromUser: i%2 == 0, Text: fmt.Sprintf("turn %d", i)})
 		}
 		in := aikit.ReplyInput{Persona: aikit.PersonaYounger, Mode: aikit.ModeExplore, Crisis: true, History: history}
 		if _, err := agent.Reply(ctx, in, func(string) {}); err != nil {
