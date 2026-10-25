@@ -3,7 +3,8 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 ## 1. Data
 
 - [x] 1.1 Add `migrations/007_chat_tool_calls.sql` and the store methods to add tool calls, attach them to a reply, and list a conversation's tool calls. Deleting a conversation removes them. Verify with a `store/chat_test.go` test: add, attach, list in order, cascade on delete, and scoping by conversation.
-- [ ] 1.2 Add `widgets.RememberedPicks(ctx, results, userID)`, which returns the remembered articles and events items read-only (no search, no write), with empty lists when nothing is remembered. Verify with a `widgets` test: remembered items come back; with nothing remembered, empty lists; no source is called.
+- [x] 1.2 Add `widgets.RememberedPicks(ctx, results, userID)`, which returns the remembered articles and events items read-only (no search, no write), with empty lists when nothing is remembered. Verify with a `widgets` test: remembered items come back; with nothing remembered, empty lists; no source is called.
+  - As built: `RememberedPicks(ctx, results, member, profile)`. It takes the member and profile because, like the cards and the briefing, picks count only for the current profile and the member's audience. The read-and-check logic is shared with the briefing in `rememberedWidgetItems`.
 
 ## 2. Tools in `internal/aikit`
 
