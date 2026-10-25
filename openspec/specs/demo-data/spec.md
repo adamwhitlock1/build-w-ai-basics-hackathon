@@ -60,7 +60,7 @@ The demo data SHALL contain a second, smaller family with one parent and one kid
 - **THEN** the system answers as if the widget doesn't exist
 
 ### Requirement: Fixture calendar feeds
-When the development fixtures setting is on, the server SHALL answer calendar links on the fixture host `fixtures.porchlight.test` itself, without any network connection. Links of the form `https://fixtures.porchlight.test/calendars/<name>.ics` SHALL return a calendar feed generated at request time, relative to the current date and time. A fixture name that does not exist SHALL behave like a calendar link that no longer works. Together, the demo family's feeds SHALL contain:
+When the development fixtures setting is on, the server SHALL answer calendar links on the fixture host `fixtures.kinlight.test` itself, without any network connection. Links of the form `https://fixtures.kinlight.test/calendars/<name>.ics` SHALL return a calendar feed generated at request time, relative to the current date and time. A fixture name that does not exist SHALL behave like a calendar link that no longer works. Together, the demo family's feeds SHALL contain:
 - an event today that has already ended;
 - at least one timed event later today;
 - an all-day event today;

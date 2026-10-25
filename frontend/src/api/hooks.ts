@@ -11,7 +11,8 @@ import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
 import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import { useNow } from '../widgets/updatedAgo'
-import { forgetTheme } from '../theme'
+import { rekindle } from '../motion/kindle'
+import { changeTheme, forgetTheme } from '../theme'
 import {
   ApiError,
   apiFetch,
@@ -91,6 +92,8 @@ function startSession(queryClient: QueryClient, me: Me) {
   // the same query and see the new person.
   queryClient.removeQueries({ predicate: (query) => belongsToSession(query) && query.queryKey[0] !== 'me' })
   queryClient.setQueryData(meQueryOptions.queryKey, me)
+  // The lantern on the first signed-in page kindles.
+  rekindle()
 }
 
 /**
@@ -921,6 +924,8 @@ export function useSetTheme() {
   return useMutation<Me, ApiError, Theme, { userId?: number; before?: Theme }>({
     onMutate: (theme) => {
       const me = queryClient.getQueryData(meQueryOptions.queryKey)
+      // Shown as dusk; the root then finds the theme already chosen.
+      changeTheme(theme)
       queryClient.setQueryData(meQueryOptions.queryKey, withTheme(theme))
       return { userId: me?.user.id, before: me?.user.theme }
     },

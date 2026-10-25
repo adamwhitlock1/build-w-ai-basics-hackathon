@@ -1,10 +1,11 @@
 import { forwardRef } from 'react'
+import { Breathing } from '../components/Breathing'
 import { RefreshIcon } from './icons'
 
 interface RefreshButtonProps {
   /** Names the button for screen readers and the hover tooltip, e.g. "Refresh articles". */
   label: string
-  /** True while loading: the icon spins and clicks are ignored. */
+  /** True while loading: the breathing light replaces the icon and clicks are ignored. */
   refreshing: boolean
   onRefresh: () => void
 }
@@ -31,7 +32,7 @@ export const RefreshButton = forwardRef<HTMLButtonElement, RefreshButtonProps>(f
       }}
       className="rounded-full p-2 text-ink-muted transition-colors hover:bg-bg hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-disabled:cursor-wait aria-disabled:text-primary aria-disabled:hover:bg-transparent"
     >
-      <RefreshIcon className={`size-5 ${refreshing ? 'motion-safe:animate-spin-calm' : ''}`} />
+      {refreshing ? <Breathing className="size-5" /> : <RefreshIcon className="size-5" />}
     </button>
   )
 })

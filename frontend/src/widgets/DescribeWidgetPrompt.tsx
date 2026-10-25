@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent 
 import type { SavedWidget } from '../api/client'
 import { useCreateWidgetFromPrompt } from '../api/hooks'
 import { CloseIcon, PlusIcon } from './icons'
+import { Breathing } from '../components/Breathing'
 
 const EXAMPLES = [
   'upcoming SpaceX launches',
@@ -162,10 +163,7 @@ function ThinkingState({ prompt }: { prompt: string }) {
       tabIndex={-1}
       className="flex h-14 items-center gap-3 rounded-2xl bg-accent-soft/60 px-4 focus:outline-none"
     >
-      <span
-        aria-hidden="true"
-        className="size-5 shrink-0 rounded-full border-2 border-accent/25 border-t-accent motion-safe:animate-spin-calm"
-      />
+      <Breathing className="size-6" />
       <p className="min-w-0 truncate text-ink">
         Building your widget…
         <span className="ml-2 text-ink-muted">“{prompt}”</span>

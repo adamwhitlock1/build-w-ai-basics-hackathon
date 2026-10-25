@@ -3,7 +3,7 @@
 /*
  * Design tokens, from brand/brief.md section 7. Every --color-* / --font-* /
  * --shadow-* / --animate-* variable here becomes a Tailwind utility,
- * e.g. bg-surface, text-ink-muted, font-display, shadow-card, animate-widget-in.
+ * e.g. bg-surface, text-ink-muted, font-display, shadow-card, animate-breathe.
  *
  * These are Daybreak, the light theme. Porch light, the dark theme, redefines
  * the same variables under :root[data-theme="dark"] below, so every utility
@@ -56,13 +56,49 @@
 
   --shadow-card: 0 1px 2px rgb(64 48 32 / 0.04), 0 12px 32px -12px rgb(64 48 32 / 0.14);
 
-  --animate-widget-in: widget-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-spin-calm: spin-calm 1.4s linear infinite;
 
-  @keyframes widget-in {
+  /*
+   * The lantern's motion (brand/lantern-ux.md). Light warms up with a quick
+   * start and a long settle (ease-warm) and dims evenly (ease-cool). Every
+   * keyframe moves only opacity and transform. The --duration-* lengths are
+   * plain variables in the base layer below; prefers-reduced-motion
+   * redefines each --animate-* there as a plain fade of the same length.
+   */
+  --ease-warm: cubic-bezier(0.22, 0.8, 0.2, 1);
+  --ease-cool: cubic-bezier(0.4, 0, 0.6, 1);
+
+  /* Kindle: the glass warms with one small flicker, the flame rises, and
+     the glow spreads. */
+  --animate-kindle-glass: kindle-glass var(--duration-kindle) var(--ease-warm) both;
+  --animate-kindle-flame: kindle-flame var(--duration-kindle) var(--ease-warm) both;
+  --animate-kindle-glow: kindle-glow var(--duration-kindle) var(--ease-warm) both;
+  /* A card arrives: the lantern swings on its ring and settles, and the
+     card's edge catches the light, then cools. */
+  --animate-swing: swing 1400ms var(--ease-cool) both;
+  --animate-catch: catch var(--duration-catch) var(--ease-cool) both;
+  /* Thinking: the only loop in the app. */
+  --animate-breathe: breathe var(--duration-breathe) ease-in-out infinite;
+  --animate-breathe-glow: breathe-glow var(--duration-breathe) ease-in-out infinite;
+
+  @keyframes kindle-glass {
+    0% {
+      opacity: 0;
+    }
+    40% {
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes kindle-flame {
     from {
       opacity: 0;
-      transform: translateY(14px);
+      transform: translateY(12%);
     }
     to {
       opacity: 1;
@@ -70,16 +106,120 @@
     }
   }
 
-  @keyframes spin-calm {
+  @keyframes kindle-glow {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
     to {
-      transform: rotate(360deg);
+      opacity: 1;
+      transform: none;
     }
   }
+
+  @keyframes swing {
+    0% {
+      transform: rotate(0deg);
+    }
+    20% {
+      transform: rotate(7deg);
+    }
+    45% {
+      transform: rotate(-4.5deg);
+    }
+    65% {
+      transform: rotate(2.5deg);
+    }
+    85% {
+      transform: rotate(-1deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes catch {
+    0% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes breathe-glow {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+
 }
 
 @layer base {
   :root {
     color-scheme: light;
+
+    /* How long each lantern moment takes. */
+    --duration-kindle: 900ms;
+    --duration-dim: 700ms;
+    --duration-catch: 1200ms;
+    --duration-dusk: 1100ms;
+    --duration-breathe: 2800ms;
+  }
+
+  /*
+   * Reduced motion: the same moments, as plain fades of the same length. No
+   * swing, flicker or spreading; the breathing light only brightens and
+   * dims, without growing.
+   */
+  /* Outside @theme, so it's always emitted: Tailwind keeps @theme keyframes
+     only when a utility it can see uses them, and these are only reached
+     through the variables below. */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --animate-kindle-glass: fade-in var(--duration-kindle) linear both;
+      --animate-kindle-flame: fade-in var(--duration-kindle) linear both;
+      --animate-kindle-glow: fade-in var(--duration-kindle) linear both;
+      --animate-swing: none;
+      --animate-breathe-glow: breathe var(--duration-breathe) ease-in-out infinite;
+    }
   }
 
   /*
@@ -186,4 +326,57 @@
  */
 .arrange-canvas > .Puck {
   overflow: visible;
+}
+
+/*
+ * Dusk (src/theme.ts): a theme change a person makes runs as a view
+ * transition. Going to Porch light, the new page grows from a circle at the
+ * header lantern (--dusk-x, --dusk-y) to the farthest corner (--dusk-r);
+ * going back to Daybreak, the dark page shrinks back into the lantern, drawn
+ * above the light one. Under reduced motion, the two cross-fade instead.
+ * Outside any @layer, since view-transition pseudo-elements sit on top of
+ * the whole page.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-dusk="out"]::view-transition-new(root) {
+  animation: dusk-spread var(--duration-dusk) var(--ease-warm) both;
+}
+
+:root[data-dusk="in"]::view-transition-old(root) {
+  z-index: 1;
+  animation: dusk-gather var(--duration-dusk) var(--ease-cool) both;
+}
+
+@keyframes dusk-spread {
+  from {
+    clip-path: circle(0 at var(--dusk-x) var(--dusk-y));
+  }
+  to {
+    clip-path: circle(var(--dusk-r) at var(--dusk-x) var(--dusk-y));
+  }
+}
+
+@keyframes dusk-gather {
+  from {
+    clip-path: circle(var(--dusk-r) at var(--dusk-x) var(--dusk-y));
+  }
+  to {
+    clip-path: circle(0 at var(--dusk-x) var(--dusk-y));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-dusk]::view-transition-old(root) {
+    z-index: auto;
+    animation: fade-out var(--duration-dusk) linear both;
+  }
+
+  :root[data-dusk]::view-transition-new(root) {
+    animation: fade-in var(--duration-dusk) linear both;
+  }
 }

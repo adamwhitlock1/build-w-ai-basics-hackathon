@@ -12,6 +12,7 @@ import { config } from './config'
 import { fromPuckData } from './layout'
 import type { KinlightData } from './types'
 import type { SaveState } from './useLayoutAutosave'
+import { Breathing } from '../components/Breathing'
 
 interface ArrangeCanvasProps {
   /**
@@ -82,10 +83,7 @@ function SaveStatus({ save }: { save: SaveState }) {
   if (save.status === 'saving') {
     content = (
       <span className="flex items-center gap-2 text-ink-soft">
-        <span
-          aria-hidden="true"
-          className="size-3.5 rounded-full border-2 border-accent/25 border-t-accent motion-safe:animate-spin-calm"
-        />
+        <Breathing className="size-4" />
         Saving…
       </span>
     )

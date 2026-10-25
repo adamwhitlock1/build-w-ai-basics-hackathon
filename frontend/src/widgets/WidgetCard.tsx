@@ -1,8 +1,12 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Freshness, SourceName, Widget } from '../api/client'
 import { ShieldIcon } from './icons'
 import { WidgetItems } from './renderers/WidgetItems'
 import { formatUpdatedAgo, useNow } from './updatedAgo'
+import { Breathing } from '../components/Breathing'
+import { arrived, edgeLevel } from '../motion/light'
+import { swingLantern } from '../motion/swing'
+import { useLight } from '../motion/useLight'
 
 interface WidgetCardProps {
   /**
@@ -19,6 +23,11 @@ interface WidgetCardProps {
   title?: string
   /** Just arrived: amber border plus a soft fade-and-slide in. */
   fresh?: boolean
+  /**
+   * The screen's one lit thing (useLight): the card's top edge shows full
+   * light. Without it, the edge shows how fresh the card is.
+   */
+  lit?: boolean
   /** A small control beside the heading, such as a refresh button. */
   headerAction?: ReactNode
   /** Show the "Kid-safe" marker by the heading (see useShowKidSafe). */
@@ -66,6 +75,7 @@ export function WidgetCard({
   widget,
   title,
   fresh = false,
+  lit = false,
   headerAction,
   showKidSafe = false,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
@@ -81,20 +91,52 @@ export function WidgetCard({
   const ref = useRef<HTMLElement>(null)
 
   // A widget that just arrived takes focus, which also scrolls it into view
-  // and lets screen-reader users land on it. The amber border marks it.
+  // and lets screen-reader users land on it.
   useEffect(() => {
     if (fresh) ref.current?.focus()
   }, [fresh])
+
+  // A card arrives when it's new (fresh) or its content was written during
+  // this visit: the header lantern swings, and the card's edge catches the
+  // light and cools. A remembered result loaded as the page opens doesn't.
+  // It's worked out while rendering, from the last update time this card
+  // saw (React's pattern for state that follows a prop); `arrival` counts
+  // them, and is 0 for none.
+  const [mountedAt] = useState(Date.now)
+  const [seen, setSeen] = useState(updatedAt)
+  const [arrival, setArrival] = useState(0)
+  if (updatedAt !== seen) {
+    setSeen(updatedAt)
+    if (arrived(seen, updatedAt, mountedAt)) setArrival((count) => count + 1)
+  }
+  // A just-described card is marked fresh, sometimes a moment after it mounts.
+  const [wasFresh, setWasFresh] = useState(false)
+  if (fresh !== wasFresh) {
+    setWasFresh(fresh)
+    if (fresh) setArrival((count) => count + 1)
+  }
+  // The catch lasts CATCH_MS; the lantern swings once per arrival.
+  const [cooled, setCooled] = useState(0)
+  useEffect(() => {
+    if (!arrival) return
+    swingLantern()
+    const id = window.setTimeout(() => setCooled(arrival), CATCH_MS)
+    return () => window.clearTimeout(id)
+  }, [arrival])
+  const arriving = arrival !== 0 && cooled !== arrival
+  const catching = useLight('arrival', arriving)
+  const showsFooter = !!(widget?.query || footerNote) && !loading
 
   return (
     <article
       ref={ref}
       tabIndex={-1}
       // @container lets renderers adapt to the card's width, not the window's.
-      className={`@container flex flex-col rounded-3xl border bg-surface p-6 shadow-card transition-[border-color,box-shadow] duration-1000 focus:outline-none sm:p-7 ${
-        fresh ? 'border-accent ring-4 ring-accent/15 motion-safe:animate-widget-in' : 'border-line'
-      }`}
+      className="@container relative flex flex-col rounded-3xl border border-line bg-surface p-6 shadow-card focus:outline-none sm:p-7"
     >
+      {/* The edge only shows a freshness the footer also says in words. */}
+      <CardEdge lit={lit} updatedAt={showsFooter ? updatedAt : undefined} />
+      {arriving && <CardCatch key={arrival} strength={catching ? 1 : EDGE_UNLIT_CATCH} />}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{title || widget?.title}</h2>
@@ -124,7 +166,7 @@ export function WidgetCard({
         )}
       </div>
 
-      {(widget?.query || footerNote) && !loading && (
+      {showsFooter && (
         <div className="mt-6 flex items-baseline gap-3 border-t border-line pt-4 text-xs text-ink-muted">
           {footerNote ? (
             <p className="min-w-0 flex-1 truncate">{footerNote}</p>
@@ -205,15 +247,58 @@ const PLACEHOLDER_WIDTHS = [
 ]
 
 /** Soft, gently pulsing placeholder rows while a widget's first load runs. */
+/**
+ * The light along a card's top edge: a line of lamplight, brightest in the
+ * middle, with a soft glow beneath. It's full when the card is the screen's
+ * one lit thing; otherwise it shows how fresh the card is, fading over six
+ * hours (edgeLevel), checked once a minute like the "Updated" label. It's
+ * inset from the rounded corners, and changes in strength fade, slowly, as
+ * a lamp dims.
+ */
+function CardEdge({ lit, updatedAt }: { lit: boolean; updatedAt?: string }) {
+  const now = useNow(60_000)
+  const level = lit ? 1 : edgeLevel(updatedAt, now)
+  return (
+    <span
+      aria-hidden="true"
+      style={{ opacity: level }}
+      className="pointer-events-none absolute inset-x-10 -top-px h-0.5 rounded-full bg-[linear-gradient(90deg,transparent,var(--color-accent),transparent)] shadow-[0_2px_16px_1px_color-mix(in_srgb,var(--color-accent)_55%,transparent)] transition-opacity duration-700 ease-(--ease-cool)"
+    />
+  )
+}
+
+/** How long a card's edge takes to catch the light and cool (--duration-catch). */
+const CATCH_MS = 1200
+
+/** How bright an arriving card's catch is when something else holds the screen's glow. */
+const EDGE_UNLIT_CATCH = 0.45
+
+/**
+ * The light an arriving card's edge catches: it flares and cools once, over
+ * the card's resting edge. Under reduced motion it's the same fade; nothing
+ * moves.
+ */
+function CardCatch({ strength }: { strength: number }) {
+  return (
+    <span aria-hidden="true" style={{ opacity: strength }} className="pointer-events-none absolute inset-x-10 -top-px">
+      <span className="block h-0.5 animate-catch rounded-full bg-[linear-gradient(90deg,transparent,var(--color-accent),transparent)] shadow-[0_2px_16px_1px_color-mix(in_srgb,var(--color-accent)_55%,transparent)]" />
+    </span>
+  )
+}
+
 function LoadingRows({ message }: { message: string }) {
   return (
-    <div role="status">
-      <p className="text-sm text-ink-muted">{message}</p>
+    <div>
+      <p role="status" className="flex items-center gap-2.5 text-sm text-ink-muted">
+        <Breathing className="size-5" />
+        {message}
+      </p>
+      {/* Still placeholders, so the card keeps its size while it waits. */}
       <ul aria-hidden="true" className="mt-4 space-y-3">
         {PLACEHOLDER_WIDTHS.map(([first, second], i) => (
           <li key={i} className="rounded-2xl border border-line bg-bg/60 p-3.5">
-            <div className={`h-3.5 rounded-full bg-line motion-safe:animate-pulse ${first}`} />
-            <div className={`mt-2.5 h-3 rounded-full bg-line/60 motion-safe:animate-pulse ${second}`} />
+            <div className={`h-3.5 rounded-full bg-line ${first}`} />
+            <div className={`mt-2.5 h-3 rounded-full bg-line/60 ${second}`} />
           </li>
         ))}
       </ul>
