@@ -422,7 +422,7 @@
    or relative) for the grain layer. Without backdrop-filter, it's solid. */
 @utility lantern-glass {
   isolation: isolate;
-  background-color: color-mix(in srgb, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent)) 88%, transparent);
+  background-color: color-mix(in srgb, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent)) 95%, transparent);
   backdrop-filter: blur(14px) saturate(1.1);
   &::before {
     content: "";
@@ -432,7 +432,7 @@
     border-radius: inherit;
     background: var(--color-ink);
     mask-image: var(--grain);
-    opacity: 0.03;
+    opacity: 0.02;
     pointer-events: none;
   }
   @supports not (backdrop-filter: blur(1px)) {
@@ -452,7 +452,7 @@
     background: var(--color-wood-deep);
     mask-image: var(--wood-grain);
     mask-size: 600px 240px;
-    opacity: 0.05;
+    opacity: 0.03;
     pointer-events: none;
   }
 }
@@ -469,7 +469,7 @@
     background: repeating-linear-gradient(
       to bottom,
       transparent 0 55px,
-      color-mix(in srgb, var(--color-wood-deep) 14%, transparent) 55px 56px
+      color-mix(in srgb, var(--color-wood-deep) 7%, transparent) 55px 56px
     );
     pointer-events: none;
   }

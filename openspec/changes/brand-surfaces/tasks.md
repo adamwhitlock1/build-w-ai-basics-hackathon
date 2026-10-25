@@ -4,7 +4,14 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
 
 - [x] 1.1 Add the brass and wood tokens for both themes, the `--grain` texture, and the `brass-edge`, `lantern-glass` and `wood-grain` utilities (design decision 1). Verify that `npm run build` passes and the CSS output has the three utilities.
   - Done. Tailwind emits an `@utility` only when a class uses it, so I checked with one build forcing the classes in through `@source inline`: `brass-edge`, `lantern-glass`, `wood-grain` and a fourth, `porch-boards`, all compiled, with a solid fallback and `-webkit-backdrop-filter`. Porch boards are their own utility, so the sidebar can have grain without boards. The textures are SVG noise used as a mask over a theme color, so one file works on both grounds.
-- [ ] 1.2 Extend `contrast.mjs` with blended backgrounds for glass and wood, and their pairings (design decision 2). Adjust a material's strength if any pairing fails, and record it here. Verify that `npm run check:contrast` passes, and fails when a material's strength is raised on purpose.
+- [x] 1.2 Extend `contrast.mjs` with blended backgrounds for glass and wood, and their pairings (design decision 2). Adjust a material's strength if any pairing fails, and record it here. Verify that `npm run check:contrast` passes, and fails when a material's strength is raised on purpose.
+  - Done. The check reads each material's strengths from its `@utility` block and composites the worst case: glass over ink with its grain, and wood's seam plus grain over the ground. It adds 8 pairings, for 43 in all.
+  - The design's first strengths failed: muted ink on glass was 4.08:1 (Daybreak) and 3.60:1 (Porch light), and on wood 4.06:1, against 4.5. Muted ink is close to the line even on the plain ground (5.08:1), so the materials were lowered, not the text:
+    - glass from 88% to **95%** opaque, and its grain from 0.03 to **0.02**;
+    - board seams from 14% to **7%**, and wood grain from 0.05 to **0.03**.
+
+    These are the strongest values that pass.
+  - Raising the seam to 20% on purpose made the check fail (exit 1).
 - [ ] 1.3 Apply brass to the briefing card and the add-a-card button, glass to the arrange toolbar, Puck's action bar and both composers, and wood grain to the sidebar (design decision 3). Verify in the browser in both themes:
   - brass on exactly those two;
   - glass stays readable with cards scrolled under it, including Puck's bar in Porch light;
