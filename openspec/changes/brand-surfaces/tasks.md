@@ -93,3 +93,4 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
     - **Checks:** `check:contrast` (44 pairings, including the worst case on glass and wood) and `check:copy` pass.
     - The demo was rebuilt afterwards.
 - [ ] 4.3 Run `openspec validate brand-surfaces --strict`, `make check`, and the frontend lint, `npm test`, `check:contrast`, `check:copy` and build. Push, open the PR, and confirm CI passes on it. Add the "Brand surfaces" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+  - Progress (2026-10-25): the change and all 14 specs validate strictly, and `make check` passes. The frontend lint is clean, `npm test` passes 11 tests, `check:contrast` passes 44 pairings, `check:copy` is clean, and the build passes. The Post-PoC line is in both files. Pushing, the PR and CI are next.
