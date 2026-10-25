@@ -69,7 +69,8 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
 
 ## 4. Docs and end to end
 
-- [ ] 4.1 Update the README's "Look and themes" with the materials, the illustration slot (pointing to `brand/illustration.md`), the voice rules and `check:copy`. Verify by reading it.
+- [x] 4.1 Update the README's "Look and themes" with the materials, the illustration slot (pointing to `brand/illustration.md`), the voice rules and `check:copy`. Verify by reading it.
+  - Done. The README's own product prose now says "card" too: the intro, arranging, freshness, the data file, the demo table and usage. Code names (`WidgetBuilder`, `internal/llm`'s description) and the historical status line keep "widget".
 - [ ] 4.2 On the demo, as Maya and as Jordan, in both themes: walk the welcome pages, home, arrange, Lily's page, chat, Assistant and Reviews. Check:
   - materials only where the spec allows;
   - contrast holds;
