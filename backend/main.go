@@ -259,6 +259,17 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		logger.Warn("dev fixture calendars are on; never enable this in a deployment", "host", calendar.FixtureHost)
 	}
 
+	// The kid agent's tools look things up on the same data and sources as
+	// the kid's cards: their calendar (through the same fetcher), their
+	// remembered picks, the forecast, and kid-safe web search.
+	chatService.SetTools(&chat.ToolSources{
+		Profiles: st,
+		Agenda:   widgets.NewAgenda(calendars, st, logger),
+		Results:  st,
+		Forecast: openMeteo.Forecast(),
+		Web:      brave.Web(),
+	})
+
 	srv := &http.Server{
 		Handler: routes(deps{
 			Logger:    logger,

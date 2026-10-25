@@ -264,25 +264,11 @@ func (b *Briefings) todaysEvents(ctx context.Context, userID int64, date, timeZo
 // for aud. These are the same checks Curation.remembered makes, so
 // the briefing only uses what the member's card would show.
 func (b *Briefings) rememberedItems(ctx context.Context, userID int64, kind, inputs string, aud sources.Audience) ([]llm.Item, bool) {
-	r, err := b.results.GetCuratedResult(ctx, userID, kind)
+	items, ok, err := rememberedWidgetItems(ctx, b.results, userID, kind, inputs, aud)
 	if err != nil {
-		if !errors.Is(err, store.ErrNotFound) {
-			b.logger.WarnContext(ctx, "couldn't load a remembered widget for the briefing", "kind", kind, "user_id", userID, "err", err)
-		}
-		return nil, false
+		b.logger.WarnContext(ctx, "couldn't use a remembered widget for the briefing", "kind", kind, "user_id", userID, "err", err)
 	}
-	if r.Inputs != inputs {
-		return nil, false
-	}
-	var widget Widget
-	if err := json.Unmarshal(r.Payload, &widget); err != nil {
-		b.logger.WarnContext(ctx, "couldn't read a remembered widget for the briefing", "kind", kind, "user_id", userID, "err", err)
-		return nil, false
-	}
-	if widget.KidSafe != (aud == sources.Kids) {
-		return nil, false
-	}
-	return widget.Items, true
+	return items, ok
 }
 
 // weatherFact returns today's and tomorrow's forecasts for location, each as

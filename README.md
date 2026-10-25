@@ -155,6 +155,16 @@ Kids get **Chat**: an "Ask Porchlight" card at the top of their page, and a Chat
 
 It talks at the kid's age: a younger voice up to 12, a teen one from 13. A parent sets the birth year on the kid's page; without one, the younger voice is used. Replies stream in as they're written. Every chat screen says **"Your parents can review these chats"**. Parents don't get a chat of their own yet.
 
+**Tools.** The agent can look things up for the kid who's chatting, and only for them:
+- **the weather** where they live;
+- **their day:** their own calendar for today and tomorrow, as their Today card shows it;
+- **their picks:** their interests, and the articles and local events already on their page;
+- **a kid-safe web search**, with strict safe-search.
+
+Search is offered **only in Explore**, never in Homework help, so it can't be used to look up answers. It allows at most 2 searches per message. The agent puts what it finds in its own words, quotes no more than a few words, and gets snippets only, never links. Whatever a tool returns is treated as information, never as instructions.
+
+Each tool use shows as a small note above the reply ("Checked the weather", "Searched: volcano facts") for the kid and in the parents' transcript. The notes are kept with the conversation. A search costs Brave credit, like refreshing a card.
+
 **The safety check.** Before every reply, a fast model reads the kid's message (with the last few for context). It flags anything a parent should see:
 - self-harm;
 - abuse;
@@ -190,7 +200,14 @@ The models are `KIDS_CHAT_MODEL` and `KIDS_SAFETY_MODEL`, both `anthropic/claude
 
 **Prototyping.** `PORCHLIGHT_KIDS_ALLOW_RETENTION=1` lets kid chat run on any provider, with the main key if there's no kids' key. It's for trying things with the demo family. The server warns at startup when it's on. Never set it once your kids use the app.
 
-**Checking behavior.** `make ai-eval-kids` runs 12 scripted kid conversations through the real chat service and models: homework asked for straight, twice and in disguise, an essay, ordinary questions, risky messages, two crisis phrasings and a prompt injection. It prints pass or fail for each. It costs a few cents and never runs in CI.
+**Checking behavior.** `make ai-eval-kids` runs 17 scripted kid conversations through the real chat service and models:
+- homework asked for straight, twice and in disguise, and an essay;
+- ordinary questions;
+- risky messages, and two crisis phrasings;
+- a prompt injection;
+- the tools: the weather, their day, search in Explore, no search in Homework help, and an instruction hidden in their picks.
+
+The search cases use real kid-safe search. It prints pass or fail for each. It costs a few cents and never runs in CI.
 
 ## Tests
 

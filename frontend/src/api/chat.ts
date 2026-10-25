@@ -42,9 +42,37 @@ export interface ChatFlag {
   conversationTitle?: string
 }
 
+/** A tool the agent used while replying, shown as a note above the reply. */
+export interface ToolCall {
+  tool: 'weather' | 'my_day' | 'my_picks' | 'search' | string
+  /** A search's query; "" for the other tools. */
+  detail: string
+  /** The reply it informed; null if that reply failed. */
+  messageId: number | null
+  createdAt: string
+}
+
+/** What a tool note says, for kids and parents alike. */
+export function toolNoteText(tool: string, detail: string): string {
+  switch (tool) {
+    case 'weather':
+      return 'Checked the weather'
+    case 'my_day':
+      return 'Looked at your day'
+    case 'my_picks':
+      return 'Looked at your picks'
+    case 'search':
+      return `Searched: ${detail}`
+    default:
+      return `Used ${tool}`
+  }
+}
+
 export interface Transcript {
   conversation: Conversation
   messages: ChatMessage[]
+  /** The tools the agent used, in order. */
+  toolCalls: ToolCall[]
   /** Parents only. */
   flags?: ChatFlag[]
 }
@@ -114,6 +142,8 @@ export function useStartChat() {
 export interface StreamHandlers {
   /** The kid's message, as stored. */
   onMessage: (message: ChatMessage) => void
+  /** A tool the agent used, as it's used. */
+  onTool: (tool: string, detail: string) => void
   /** A piece of the reply. */
   onDelta: (text: string) => void
   /** The whole reply, as stored. */
@@ -134,7 +164,8 @@ export async function sendChatMessage(chatId: number, text: string, handlers: St
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-      body: JSON.stringify({ text }),
+      // The kid's time zone, so "today" in their calendar is their today.
+      body: JSON.stringify({ text, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
       signal,
     })
   } catch (err) {
@@ -167,6 +198,11 @@ export async function sendChatMessage(chatId: number, text: string, handlers: St
         case 'message':
           handlers.onMessage(payload as ChatMessage)
           break
+        case 'tool': {
+          const note = payload as { tool: string; detail: string }
+          handlers.onTool(note.tool, note.detail)
+          break
+        }
         case 'delta':
           handlers.onDelta((payload as { text: string }).text)
           break

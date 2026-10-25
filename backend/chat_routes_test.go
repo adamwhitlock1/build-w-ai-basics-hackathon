@@ -35,6 +35,9 @@ type scriptedAgent struct {
 	verdict  aikit.Verdict
 	reply    []string // streamed chunk by chunk
 	replyErr error
+	// checkDay makes the reply look at the kid's day first, as a model
+	// calling the my_day tool would.
+	checkDay bool
 }
 
 func (a *scriptedAgent) set(verdict aikit.Verdict, replyErr error, chunks ...string) {
@@ -49,9 +52,13 @@ func (a *scriptedAgent) Check(context.Context, []aikit.Turn, string, bool) (aiki
 	return a.verdict, nil
 }
 
-func (a *scriptedAgent) Reply(_ context.Context, _ aikit.ReplyInput, onChunk func(string)) (string, error) {
+func (a *scriptedAgent) Reply(ctx context.Context, in aikit.ReplyInput, onChunk func(string)) (string, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.checkDay && in.Tools != nil {
+		_, _ = in.Tools.MyDay(ctx)
+		in.Tools.OnTool(aikit.ToolNote{Tool: aikit.ToolMyDay})
+	}
 	for _, c := range a.reply {
 		onChunk(c)
 	}
@@ -71,7 +78,30 @@ type chatFamily struct {
 	aliceID, kidID, otherKidID  int64
 }
 
+// dayTools is chat.Tools whose my-day lookup records the time zone it was
+// asked for.
+type dayTools struct {
+	mu   sync.Mutex
+	locs []string
+}
+
+func (d *dayTools) Weather(context.Context, store.User) (string, error) { return "Sunny.", nil }
+func (d *dayTools) MyPicks(context.Context, store.User) (string, error) { return "", nil }
+func (d *dayTools) Search(context.Context, store.User, string) ([]aikit.SearchResult, error) {
+	return nil, nil
+}
+func (d *dayTools) MyDay(_ context.Context, _ store.User, loc *time.Location) (string, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.locs = append(d.locs, loc.String())
+	return "Soccer at 4.", nil
+}
+
 func newChatFamily(t *testing.T, agent chat.Agent) chatFamily {
+	return newChatFamilyWithTools(t, agent, nil)
+}
+
+func newChatFamilyWithTools(t *testing.T, agent chat.Agent, tools chat.Tools) chatFamily {
 	t.Helper()
 	st, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -87,6 +117,9 @@ func newChatFamily(t *testing.T, agent chat.Agent) chatFamily {
 	}
 	if agent != nil {
 		d.Chat = chat.NewService(agent, st, logger)
+		if tools != nil {
+			d.Chat.SetTools(tools)
+		}
 	}
 	srv := httptest.NewServer(routes(d))
 	t.Cleanup(func() { st.Close() })
@@ -124,7 +157,13 @@ type sseEvent struct {
 // for a stream, its events.
 func sendMessage(t *testing.T, c *client, chatID int64, text string) (int, []sseEvent, string) {
 	t.Helper()
-	body, _ := json.Marshal(map[string]string{"text": text})
+	return sendMessageIn(t, c, chatID, text, "")
+}
+
+// sendMessageIn is sendMessage with the kid's time zone.
+func sendMessageIn(t *testing.T, c *client, chatID int64, text, timeZone string) (int, []sseEvent, string) {
+	t.Helper()
+	body, _ := json.Marshal(map[string]string{"text": text, "timeZone": timeZone})
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/me/chats/%d/messages", c.base, chatID), strings.NewReader(string(body)))
 	if err != nil {
 		t.Fatal(err)
@@ -387,4 +426,48 @@ func countTable(t *testing.T, st *store.Store, table string) int {
 		t.Fatal(err)
 	}
 	return n
+}
+
+func TestChatToolRoutes(t *testing.T) {
+	agent := &scriptedAgent{checkDay: true}
+	tools := &dayTools{}
+	f := newChatFamilyWithTools(t, agent, tools)
+	var conv map[string]any
+	f.kid.do("POST", "/api/me/chats", map[string]string{"mode": "explore"}, http.StatusCreated, &conv)
+	chatID := int64(conv["id"].(float64))
+
+	// A tool note streams before the reply's text.
+	agent.set(aikit.Verdict{}, nil, "You have soccer at 4.")
+	status, events, _ := sendMessageIn(t, f.kid, chatID, "what do I have today?", "America/Denver")
+	if status != http.StatusOK || eventNames(events) != "message,tool,delta,done" {
+		t.Fatalf("status %d, events %q; want message,tool,delta,done", status, eventNames(events))
+	}
+	if events[1].data["tool"] != "my_day" {
+		t.Errorf("tool event = %v", events[1].data)
+	}
+	if len(tools.locs) != 1 || tools.locs[0] != "America/Denver" {
+		t.Errorf("my day was asked for %v, want America/Denver", tools.locs)
+	}
+
+	// An unknown time zone falls back to UTC.
+	sendMessageIn(t, f.kid, chatID, "and tomorrow?", "Mars/Olympus_Mons")
+	if tools.locs[1] != "UTC" {
+		t.Errorf("an unknown time zone gave %q, want UTC", tools.locs[1])
+	}
+
+	// The notes are in both transcripts, attached to their replies.
+	var kidTr, parentTr struct {
+		Messages  []map[string]any `json:"messages"`
+		ToolCalls []map[string]any `json:"toolCalls"`
+	}
+	f.kid.do("GET", fmt.Sprintf("/api/me/chats/%d", chatID), nil, http.StatusOK, &kidTr)
+	f.alice.do("GET", memberPath(f.kidID, fmt.Sprintf("/chats/%d", chatID)), nil, http.StatusOK, &parentTr)
+	for who, tr := range map[string]struct {
+		Messages  []map[string]any `json:"messages"`
+		ToolCalls []map[string]any `json:"toolCalls"`
+	}{"kid": kidTr, "parent": parentTr} {
+		if len(tr.ToolCalls) != 2 || tr.ToolCalls[0]["tool"] != "my_day" || tr.ToolCalls[0]["messageId"] != tr.Messages[1]["id"] {
+			t.Errorf("%s's transcript tool calls = %v, want my_day on the first reply", who, tr.ToolCalls)
+		}
+	}
 }

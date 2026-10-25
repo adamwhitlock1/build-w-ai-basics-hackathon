@@ -43,7 +43,7 @@ func TestKidAgentReply(t *testing.T) {
 			t.Errorf("reply = %q from chunks %q; want %q in several chunks", got, chunks, answer)
 		}
 		req := model.Requests()[0]
-		if system := promptText(req.Messages[0]); system != aikit.KidSystemPrompt(aikit.PersonaTeen, aikit.ModeHomework, false) {
+		if system := promptText(req.Messages[0]); system != aikit.KidSystemPrompt(aikit.PersonaTeen, aikit.ModeHomework, false, nil) {
 			t.Error("the system prompt isn't the kid system prompt for a teen in homework mode")
 		}
 		if got := rec.entries(); len(got) != 1 || got[0].usage.Step != aikit.StepKidReply {

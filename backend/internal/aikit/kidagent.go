@@ -155,7 +155,12 @@ type ReplyInput struct {
 	// History is the conversation so far, ending with the kid's latest
 	// message. Only the last maxReplyTurns are sent.
 	History []Turn
+	// Tools are what the agent may look up for this kid; nil for none.
+	Tools *KidTools
 }
+
+// maxToolTurns bounds the tool loop: a few rounds of tools, then the answer.
+const maxToolTurns = 4
 
 // Reply streams the agent's reply to the kid's latest message, passing each
 // piece of text to onChunk as it arrives, and returns the whole reply.
@@ -181,11 +186,18 @@ func (a *KidAgent) Reply(ctx context.Context, in ReplyInput, onChunk func(string
 	if model == "" {
 		model = a.kit.defaultModel
 	}
-	resp, err := a.kit.stream(ctx, StepKidReply, replyTemperature, onChunk,
+	run := &toolRun{}
+	opts := []ai.GenerateOption{
 		ai.WithModelName(model),
-		ai.WithSystem(kidSystemPrompt(in.Persona, in.Mode, in.Crisis)),
+		ai.WithSystem(kidSystemPrompt(in.Persona, in.Mode, in.Crisis, in.Tools.offered())),
 		ai.WithMessages(msgs...),
-	)
+	}
+	if tools := in.Tools.build(run); len(tools) > 0 {
+		opts = append(opts, ai.WithTools(tools...), ai.WithMaxTurns(maxToolTurns))
+	}
+	// Once a tool has run (a search may have been paid for), the reply
+	// isn't started over.
+	resp, err := a.kit.stream(ctx, StepKidReply, replyTemperature, onChunk, func() bool { return !run.ran() }, opts...)
 	if err != nil {
 		return "", fmt.Errorf("kid reply: %w", err)
 	}

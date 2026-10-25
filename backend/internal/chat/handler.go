@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"porchlight/internal/aikit"
 	"porchlight/internal/auth"
 	"porchlight/internal/respond"
 	"porchlight/internal/store"
@@ -66,9 +67,19 @@ type flagJSON struct {
 	ConversationTitle string     `json:"conversationTitle,omitempty"`
 }
 
+// toolCallJSON is one tool the agent used. Kids and parents both see these
+// notes, search queries included.
+type toolCallJSON struct {
+	Tool      string    `json:"tool"`
+	Detail    string    `json:"detail"`
+	MessageID *int64    `json:"messageId"` // the reply it informed; null if that reply failed
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type transcriptJSON struct {
 	Conversation conversationJSON `json:"conversation"`
 	Messages     []messageJSON    `json:"messages"`
+	ToolCalls    []toolCallJSON   `json:"toolCalls"`
 	Flags        []flagJSON       `json:"flags,omitempty"` // parents only
 }
 
@@ -115,9 +126,20 @@ func toFlags(fs []store.ChatFlag) []flagJSON {
 }
 
 func toTranscript(t Transcript, forParent bool) transcriptJSON {
-	out := transcriptJSON{Conversation: toConversation(t.Conversation, forParent), Messages: make([]messageJSON, len(t.Messages))}
+	out := transcriptJSON{
+		Conversation: toConversation(t.Conversation, forParent),
+		Messages:     make([]messageJSON, len(t.Messages)),
+		ToolCalls:    make([]toolCallJSON, len(t.ToolCalls)),
+	}
 	for i, m := range t.Messages {
 		out.Messages[i] = toMessage(m)
+	}
+	for i, c := range t.ToolCalls {
+		out.ToolCalls[i] = toolCallJSON{Tool: c.Tool, Detail: c.Detail, CreatedAt: c.CreatedAt}
+		if c.MessageID != 0 {
+			id := c.MessageID
+			out.ToolCalls[i].MessageID = &id
+		}
 	}
 	if forParent {
 		out.Flags = toFlags(t.Flags)
@@ -184,10 +206,12 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusOK, toTranscript(t, false))
 }
 
-// Send serves POST /api/me/chats/{id}/messages with {"text": "..."}. The
-// answer is a stream of server-sent events:
+// Send serves POST /api/me/chats/{id}/messages with {"text": "...",
+// "timeZone": "America/Denver"} (an IANA zone; missing or unknown means
+// UTC). The answer is a stream of server-sent events:
 //
 //	event: message   the kid's stored message
+//	event: tool      {"tool": "search", "detail": "..."}: a tool the agent used
 //	event: delta     {"text": "..."}, a piece of the reply (repeated)
 //	event: done      the agent's stored message
 //	event: error     {"error": "...", "hint": "..."}: the reply failed
@@ -208,11 +232,13 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Text string `json:"text"`
+		Text     string `json:"text"`
+		TimeZone string `json:"timeZone"`
 	}
 	if !decodeJSON(w, r, &req, `Send {"text": "your message"}.`) {
 		return
 	}
+	loc := locationOf(req.TimeZone)
 
 	// http.ResponseController reaches Flush through the logging
 	// middleware's response wrapper (it has an Unwrap method).
@@ -229,8 +255,8 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 		_ = rc.Flush()
 	}
 
-	reply, err := h.svc.Send(ctx, kid, id, req.Text,
-		func(m store.ChatMessage) {
+	reply, err := h.svc.Send(ctx, kid, id, req.Text, loc, SendEvents{
+		OnKid: func(m store.ChatMessage) {
 			// The kid's message is stored: from here on, the answer is a
 			// stream.
 			w.Header().Set("Content-Type", "text/event-stream")
@@ -240,8 +266,11 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 			streaming = true
 			event("message", toMessage(m))
 		},
-		func(text string) { event("delta", map[string]string{"text": text}) },
-	)
+		OnTool: func(n aikit.ToolNote) {
+			event("tool", map[string]string{"tool": n.Tool, "detail": n.Detail})
+		},
+		OnChunk: func(text string) { event("delta", map[string]string{"text": text}) },
+	})
 	switch {
 	case err == nil:
 		event("done", toMessage(reply))
@@ -470,6 +499,20 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 		h.logger.ErrorContext(r.Context(), "chat request failed", "path", r.URL.Path, "err", err)
 		respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Try again in a moment.")
 	}
+}
+
+// locationOf returns the IANA time zone tz, or UTC if it's missing or
+// unknown, as the widget routes do. "Local" would be the server's zone, not
+// the kid's, so it counts as unknown.
+func locationOf(tz string) *time.Location {
+	if tz == "" || tz == "Local" {
+		return time.UTC
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
 }
 
 // pathID reads a positive integer id from the path wildcard name.

@@ -147,9 +147,9 @@ func (k *Kit) generateOnce(ctx context.Context, step string, opts ...ai.Generate
 // stream runs one streaming Generate call with usage tracked under step and
 // the Kit's call config at temperature, passing each chunk's text to
 // onChunk. A rate limit is retried once, but only before any text has
-// arrived: once the caller has shown part of a reply, starting over would
-// show it twice.
-func (k *Kit) stream(ctx context.Context, step string, temperature float64, onChunk func(string), opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
+// arrived (once the caller has shown part of a reply, starting over would
+// show it twice), and only if retryable (nil: always) still says so.
+func (k *Kit) stream(ctx context.Context, step string, temperature float64, onChunk func(string), retryable func() bool, opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
 	streamed := false
 	opts = append(opts,
 		ai.WithConfig(k.callConfig(temperature)),
@@ -162,7 +162,7 @@ func (k *Kit) stream(ctx context.Context, step string, temperature float64, onCh
 		}))
 	resp, err := k.generateOnce(ctx, step, opts...)
 	var ue *llm.UpstreamError
-	if streamed || !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {
+	if streamed || (retryable != nil && !retryable()) || !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {
 		return resp, err
 	}
 	slog.WarnContext(ctx, "openrouter rate limited; retrying once", "schema", step)

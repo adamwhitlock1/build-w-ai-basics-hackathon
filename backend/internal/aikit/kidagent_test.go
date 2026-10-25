@@ -33,7 +33,7 @@ func TestKidSystemPrompt(t *testing.T) {
 		{"", aikit.ModeExplore, false, []string{aikit.PersonaYoungerPrompt}, []string{aikit.PersonaTeenPrompt}},
 	}
 	for _, tt := range tests {
-		got := aikit.KidSystemPrompt(tt.persona, tt.mode, tt.crisis)
+		got := aikit.KidSystemPrompt(tt.persona, tt.mode, tt.crisis, nil)
 		// In every prompt: the hint ladder, the injection rule and the
 		// under-18 guidance.
 		for _, s := range append(tt.want, aikit.HomeworkRule, aikit.InjectionRule, kidGuidanceMarker) {

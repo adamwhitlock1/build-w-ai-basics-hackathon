@@ -29,6 +29,9 @@ type fakeAgent struct {
 	checks   []checkCall
 	replies  []aikit.ReplyInput
 	attrs    []llm.Attribution
+	// useTools, if set, is called with the reply's tools before replying,
+	// as a model calling them would.
+	useTools func(ctx context.Context, t *aikit.KidTools)
 }
 
 type checkCall struct {
@@ -51,6 +54,9 @@ func (f *fakeAgent) Reply(ctx context.Context, in aikit.ReplyInput, onChunk func
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.replies = append(f.replies, in)
+	if f.useTools != nil {
+		f.useTools(ctx, in.Tools)
+	}
 	if f.replyErr != nil {
 		for _, c := range f.chunks {
 			onChunk(c)
@@ -124,9 +130,10 @@ func send(t *testing.T, svc *chat.Service, kid store.User, id int64, text string
 	t.Helper()
 	var kidMsg store.ChatMessage
 	var streamed strings.Builder
-	reply, err := svc.Send(context.Background(), kid, id, text,
-		func(m store.ChatMessage) { kidMsg = m },
-		func(s string) { streamed.WriteString(s) })
+	reply, err := svc.Send(context.Background(), kid, id, text, time.UTC, chat.SendEvents{
+		OnKid:   func(m store.ChatMessage) { kidMsg = m },
+		OnChunk: func(s string) { streamed.WriteString(s) },
+	})
 	return kidMsg, streamed.String(), reply, err
 }
 

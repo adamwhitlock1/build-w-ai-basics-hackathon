@@ -230,3 +230,47 @@ func TestBirthYear(t *testing.T) {
 		t.Error("birth year still set after clearing")
 	}
 }
+
+func TestChatToolCalls(t *testing.T) {
+	ctx := context.Background()
+	s := openTestStore(t)
+	fam := newChatFamily(t, s)
+	c, err := s.CreateConversation(ctx, fam.kid.FamilyID, fam.kid.ID, store.ModeExplore)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := s.CreateConversation(ctx, fam.kid.FamilyID, fam.kid.ID, store.ModeExplore)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reply, err := s.AddChatMessage(ctx, c.ID, store.RoleAgent, "It's sunny.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AddChatToolCalls(ctx, c.ID, reply.ID, []store.ChatToolCall{{Tool: "weather"}, {Tool: "search", Detail: "volcano facts"}}); err != nil {
+		t.Fatal(err)
+	}
+	// A failed reply's calls are kept with no message.
+	if err := s.AddChatToolCalls(ctx, c.ID, 0, []store.ChatToolCall{{Tool: "search", Detail: "lava"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AddChatToolCalls(ctx, other.ID, 0, []store.ChatToolCall{{Tool: "my_day"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	calls, err := s.ListChatToolCalls(ctx, c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 3 || calls[0].Tool != "weather" || calls[0].MessageID != reply.ID ||
+		calls[1].Detail != "volcano facts" || calls[2].MessageID != 0 || calls[2].Detail != "lava" {
+		t.Errorf("calls = %+v, want weather and the search on the reply, then the unattached search", calls)
+	}
+
+	if err := s.DeleteConversation(ctx, fam.kid.FamilyID, fam.kid.ID, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, s, "chat_tool_calls"); n != 1 {
+		t.Errorf("%d tool calls left, want only the other conversation's", n)
+	}
+}
