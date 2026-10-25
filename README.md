@@ -270,7 +270,18 @@ The identity comes from `brand/`: the name Kinlight, the lantern mark, and the c
 - **How it's built.** All colors are tokens in `frontend/src/styles/index.css`. Porch light redefines the same tokens, so components never name a theme.
 - **Contrast.** `npm run check:contrast` checks every text and control pairing in both themes against WCAG AA, and CI runs it.
 - **Fonts.** Fraunces (headings, with its soft axis) and Figtree (everything else) are bundled with the app, so pages make no font requests to other sites.
-- **The lantern.** The header lockup is `brand/logo/themed/lockup.svg`, copied to `frontend/src/brand/`. The tab and home-screen icons are copied from `brand/logo/` to `frontend/public/`. Re-copy them after `brand/logo/build.py` changes the drawings.
+- **The lantern.** In the header, the lantern (`LanternMark`, drawn in code so its parts can move) sits beside the wordmark copied from `brand/logo/themed/wordmark.svg` into `frontend/src/brand/`. The tab and home-screen icons are copied from `brand/logo/` to `frontend/public/`. Re-copy them after `brand/logo/build.py` changes the drawings.
+
+**How the lantern behaves** (`brand/lantern-ux.md`). Light is attention, so it's spent carefully:
+- **Kindle.** The header lantern warms up when the app opens in a tab, and after signing in.
+- **Thinking.** Every wait shows a small breathing lantern beside words saying what's happening: a chat reply, the Assistant, a briefing, a described card, saving, a page loading, a refresh. It's the only animation that repeats.
+- **A card arrives.** A new card, or one whose content changes while the page is open, catches the light along its top edge, and the header lantern swings. Cards already there when the page opens don't.
+- **Fresh to settled.** A card's top edge is warm just after an update and fades over six hours, beside its "Updated …" time.
+- **Dusk.** Choosing Porch light spreads night out from the header lantern, and Daybreak draws the light back in. Automatic does the same when the device changes. Page loads and signing in change at once.
+- **One lit thing.** At most one thing glows at full strength: a wait, otherwise a card that just arrived, otherwise the briefing before noon. Every glow has words beside it.
+- **Reduced motion.** With the device's reduced-motion setting on, every moment becomes a plain fade of the same length: no swing, flicker or spreading.
+
+The timings are tokens in `index.css`. The rules (who gets the glow, what counts as arriving, how an edge fades, when it's morning) are plain functions in `frontend/src/motion/light.ts`, and `npm test` runs their tests with Node's own test runner.
 
 ## Tests
 
@@ -286,7 +297,7 @@ The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (c
 GitHub Actions (`.github/workflows/ci.yml`) runs three checks on every pull request and every push to `main`:
 - **Backend:** `make check`, on Go 1.27.3.
 - **Backend race detector:** `go test -race ./...`. On Linux it needs cgo, so this job turns cgo on.
-- **Frontend:** `npm run lint`, `npm run check:contrast` and `npm run build`.
+- **Frontend:** `npm run lint`, `npm run check:contrast`, `npm test` and `npm run build`.
 
 ## AI usage
 

@@ -103,6 +103,6 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 ## 6. Docs and end to end
 
-- [ ] 6.1 Update the README's "Look and themes" with the moments, reduced motion, and `npm test`. Verify by reading it.
+- [x] 6.1 Update the README's "Look and themes" with the moments, reduced motion, and `npm test`. Verify by reading it.
 - [ ] 6.2 On the demo, as Maya and as Jordan, in both themes and with reduced motion: open the app, move around, describe a card, refresh one, chat, ask the Assistant, and switch themes. Check that every moment matches `brand/lantern-ux.md` and the spec, at most one thing glows at full strength, nothing loops except breathing, and every glow has words beside it. Record the results here.
 - [ ] 6.3 Run `openspec validate lantern-moments --strict`, `make check`, and the frontend lint, `npm test`, contrast check and build. Push, open the PR, and confirm CI passes on it. Add the "Lantern moments" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
