@@ -274,6 +274,10 @@ func (h *TodayHandler) forgetEvents(ctx context.Context, userID int64) {
 }
 
 func (h *TodayHandler) serverError(w http.ResponseWriter, r *http.Request, what string, err error) {
+	if clientGone(r.Context(), err) {
+		writeIfCancelled(w, r, h.logger, err)
+		return
+	}
 	h.logger.ErrorContext(r.Context(), what+" failed", "err", err)
 	respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")
 }

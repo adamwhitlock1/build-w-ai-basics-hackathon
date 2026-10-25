@@ -244,8 +244,11 @@ func (b *WidgetBuilder) Refresh(ctx context.Context, member store.User, widgetID
 }
 
 // failed logs a failure on our side, such as a database error, and returns
-// it. what says what we were doing, e.g. "load widget".
+// it. what says what we were doing, e.g. "load widget". A request the
+// browser gave up on isn't logged.
 func (b *WidgetBuilder) failed(ctx context.Context, what string, err error) error {
-	b.logger.ErrorContext(ctx, what+" failed", "err", err)
+	if !clientGone(ctx, err) {
+		b.logger.ErrorContext(ctx, what+" failed", "err", err)
+	}
 	return fmt.Errorf("%s: %w", what, err)
 }

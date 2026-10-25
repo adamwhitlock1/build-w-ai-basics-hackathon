@@ -118,6 +118,10 @@ func (a *Authenticator) RequireAuth(next http.Handler) http.Handler {
 		case errors.Is(err, store.ErrNotFound): // the session outlived its account
 			writeLoginRequired(w)
 			return
+		case errors.Is(err, context.Canceled) && ctx.Err() != nil:
+			// The browser gave up on the request (a page change, a preload it
+			// didn't need): nobody is waiting for an answer, and it's no fault.
+			return
 		case err != nil:
 			a.logger.ErrorContext(ctx, "load logged-in user", "user_id", userID, "err", err)
 			respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")

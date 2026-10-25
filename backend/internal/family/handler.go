@@ -393,6 +393,11 @@ func (h *Handler) writeMe(w http.ResponseWriter, r *http.Request, status int, us
 // serverError logs err and writes a generic 500. what says what we were
 // doing, e.g. "load family".
 func (h *Handler) serverError(w http.ResponseWriter, r *http.Request, what string, err error) {
+	if errors.Is(err, context.Canceled) && r.Context().Err() != nil {
+		// The browser gave up on the request (a page change, a preload it
+		// didn't need): nobody is waiting for an answer, and it's no fault.
+		return
+	}
 	h.logger.ErrorContext(r.Context(), what+" failed", "err", err)
 	respond.Error(w, http.StatusInternalServerError, "Something went wrong on our side.", "Check the backend console for details.")
 }
