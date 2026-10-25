@@ -3,6 +3,8 @@ package main
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/alexedwards/scs/v2"
 
@@ -13,6 +15,7 @@ import (
 	"kinlight/internal/layout"
 	"kinlight/internal/respond"
 	"kinlight/internal/store"
+	"kinlight/internal/web"
 	"kinlight/internal/widgets"
 )
 
@@ -179,7 +182,21 @@ func routes(d deps) http.Handler {
 	// The first wrapper listed runs first: log, recover from panics, turn
 	// away forged cross-site requests, then load the session (and save it as
 	// the response is written).
-	return logRequests(logger, recoverPanics(logger, rejectCrossSite(sessions.LoadAndSave(mux))))
+	var handler http.Handler = rejectCrossSite(sessions.LoadAndSave(mux))
+	if d.PublicURL != "" {
+		// The page's inline scripts are allowed by hash, so the policy
+		// follows whatever index.html the server actually serves.
+		var hashes []string
+		if d.WebDir != "" {
+			if page, err := os.ReadFile(filepath.Join(d.WebDir, "index.html")); err == nil {
+				hashes = web.InlineScriptHashes(page)
+			} else {
+				logger.Warn("can't read the web app's index.html for its script hashes", "err", err)
+			}
+		}
+		handler = web.SecurityHeaders(hashes, handler)
+	}
+	return logRequests(logger, recoverPanics(logger, handler))
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {

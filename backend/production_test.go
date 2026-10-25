@@ -73,3 +73,25 @@ func TestSecureCookieOnlyInProduction(t *testing.T) {
 		})
 	}
 }
+
+func TestSecurityHeadersOnlyInProduction(t *testing.T) {
+	for _, tt := range []struct {
+		name, publicURL string
+	}{{"development", ""}, {"production", "https://kinlight.example.test"}} {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), func(d *deps) { d.PublicURL = tt.publicURL })
+			resp := newClient(t, srv).do("GET", "/api/health", nil, http.StatusOK, nil)
+			csp := resp.Header.Get("Content-Security-Policy")
+			if (csp != "") != (tt.publicURL != "") {
+				t.Errorf("Content-Security-Policy = %q in %s", csp, tt.name)
+			}
+			if tt.publicURL != "" {
+				for _, h := range []string{"Strict-Transport-Security", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy"} {
+					if resp.Header.Get(h) == "" {
+						t.Errorf("missing %s", h)
+					}
+				}
+			}
+		})
+	}
+}

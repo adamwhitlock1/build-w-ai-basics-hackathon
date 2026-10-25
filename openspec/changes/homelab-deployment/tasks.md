@@ -13,7 +13,8 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
   - Done. Production behavior hangs off `deps` (`PublicURL`, `WebDir`, `TrustCloudflare`), so route tests can set it, through a new `startServerOpts` helper. `routes` sets the cookie's Secure flag.
   - **Tests:** `parsePublicURL` (good and bad addresses), `devOnlySettings` (each dev setting named, off values ignored), the Secure cookie in production only (and always HttpOnly and SameSite=Lax), and `llm.NewClientForSite` sending the public URL as `HTTP-Referer`.
   - The Genkit side passes the same URL through `aikit.Config.SiteURL` to the OpenRouter plugin. Its tests use a scripted model with no HTTP, so the header is tested on the `llm` client. `make check` passes.
-- [ ] 1.2 Add the security-headers middleware, with the CSP's script hash computed from the served `index.html` (design decision 3). Tests: the headers appear only in production, and the hash matches a fixture `index.html`'s inline script. Verify with `make check`.
+- [x] 1.2 Add the security-headers middleware, with the CSP's script hash computed from the served `index.html` (design decision 3). Tests: the headers appear only in production, and the hash matches a fixture `index.html`'s inline script. Verify with `make check`.
+  - Done. A new `internal/web` package holds `InlineScriptHashes`, `ContentSecurityPolicy` and `SecurityHeaders`, and `routes` wraps everything in it in production, hashing the served `index.html` at startup. Unit tests cover the hash of a fixture page's inline script, and that external and empty scripts are ignored. A route test shows the headers only in production. `make check` passes. The real built page is checked under the policy in 4.2.
 
 ## 2. One server
 
