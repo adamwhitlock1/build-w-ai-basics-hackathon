@@ -117,7 +117,7 @@ func TestParentAgent(t *testing.T) {
 		if strings.Contains(system, "- kids_chats:") || !strings.Contains(system, `"About the kids"`) {
 			t.Error("the Ask anything prompt describes kids_chats, or doesn't point to About the kids")
 		}
-		for _, want := range []string{"can only read", "Reviews page", "full link"} {
+		for _, want := range []string{"can only read", "Reviews page", "full link", aikit.NamesRule} {
 			if !strings.Contains(system, want) {
 				t.Errorf("the prompt doesn't say %q", want)
 			}

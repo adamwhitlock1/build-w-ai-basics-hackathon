@@ -95,7 +95,17 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 
 ## 5. Kids by name
 
-- [ ] 5.1 Add the names rule to `parentIntro` and `kidIntro` (design decision 8), with prompt tests that the rule is present, and an `evalparent` case: the kids overview, failing on he, him, his, she or her outside quotes. Run `make ai-eval-parent` and record the result here. Verify with `go test ./internal/aikit/...`.
+- [x] 5.1 Add the names rule to `parentIntro` and `kidIntro` (design decision 8), with prompt tests that the rule is present, and an `evalparent` case: the kids overview, failing on he, him, his, she or her outside quotes. Run `make ai-eval-parent` and record the result here. Verify with `go test ./internal/aikit/...`.
+  - Result (2026-10-25), on Claude Haiku 5.5:
+    - **First attempt:** a short rule placed near the top of the prompt didn't hold. The overview reply used "her" and "His" for the kids.
+    - **The rule now:** it says what to write instead ("Lily's chat", "talk with Lily", even if it sounds a little repetitive). In the Assistant's prompt it sits last, beside the format rule. The kid prompt has it after the intro.
+    - **Results:** the names case then passed in 4 of 5 runs; one reply had a single "she". All other cases passed every run. The kids' evaluation passed 17 of 17 with the rule in its prompt.
+    - **Limits:** the rule is prompt-only, so the evaluation measures it and doesn't guarantee it, as the design says.
+    - **Changes to the evaluation's fixtures:**
+      - The flag reason and Lily's quoted message no longer use pronouns, so a reply can't pick one up from the data.
+      - The older Lily case now accepts "lives" or "address".
+      - The names case requires "Lily", not "Jordan": the overview reasonably leaves out a kid with no flags.
+      - A failing case now prints the whole reply.
 
 ## 6. Docs and end to end
 

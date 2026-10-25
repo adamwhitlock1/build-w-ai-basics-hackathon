@@ -203,6 +203,7 @@ func parentSystemPrompt(kind string, tools []string) string {
 		lines = append(lines, parentToolsRule)
 		parts = append(parts, strings.Join(lines, "\n"))
 	}
-	parts = append(parts, parentFormatRule)
+	// Last, with the format rule: rules about how to write hold best there.
+	parts = append(parts, namesRule, parentFormatRule)
 	return strings.Join(parts, "\n\n")
 }

@@ -34,9 +34,9 @@ func TestKidSystemPrompt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		got := aikit.KidSystemPrompt(tt.persona, tt.mode, tt.crisis, nil)
-		// In every prompt: the hint ladder, the injection rule and the
-		// under-18 guidance.
-		for _, s := range append(tt.want, aikit.HomeworkRule, aikit.InjectionRule, kidGuidanceMarker) {
+		// In every prompt: the hint ladder, the injection rule, the names
+		// rule and the under-18 guidance.
+		for _, s := range append(tt.want, aikit.HomeworkRule, aikit.InjectionRule, aikit.NamesRule, kidGuidanceMarker) {
 			if !strings.Contains(got, s) {
 				t.Errorf("%s/%s/crisis=%v: prompt is missing %.50q", tt.persona, tt.mode, tt.crisis, s)
 			}
