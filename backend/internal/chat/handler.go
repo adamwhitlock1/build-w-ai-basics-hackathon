@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -441,6 +442,10 @@ func (h *Handler) parentAndKid(w http.ResponseWriter, r *http.Request) (parent, 
 // logged here; the expected ones need no log line.
 func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, context.Canceled) && r.Context().Err() != nil:
+		// The browser gave up on the request (a page change, a preload it
+		// didn't need): nobody is waiting for an answer, and it's no fault.
+		return
 	case errors.Is(err, ErrChatOff):
 		respond.Error(w, http.StatusServiceUnavailable, "Chat isn't set up yet. Ask a parent.", "")
 	case errors.Is(err, ErrNotAKid):

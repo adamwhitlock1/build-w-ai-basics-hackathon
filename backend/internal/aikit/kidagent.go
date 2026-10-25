@@ -64,7 +64,7 @@ type verdictReply struct {
 	Severity string `json:"severity" jsonschema_description:"one of low, medium, high; or none when not flagged"`
 	Crisis   bool   `json:"crisis" jsonschema_description:"true only if the kid may be in danger now, or thinking about suicide or self-harm"`
 	Reason   string `json:"reason" jsonschema_description:"one plain sentence for the parent, or empty when not flagged"`
-	Title    string `json:"title" jsonschema_description:"a 2 to 6 word conversation title when asked for one, otherwise empty"`
+	Title    string `json:"title" jsonschema_description:"the conversation title, when the message asks for one; otherwise empty"`
 }
 
 // Check classifies msg, the kid's latest message, in the light of recent
@@ -75,15 +75,18 @@ func (a *KidAgent) Check(ctx context.Context, recent []Turn, msg string, wantTit
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
 
-	system := safetySystemPrompt
+	// The title request goes in the user message, right after the
+	// message to classify: small models skip it at the end of the system
+	// prompt.
+	user := checkMessage(recent, msg)
 	if wantTitle {
-		system += safetyTitleRequest
+		user += safetyTitleRequest
 	}
 	call := structuredCall{
 		step:     StepKidCheck,
 		model:    a.safetyModel,
-		system:   system,
-		messages: []*ai.Message{ai.NewUserTextMessage(checkMessage(recent, msg))},
+		system:   safetySystemPrompt,
+		messages: []*ai.Message{ai.NewUserTextMessage(user)},
 	}
 	r, err := generateJSON(ctx, a.kit, call, func(*verdictReply) error { return nil })
 	if err != nil {

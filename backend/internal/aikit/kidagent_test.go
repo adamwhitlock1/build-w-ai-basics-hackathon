@@ -67,7 +67,7 @@ func TestKidAgentCheck(t *testing.T) {
 			t.Errorf("verdict = %+v, want unflagged with the title", v)
 		}
 		req := model.Requests()[0]
-		if system := promptText(req.Messages[0]); !strings.Contains(system, aikit.SafetyTitleRequest) {
+		if user := promptText(req.Messages[1]); !strings.HasSuffix(user, aikit.SafetyTitleRequest) {
 			t.Error("the first message's check doesn't ask for a title")
 		}
 		if got := rec.entries(); len(got) != 1 || got[0].usage.Step != aikit.StepKidCheck {
@@ -85,7 +85,7 @@ func TestKidAgentCheck(t *testing.T) {
 			t.Errorf("title = %q, want none when not asked", v.Title)
 		}
 		req := model.Requests()[0]
-		if strings.Contains(promptText(req.Messages[0]), aikit.SafetyTitleRequest) {
+		if strings.Contains(promptText(req.Messages[1]), aikit.SafetyTitleRequest) {
 			t.Error("a later message's check asks for a title")
 		}
 		user := promptText(req.Messages[1])
