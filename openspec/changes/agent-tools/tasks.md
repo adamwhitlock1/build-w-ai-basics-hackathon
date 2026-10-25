@@ -45,7 +45,11 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 4. Frontend
 
-- [ ] 4.1 Send `timeZone` (`Intl.DateTimeFormat().resolvedOptions().timeZone`) with each message. Handle the `tool` event, showing the notes live above the streaming reply. Show stored tool notes above their replies in the kid's conversation and the parent's transcript, with search queries. Verify with `npm run lint` and `npm run build`, and in the browser on the demo with the override: as Jordan, "do I need a jacket today?" shows "Checked the weather" and a forecast-based answer, and after a reload the note is still there; as Maya, the transcript shows the note.
+- [x] 4.1 Send `timeZone` (`Intl.DateTimeFormat().resolvedOptions().timeZone`) with each message. Handle the `tool` event, showing the notes live above the streaming reply. Show stored tool notes above their replies in the kid's conversation and the parent's transcript, with search queries. Verify with `npm run lint` and `npm run build`, and in the browser on the demo with the override: as Jordan, "do I need a jacket today?" shows "Checked the weather" and a forecast-based answer, and after a reload the note is still there; as Maya, the transcript shows the note.
+  - Result (2026-10-24), demo with the override on Claude Haiku 5.5: Jordan asked "do I need a jacket today?" in a new Explore chat.
+    - "Checked the weather" appeared live above a "…" bubble before any text.
+    - The reply used the real Denver forecast ("46°F right now… drizzle… high of 58°F"), and the chat was titled "Whether to wear a jacket".
+    - The note was still there after a reload, and Maya's transcript of the chat shows it too.
 
 ## 5. Evaluation, smoke test and docs
 

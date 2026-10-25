@@ -62,6 +62,7 @@ function TranscriptPage() {
             messages={transcript.data.messages}
             kidName={name}
             flags={transcript.data.flags}
+            toolCalls={transcript.data.toolCalls}
             highlightId={message}
           />
           <div className="mt-10 border-t border-line pt-5">

@@ -9,6 +9,7 @@ import {
   sendChatMessage,
   useChat,
   type ChatMessage,
+  type ToolCall,
 } from '../../api/chat'
 import { ChatNotice } from '../../chat/ChatNotice'
 import { MessageList } from '../../chat/MessageList'
@@ -17,6 +18,9 @@ import { FormError } from '../../components/FormError'
 export const Route = createFileRoute('/_authed/chat/$chatId')({
   component: ChatPage,
 })
+
+/** The id the reply being written has until it's stored. */
+const STREAMING_ID = -1
 
 /** The longest message a kid can send (the server's limit too). */
 const MAX_CHARS = 4000
@@ -33,6 +37,8 @@ function ChatPage() {
   // While a reply streams: the kid's message as stored, and the reply so far.
   const [pendingKid, setPendingKid] = useState<ChatMessage | null>(null)
   const [streaming, setStreaming] = useState<string | null>(null)
+  // The tools the agent uses while this reply is being written.
+  const [liveTools, setLiveTools] = useState<ToolCall[]>([])
   const [error, setError] = useState<ApiError | null>(null)
   const sending = streaming !== null
   const endRef = useRef<HTMLDivElement>(null)
@@ -46,6 +52,7 @@ function ChatPage() {
     const message = text.trim()
     if (!message || sending) return
     setError(null)
+    setLiveTools([])
     setStreaming('')
     try {
       await sendChatMessage(chatId, message, {
@@ -53,6 +60,8 @@ function ChatPage() {
           setText('')
           setPendingKid(m)
         },
+        onTool: (tool, detail) =>
+          setLiveTools((calls) => [...calls, { tool, detail, messageId: STREAMING_ID, createdAt: '' }]),
         onDelta: (piece) => setStreaming((so) => (so ?? '') + piece),
         onDone: () => {},
       })
@@ -65,6 +74,7 @@ function ChatPage() {
       await queryClient.invalidateQueries({ queryKey: chatQueryOptions(chatId).queryKey })
       setPendingKid(null)
       setStreaming(null)
+      setLiveTools([])
       void queryClient.invalidateQueries({ queryKey: chatsQueryOptions.queryKey, exact: true })
     }
   }
@@ -85,7 +95,11 @@ function ChatPage() {
   const messages = [
     ...(chat.data?.messages ?? []),
     ...(pendingKid ? [pendingKid] : []),
-    ...(streaming ? [{ id: -1, role: 'agent' as const, text: streaming, createdAt: '' }] : []),
+    // The reply being written; its tool notes show above it, even before
+    // any text has arrived.
+    ...(streaming !== null && (streaming || liveTools.length > 0)
+      ? [{ id: STREAMING_ID, role: 'agent' as const, text: streaming || '…', createdAt: '' }]
+      : []),
   ]
 
   return (
@@ -117,9 +131,9 @@ function ChatPage() {
               : 'What are you curious about today?'}
           </p>
         ) : (
-          <MessageList messages={messages} />
+          <MessageList messages={messages} toolCalls={[...(chat.data?.toolCalls ?? []), ...liveTools]} />
         )}
-        {sending && streaming === '' && (
+        {sending && streaming === '' && liveTools.length === 0 && (
           <p role="status" className="mt-3 text-sm text-ink-muted">
             Thinking…
           </p>
