@@ -64,7 +64,8 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
   - **The design's "new page" empty state has no home:** a page always has its built-in cards, so the empty spot is the page's empty state.
   - **Load errors** use each card's noun: the card's title for a described card, and "today's events" for Today.
   - **The marker:** `useKidSafeFor` replaces the `showKidSafe` flag with the kid's name ("Jordan's", or "their" until the family list loads).
-- [ ] 3.3 Rename "widget" to "card" in the backend messages and hints it found, and update the tests that quote them. Verify `make check` and `npm run check:copy`.
+- [x] 3.3 Rename "widget" to "card" in the backend messages and hints it found, and update the tests that quote them. Verify `make check` and `npm run check:copy`.
+  - Done: the 6 distinct messages (8 places) say "card", and the tests that quote them are updated, across 10 files. `make check` passes. `npm run check:copy` now finds nothing anywhere. No frontend code matches those messages; only the copy check's own test fixtures still say "widget", on purpose.
 
 ## 4. Docs and end to end
 
