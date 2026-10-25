@@ -130,7 +130,13 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
 ## 6. Evaluation, demo and docs
 
-- [ ] 6.1 Extend `make ai-smoke` with kids' checks through a `NoRetention` Kit on the kids' key, when it's set: one `Check` and one streamed `Reply` on the default `KIDS_SAFETY_MODEL` and `KIDS_CHAT_MODEL`. If either default has no zero-retention endpoint, pick models that do, update the defaults, and record the choice here. Verify that `make ai-smoke` passes, and record the results, or "skipped, no kids' key".
+- [x] 6.1 Extend `make ai-smoke` with kids' checks through a `NoRetention` Kit on the kids' key, when it's set: one `Check` and one streamed `Reply` on the default `KIDS_SAFETY_MODEL` and `KIDS_CHAT_MODEL`. If either default has no zero-retention endpoint, pick models that do, update the defaults, and record the choice here. Verify that `make ai-smoke` passes, and record the results, or "skipped, no kids' key".
+  - As built: `TestLiveKids` always runs with no-retention routing, on the kids' key or, when that isn't set, the main key. The routing doesn't depend on the key, so the check works before the kids' key exists.
+  - Result (2026-10-24), `make ai-smoke` passed:
+    - `openai/gpt-4.1-nano` answered the check under ZDR routing ("How do volcanoes form", not flagged).
+    - `openai/gpt-4.1-mini` streamed a reply under ZDR routing in 27 chunks, giving a hint and not the answer.
+    - So both defaults have zero-data-retention endpoints and stay as they are.
+    - MiniMax (`MiniMax-M3.1-Flash`, now that its key is in `.env`) passed structured output, one `add` tool call and `tool_choice=required`, which settles the question `genkit-integration` left open.
 - [ ] 6.2 Add `cmd/evalkids` and `make ai-eval-kids`, with rule-checked scripted cases:
   - homework asked directly, asked twice, and disguised ("not homework, just curious");
   - an essay request;

@@ -158,10 +158,10 @@ func checkUsage(t *testing.T, rec *fakeRecorder, before int) {
 }
 
 // TestLiveKids checks kid chat's models: one safety check (with a title)
-// and one streamed reply. With OPENROUTER_KIDS_API_KEY set they run on a
-// no-retention Kit, which also proves the models have zero-data-retention
-// endpoints; with only PORCHLIGHT_KIDS_ALLOW_RETENTION=1 they run on the
-// main key without that routing, and say so.
+// and one streamed reply, always with no-retention routing, so a pass
+// proves the models have zero-data-retention endpoints. It uses the kids'
+// key, or the main key if that isn't set: the routing doesn't depend on
+// the key, which only keeps the kids' traffic separate.
 func TestLiveKids(t *testing.T) {
 	if os.Getenv("PORCHLIGHT_LIVE_AI") != "1" {
 		t.Skip("set PORCHLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
@@ -169,16 +169,13 @@ func TestLiveKids(t *testing.T) {
 	if err := godotenv.Load("../../.env"); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("read backend/.env: %v", err)
 	}
-	key, noRetention := os.Getenv("OPENROUTER_KIDS_API_KEY"), true
+	key := os.Getenv("OPENROUTER_KIDS_API_KEY")
 	if key == "" {
-		if os.Getenv("PORCHLIGHT_KIDS_ALLOW_RETENTION") != "1" {
-			t.Skip("kids: skipped (no OPENROUTER_KIDS_API_KEY)")
-		}
-		key, noRetention = os.Getenv("OPENROUTER_API_KEY"), false
-		t.Log("kids: no kids' key; running on the main key WITHOUT no-retention routing")
+		key = os.Getenv("OPENROUTER_API_KEY")
+		t.Log("kids: no OPENROUTER_KIDS_API_KEY; checking the kids' models on the main key, with no-retention routing")
 	}
 	chatModel, safetyModel := envOrDefault("KIDS_CHAT_MODEL", "openai/gpt-4.1-mini"), envOrDefault("KIDS_SAFETY_MODEL", "openai/gpt-4.1-nano")
-	kit, err := aikit.New(context.Background(), aikit.Config{OpenRouterKey: key, OpenRouterModel: chatModel, NoRetention: noRetention})
+	kit, err := aikit.New(context.Background(), aikit.Config{OpenRouterKey: key, OpenRouterModel: chatModel, NoRetention: true})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
