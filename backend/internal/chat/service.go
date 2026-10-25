@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"kinlight/internal/aikit"
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/llm"
 	"kinlight/internal/store"
 )
@@ -260,6 +261,9 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 	onKid(kidMsg)
 
 	verdict := s.check(ctx, kid, c, kidMsg, turns(before), first)
+	if err := hosteddemo.OperationError(ctx); err != nil {
+		return store.ChatMessage{}, err
+	}
 	if first {
 		title := verdict.Title
 		switch {

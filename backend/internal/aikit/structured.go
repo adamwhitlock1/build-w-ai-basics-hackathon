@@ -13,6 +13,7 @@ import (
 	"github.com/firebase/genkit/go/core/status"
 	"github.com/firebase/genkit/go/genkit"
 
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/llm"
 )
 
@@ -114,7 +115,7 @@ func (k *Kit) generate(ctx context.Context, step string, temperature float64, op
 	opts = append(opts, ai.WithConfig(k.callConfig(temperature)))
 	resp, err := k.generateOnce(ctx, step, opts...)
 	var ue *llm.UpstreamError
-	if !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {
+	if !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests || hosteddemo.OperationError(ctx) != nil {
 		return resp, err
 	}
 	slog.WarnContext(ctx, "openrouter rate limited; retrying once", "schema", step)
@@ -135,6 +136,9 @@ func (k *Kit) generateOnce(ctx context.Context, step string, opts ...ai.Generate
 	defer cancel()
 
 	resp, err := genkit.Generate(ctx, k.g, append(opts, k.TrackUsage(step))...)
+	if limit := hosteddemo.OperationError(ctx); limit != nil {
+		return nil, llm.UpstreamFor(0, limit)
+	}
 	if err != nil {
 		if errors.Is(err, status.ErrInvalidOutput) && resp != nil && resp.Message != nil {
 			return resp, nil
@@ -162,7 +166,7 @@ func (k *Kit) stream(ctx context.Context, step string, temperature float64, onCh
 		}))
 	resp, err := k.generateOnce(ctx, step, opts...)
 	var ue *llm.UpstreamError
-	if streamed || (retryable != nil && !retryable()) || !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {
+	if streamed || (retryable != nil && !retryable()) || !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests || hosteddemo.OperationError(ctx) != nil {
 		return resp, err
 	}
 	slog.WarnContext(ctx, "openrouter rate limited; retrying once", "schema", step)

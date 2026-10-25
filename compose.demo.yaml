@@ -1,0 +1,25 @@
+# Separate Coolify application; never combine this with the household Compose file.
+services:
+  judge-demo:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KINLIGHT_DEMO_PORT:?choose an unused port other than 1337}:8080"
+    volumes:
+      - judge-demo-data:/kinlight-demo
+    environment:
+      DB_PATH: /kinlight-demo/judge-content.sqlite
+      KINLIGHT_HOSTED_DEMO: "1"
+      KINLIGHT_DEMO_DIR: /kinlight-demo
+      KINLIGHT_PUBLIC_URL: ${KINLIGHT_PUBLIC_URL:?the demo HTTPS address}
+      KINLIGHT_DEMO_URL: ${KINLIGHT_PUBLIC_URL:?}
+      KINLIGHT_VIDEO_URL: ${KINLIGHT_VIDEO_URL:-}
+      KINLIGHT_TRUST_CLOUDFLARE: ${KINLIGHT_TRUST_CLOUDFLARE:-}
+      OPENROUTER_API_KEY: ${DEMO_OPENROUTER_API_KEY:?separate demo key}
+      OPENROUTER_KIDS_API_KEY: ${DEMO_OPENROUTER_KIDS_API_KEY:?separate demo zero-retention key}
+      BRAVE_API_KEY: ${DEMO_BRAVE_API_KEY:?separate demo search key}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      KINLIGHT_DEMO_MODEL_CALLS: ${KINLIGHT_DEMO_MODEL_CALLS:-100}
+      KINLIGHT_DEMO_SEARCH_CALLS: ${KINLIGHT_DEMO_SEARCH_CALLS:-50}
+volumes:
+  judge-demo-data:

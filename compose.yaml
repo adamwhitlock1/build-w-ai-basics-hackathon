@@ -15,6 +15,9 @@ services:
       KINLIGHT_PUBLIC_URL: ${KINLIGHT_PUBLIC_URL:?the https:// address, e.g. https://kinlight.codestuff.io}
       # 1 only when the Cloudflare Tunnel is the only way in.
       KINLIGHT_TRUST_CLOUDFLARE: ${KINLIGHT_TRUST_CLOUDFLARE:-}
+      # Optional public landing-page links; neither contains credentials.
+      KINLIGHT_DEMO_URL: ${KINLIGHT_DEMO_URL:-}
+      KINLIGHT_VIDEO_URL: ${KINLIGHT_VIDEO_URL:-}
       # AI and search.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}

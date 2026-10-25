@@ -67,3 +67,14 @@ func NewCustomWidget(member store.User, title, source, query, prompt string, arc
 		RenderSpec: spec,
 	}, nil
 }
+
+// PrefillDemoBriefing supplies a clearly labeled sample for the prepared demo day.
+func PrefillDemoBriefing(ctx context.Context, results ResultStore, member store.User, at time.Time) error {
+	loc, _ := time.LoadLocation("America/Denver")
+	day := briefingDay{Text: "Sample briefing: A little room for everyone today. Check your calendar, finish a daily chore, and explore something that interests you.", Date: at.In(loc).Format("2006-01-02"), TimeZone: "America/Denver", KidSafe: !member.IsAdmin, Uses: []string{}, Writes: maxBriefingWrites}
+	payload, err := json.Marshal(day)
+	if err != nil {
+		return err
+	}
+	return results.PutCuratedResult(ctx, store.CuratedResult{UserID: member.ID, Kind: kindBriefing, Inputs: "demo sample", Payload: payload, UpdatedAt: at})
+}

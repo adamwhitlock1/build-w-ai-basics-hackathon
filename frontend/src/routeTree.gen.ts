@@ -9,11 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as CreateFamilyRouteImport } from './routes/create-family'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
-import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AuthedAssistantIndexRouteImport } from './routes/_authed/assistant.index'
 import { Route as AuthedAssistantConversationIdRouteImport } from './routes/_authed/assistant.$conversationId'
@@ -23,6 +23,11 @@ import { Route as AuthedReviewsIndexRouteImport } from './routes/_authed/reviews
 import { Route as AuthedReviewsMemberIdIndexRouteImport } from './routes/_authed/reviews.$memberId.index'
 import { Route as AuthedReviewsMemberIdChatIdRouteImport } from './routes/_authed/reviews.$memberId.$chatId'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => rootRouteImport,
@@ -41,11 +46,6 @@ const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthedIndexRoute = AuthedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthedRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -92,7 +92,7 @@ const AuthedReviewsMemberIdChatIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthedIndexRoute
+  '/': typeof IndexRoute
   '/create-family': typeof CreateFamilyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
@@ -106,11 +106,11 @@ export interface FileRoutesByFullPath {
   '/reviews/$memberId/': typeof AuthedReviewsMemberIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/create-family': typeof CreateFamilyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/': typeof AuthedIndexRoute
   '/assistant/$conversationId': typeof AuthedAssistantConversationIdRoute
   '/chat/$chatId': typeof AuthedChatChatIdRoute
   '/assistant': typeof AuthedAssistantIndexRoute
@@ -121,12 +121,12 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/create-family': typeof CreateFamilyRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
-  '/_authed/': typeof AuthedIndexRoute
   '/_authed/assistant/$conversationId': typeof AuthedAssistantConversationIdRoute
   '/_authed/chat/$chatId': typeof AuthedChatChatIdRoute
   '/_authed/assistant/': typeof AuthedAssistantIndexRoute
@@ -152,11 +152,11 @@ export interface FileRouteTypes {
     | '/reviews/$memberId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/create-family'
     | '/login'
     | '/signup'
     | '/invite/$token'
-    | '/'
     | '/assistant/$conversationId'
     | '/chat/$chatId'
     | '/assistant'
@@ -166,12 +166,12 @@ export interface FileRouteTypes {
     | '/reviews/$memberId'
   id:
     | '__root__'
+    | '/'
     | '/_authed'
     | '/create-family'
     | '/login'
     | '/signup'
     | '/invite/$token'
-    | '/_authed/'
     | '/_authed/assistant/$conversationId'
     | '/_authed/chat/$chatId'
     | '/_authed/assistant/'
@@ -182,6 +182,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   CreateFamilyRoute: typeof CreateFamilyRoute
   LoginRoute: typeof LoginRoute
@@ -191,6 +192,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed': {
       id: '/_authed'
       path: ''
@@ -218,13 +226,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authed/': {
-      id: '/_authed/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthedIndexRouteImport
-      parentRoute: typeof AuthedRoute
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -286,7 +287,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedRouteChildren {
-  AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedAssistantConversationIdRoute: typeof AuthedAssistantConversationIdRoute
   AuthedChatChatIdRoute: typeof AuthedChatChatIdRoute
   AuthedAssistantIndexRoute: typeof AuthedAssistantIndexRoute
@@ -297,7 +297,6 @@ interface AuthedRouteChildren {
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
-  AuthedIndexRoute: AuthedIndexRoute,
   AuthedAssistantConversationIdRoute: AuthedAssistantConversationIdRoute,
   AuthedChatChatIdRoute: AuthedChatChatIdRoute,
   AuthedAssistantIndexRoute: AuthedAssistantIndexRoute,
@@ -311,6 +310,7 @@ const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   CreateFamilyRoute: CreateFamilyRoute,
   LoginRoute: LoginRoute,

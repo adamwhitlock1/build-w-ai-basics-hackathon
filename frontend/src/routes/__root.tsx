@@ -1,3 +1,4 @@
+import { DemoNotice } from '../public/DemoNotice'
 import type { QueryClient } from '@tanstack/react-query'
 import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -23,5 +24,5 @@ function Root() {
   useEffect(() => {
     if (theme) applyTheme(theme)
   }, [theme])
-  return <Outlet />
+  return <><DemoNotice /><Outlet /></>
 }

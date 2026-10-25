@@ -17,6 +17,7 @@ COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 GOTOOLCHAIN=local go build -trimpath -ldflags="-s -w" -o /out/kinlight .
+RUN CGO_ENABLED=0 GOTOOLCHAIN=local go build -trimpath -ldflags="-s -w" -o /out/seed ./cmd/seed
 
 # --- Litestream, pinned and checked --------------------------------------
 FROM alpine:3.22 AS litestream
@@ -40,9 +41,10 @@ FROM alpine:3.22
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S -g 10001 kinlight \
     && adduser -S -D -H -u 10001 -G kinlight kinlight \
-    && mkdir -p /data && chown kinlight:kinlight /data
+    && mkdir -p /data /kinlight-demo && chown kinlight:kinlight /data /kinlight-demo
 COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream
 COPY --from=server /out/kinlight /app/kinlight
+COPY --from=server /out/seed /app/seed
 COPY --from=web /src/frontend/dist /app/web
 COPY deploy/litestream.yml /etc/litestream.yml
 COPY deploy/start.sh /app/start.sh

@@ -33,6 +33,7 @@ import (
 	"kinlight/internal/auth"
 	"kinlight/internal/calendar"
 	"kinlight/internal/chat"
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/llm"
 	"kinlight/internal/sources"
 	"kinlight/internal/store"
@@ -54,6 +55,11 @@ func main() {
 
 // config is everything the server reads from the environment.
 type config struct {
+	demoDir                  string
+	demoURL                  string
+	videoURL                 string
+	demoModels, demoSearches int
+	demoHTTP                 *http.Client
 	// host is the address the server listens on: 127.0.0.1 (this machine
 	// only) unless KINLIGHT_HOST says otherwise, as the container image
 	// does (0.0.0.0) so the tunnel can reach it on its network.
@@ -153,6 +159,9 @@ func loadConfig() (config, error) {
 		return config{}, err
 	}
 	cfg.publicURL = publicURL
+	if err := configureDemo(&cfg); err != nil {
+		return config{}, err
+	}
 	if publicURL != "" {
 		if on := devOnlySettings(os.Getenv); len(on) > 0 {
 			return config{}, fmt.Errorf("KINLIGHT_PUBLIC_URL is set (production), so these development-only settings must be off: %s", strings.Join(on, ", "))
@@ -294,7 +303,27 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 
+	var quota *hosteddemo.Quota
+	if cfg.demoDir != "" {
+		lock, e := hosteddemo.Lock(cfg.demoDir)
+		if e != nil {
+			return e
+		}
+		defer lock.Close()
+		if e = hosteddemo.Validate(cfg.demoDir); e != nil {
+			return e
+		}
+		quota, e = hosteddemo.OpenQuota(cfg.demoDir, cfg.demoModels, cfg.demoSearches)
+		if e != nil {
+			return e
+		}
+		defer quota.Close()
+		cfg.demoHTTP = &http.Client{Transport: &hosteddemo.Transport{Quota: quota, Kind: "model"}, Timeout: 60 * time.Second}
+	}
 	llmClient := llm.NewClientForSite(cfg.openRouterKey, cfg.openRouterModel, cfg.openRouterBaseURL, cfg.siteURL())
+	if cfg.demoHTTP != nil {
+		llmClient.SetTransport(cfg.demoHTTP.Transport)
+	}
 	if err := preflight(ctx, logger, llmClient); err != nil {
 		return err
 	}
@@ -307,6 +336,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			"GENKIT_ENV", os.Getenv("GENKIT_ENV"), "GENKIT_REFLECTION_ENABLED", os.Getenv("GENKIT_REFLECTION_ENABLED"))
 	}
 	kit, err := aikit.New(ctx, aikit.Config{
+		HTTPClient:        cfg.demoHTTP,
 		OpenRouterKey:     cfg.openRouterKey,
 		OpenRouterBaseURL: cfg.openRouterBaseURL,
 		OpenRouterModel:   cfg.openRouterModel,
@@ -322,6 +352,9 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	// The Brave key is not checked at startup: every Brave call costs credit.
 	brave := sources.NewBraveClient(cfg.braveKey, cfg.braveBaseURL)
+	if quota != nil {
+		brave.SetTransport(&hosteddemo.Transport{Quota: quota, Kind: "search"})
+	}
 	// Open-Meteo is free and needs no key.
 	openMeteo := sources.NewOpenMeteoClient("", "")
 	registry := sources.NewRegistry(brave.News(), brave.Events(), brave.Web(), openMeteo.Forecast())
@@ -374,6 +407,10 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		logger.Warn("dev fixture calendars are on; never enable this in a deployment", "host", calendar.FixtureHost)
 	}
 
+	if cfg.demoDir != "" {
+		calendars = calendar.NewHostedDemoFetcher(time.Now)
+	}
+
 	// The kid agent's tools look things up on the same data and sources as
 	// the kid's cards: their calendar (through the same fetcher), their
 	// remembered picks, the forecast, and kid-safe web search.
@@ -401,6 +438,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	srv := &http.Server{
 		Handler: routes(deps{
+			DemoQuota: quota, DemoURL: cfg.demoURL, VideoURL: cfg.videoURL,
 			Logger:          logger,
 			Store:           st,
 			Sessions:        sessions,
@@ -485,6 +523,7 @@ func buildKidAgent(ctx context.Context, logger *slog.Logger, cfg config) (*kidAg
 		return nil, nil
 	}
 	kit, err := aikit.New(ctx, aikit.Config{
+		HTTPClient:        cfg.demoHTTP,
 		OpenRouterKey:     key,
 		OpenRouterBaseURL: cfg.openRouterBaseURL,
 		OpenRouterModel:   cfg.kidsChatModel,

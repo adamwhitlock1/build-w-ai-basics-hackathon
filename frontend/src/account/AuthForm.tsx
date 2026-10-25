@@ -1,3 +1,4 @@
+import { usePublicConfig } from '../public/config'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
@@ -45,6 +46,7 @@ interface AuthFormProps {
 
 /** The email-and-password form behind both /login and /signup. */
 export function AuthForm({ mode, auth }: AuthFormProps) {
+  const { data: publicConfig } = usePublicConfig()
   const copy = COPY[mode]
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -82,7 +84,7 @@ export function AuthForm({ mode, auth }: AuthFormProps) {
     <WelcomeLayout
       title={copy.title}
       intro={copy.intro}
-      footer={
+      footer={publicConfig?.demo ? <Link to="/">Back to Kinlight</Link> :
         <p>
           {copy.switchPrompt && <>{copy.switchPrompt} </>}
           <Link
