@@ -54,7 +54,9 @@ func (a *Agenda) Day(ctx context.Context, member store.User, loc *time.Location,
 
 	link, err := a.store.GetCalendarLink(ctx, member.ID)
 	if err != nil {
-		a.logger.ErrorContext(ctx, "load calendar link failed", "err", err)
+		if !clientGone(ctx, err) {
+			a.logger.ErrorContext(ctx, "load calendar link failed", "err", err)
+		}
 		return TodayWidget{}, fmt.Errorf("load calendar link: %w", err)
 	}
 	if link == "" {

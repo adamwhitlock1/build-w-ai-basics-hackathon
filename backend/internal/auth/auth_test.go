@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -198,5 +199,63 @@ func TestSubjectFallsBackToTheLoggedInUser(t *testing.T) {
 	}
 	if got, _ := auth.UserFrom(ctx); got.ID != parent.ID {
 		t.Errorf("UserFrom = %d, want the logged-in user %d still", got.ID, parent.ID)
+	}
+}
+
+// A browser that gives up on a request (a router preload, a StrictMode
+// remount) cancels its context mid-query. That's no fault of ours: no
+// ERROR line and no 500. The same error with the request still live is a
+// real failure, and is still logged.
+func TestRequireAuthWhenTheBrowserGivesUp(t *testing.T) {
+	kid := store.User{ID: 3, Email: "kid@example.com"}
+	cancelled := fakeUsers{err: fmt.Errorf("get user %d: %w", kid.ID, context.Canceled)}
+
+	tests := []struct {
+		name          string
+		clientGone    bool
+		wantStatus    int
+		wantErrorLine bool
+	}{
+		{"client gone", true, http.StatusOK, false}, // nothing written: the recorder's default
+		{"client still waiting", false, http.StatusInternalServerError, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewTextHandler(&logs, nil))
+			sessions := auth.NewSessionManager(memstore.New(), logger)
+			authn := auth.New(sessions, cancelled, logger)
+
+			reached := false
+			handler := authn.RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				reached = true
+			}))
+
+			ctx, err := sessions.Load(context.Background(), "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := authn.LogIn(ctx, kid.ID); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			if tt.clientGone {
+				cancel()
+			}
+
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/me", nil).WithContext(ctx))
+
+			if reached {
+				t.Error("the handler ran without a logged-in user")
+			}
+			if rec.Code != tt.wantStatus || (tt.clientGone && rec.Body.Len() != 0) {
+				t.Errorf("status = %d, body %q; want %d", rec.Code, rec.Body, tt.wantStatus)
+			}
+			if got := strings.Contains(logs.String(), "level=ERROR"); got != tt.wantErrorLine {
+				t.Errorf("ERROR line logged = %v, want %v; logs:\n%s", got, tt.wantErrorLine, logs.String())
+			}
+		})
 	}
 }

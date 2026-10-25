@@ -63,6 +63,15 @@ func stepError(step string, err error, logAttrs ...any) *StepError {
 	return &StepError{Step: step, Err: err, logAttrs: logAttrs}
 }
 
+// clientGone reports whether err is the request's own cancellation: the
+// browser gave up on it (a page change, a preload it didn't need), so
+// nobody is waiting for an answer, and it's no fault worth an ERROR line.
+// The services skip their log line for it; the handlers answer it with
+// writeIfCancelled.
+func clientGone(ctx context.Context, err error) bool {
+	return errors.Is(err, context.Canceled) && ctx.Err() != nil
+}
+
 // writeServiceError answers a request whose widget service returned err. It
 // writes the statuses, messages and hints the handlers have always sent, so
 // moving the work into services changed nothing the page sees.
@@ -77,6 +86,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, logger *slog.Logg
 		return
 	}
 	switch {
+	case clientGone(r.Context(), err):
+		writeIfCancelled(w, r, logger, err)
 	case errors.Is(err, ErrNoSuchWidget):
 		writeWidgetNotFound(w)
 	case errors.Is(err, ErrUnknownSource):

@@ -298,6 +298,10 @@ func (h *Handler) DeleteCustom(w http.ResponseWriter, r *http.Request) {
 // serverError logs err and writes a generic 500. what says what we were
 // doing, e.g. "load widget".
 func (h *Handler) serverError(w http.ResponseWriter, r *http.Request, what string, err error) {
+	if clientGone(r.Context(), err) {
+		writeIfCancelled(w, r, h.logger, err)
+		return
+	}
 	h.logger.ErrorContext(r.Context(), what+" failed", "err", err)
 	writeInternalError(w)
 }
