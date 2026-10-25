@@ -41,7 +41,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
   - transcripts include them.
 
   Verify with `go test ./internal/chat/`.
-- [ ] 3.2 HTTP: `POST /api/me/chats/{id}/messages` accepts `timeZone`, and streams a `tool` event for each note before the reply's text. Kid and parent transcripts include `toolCalls`. Wire `ToolSources` in `main.go`. Route tests: the SSE sequence `message, tool, delta…, done` with a fake agent using a tool; the stored notes show in the kid's and the parent's transcripts; an unknown `timeZone` falls back to UTC. Verify with `make check`.
+- [x] 3.2 HTTP: `POST /api/me/chats/{id}/messages` accepts `timeZone`, and streams a `tool` event for each note before the reply's text. Kid and parent transcripts include `toolCalls`. Wire `ToolSources` in `main.go`. Route tests: the SSE sequence `message, tool, delta…, done` with a fake agent using a tool; the stored notes show in the kid's and the parent's transcripts; an unknown `timeZone` falls back to UTC. Verify with `make check`.
 
 ## 4. Frontend
 
