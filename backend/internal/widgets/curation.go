@@ -227,7 +227,9 @@ func (c *Curation) Events(ctx context.Context, viewer, member store.User, opts C
 func loadProfile(ctx context.Context, profiles ProfileStore, logger *slog.Logger, viewer, member store.User) (store.MemberProfile, error) {
 	profile, err := profiles.GetMemberProfile(ctx, member.ID)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		logger.ErrorContext(ctx, "load profile failed", "user_id", member.ID, "viewer_id", viewer.ID, "err", err)
+		if !clientGone(ctx, err) {
+			logger.ErrorContext(ctx, "load profile failed", "user_id", member.ID, "viewer_id", viewer.ID, "err", err)
+		}
 		return store.MemberProfile{}, fmt.Errorf("load profile of user %d: %w", member.ID, err)
 	}
 	profile.Interests = strings.TrimSpace(profile.Interests)
