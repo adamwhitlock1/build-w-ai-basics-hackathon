@@ -30,7 +30,10 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 ## 2. Themes and fonts
 
 - [x] 2.1 Put the brief's Daybreak values in `@theme` and the Porch light overrides under `:root[data-theme="dark"]` (design decisions 1 and 2), with `color-scheme` per theme. Add the new tokens: `on-primary`, `on-danger`, `control`, `avatar-1` to `avatar-3`, `glass-core`. Verify with `npm run build`, and by toggling `data-theme` in the browser devtools on the demo: every surface changes, and nothing stays light in Porch light.
-- [ ] 2.2 Add `frontend/scripts/contrast.mjs` and `npm run check:contrast` (design decision 3), and run it in the CI frontend job. Adjust any brief value that fails, keeping its hue, and record each adjustment here. Verify that it passes, and that it fails when a pairing is made to fail on purpose.
+- [x] 2.2 Add `frontend/scripts/contrast.mjs` and `npm run check:contrast` (design decision 3), and run it in the CI frontend job. Adjust any brief value that fails, keeping its hue, and record each adjustment here. Verify that it passes, and that it fails when a pairing is made to fail on purpose.
+  - Done: 30 pairings, all passing in both themes. The brief's own values needed no change.
+  - Added during apply: a `control` token for field and composer edges (Daybreak `#9a8670`, 3.4:1 on surface; Porch light `#7a6857`, 3.2:1). The brief's `line` is 1.3:1, so it stays for decorative separators only.
+  - Made to fail on purpose (Porch light `control` at `#4a3d33`): it named both failing pairings and exited 1.
 - [ ] 2.3 Replace raw colors in components:
   - `text-white` → `text-on-primary` or `text-on-danger`;
   - the four amber-filled buttons → `bg-primary text-on-primary`;
