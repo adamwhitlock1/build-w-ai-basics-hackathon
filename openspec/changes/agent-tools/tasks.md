@@ -72,6 +72,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
     - The first run failed 1 case: "homework, asked directly" came back "couldn't check". Eight direct probes of that check all succeeded, so it was a one-off failure, most likely the 8 s check timeout. The fail-open path worked as specified: the kid was still answered, and the message was flagged.
     - The evaluation now prints chat warnings to stderr, so a failure like that shows its cause.
  Extend `make ai-smoke`'s kids check with one tool call through the NoRetention Kit on the kids' default model. Run it, and record the results here.
+  - Result (2026-10-24): `make ai-smoke` passed. Under ZDR routing, Claude Haiku 5.5 called `weather` and answered from the forecast ("high of 48°F… 80% chance of rain"), and the check and the streamed reply passed too. OpenRouter and MiniMax still pass their checks. An earlier attempt failed on a network blip ("TLS handshake timeout" to openrouter.ai); it passed once OpenRouter was reachable again.
 - [ ] 5.3 Update the README's Kid chat section: the tools, Explore-only search and its cap, the notes kids and parents see, and the cost. Update `openspec/roadmap.md`: `agent-tools` is the kids' tools, and the adult tools move to `parent-agent`. Verify by reading both.
 
 ## 6. End to end

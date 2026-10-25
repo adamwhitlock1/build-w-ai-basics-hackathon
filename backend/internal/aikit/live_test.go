@@ -211,6 +211,24 @@ func TestLiveKids(t *testing.T) {
 			t.Errorf("the reply gave the answer: %q", got)
 		}
 	})
+	t.Run("tool call", func(t *testing.T) {
+		var used []string
+		tools := &aikit.KidTools{
+			Weather: func(context.Context) (string, error) {
+				return "Forecast for Denver: Today: Rain showers. High 48°F, low 37°F. 80% chance of rain.", nil
+			},
+			OnTool: func(n aikit.ToolNote) { used = append(used, n.Tool) },
+		}
+		in := aikit.ReplyInput{Persona: aikit.PersonaYounger, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromKid: true, Text: "do I need a jacket today?"}}, Tools: tools}
+		got, err := agent.Reply(ctx, in, func(string) {})
+		if err != nil {
+			t.Fatalf("Reply with a tool on %s: %v", chatModel, err)
+		}
+		t.Logf("%s used %v and replied %q", chatModel, used, got)
+		if len(used) == 0 || used[0] != aikit.ToolWeather {
+			t.Errorf("tools used = %v, want weather", used)
+		}
+	})
 	if n := len(rec.entries()); n < 2 {
 		t.Errorf("recorded %d usage entries, want at least 2", n)
 	}
