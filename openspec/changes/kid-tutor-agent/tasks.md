@@ -105,10 +105,15 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 ## 5. Frontend
 
 - [x] 5.1 Add the API client and hooks for chats, reviews, alerts and the birth year. Add a streaming helper that POSTs and reads the SSE events with `fetch` and a `ReadableStream`, handling `message`, `delta`, `done` and `error`. Verify with `npm run lint` and `npm run build`.
-- [ ] 5.2 Add the kids' screens: the `/chat` list with "New chat" and the two modes, `/chat/$chatId` with the transcript, composer and streaming reply, the notice "Your parents can review these chats" on both, and the "isn't set up yet" state. Add the compact Chat card at the top of a kid's homepage. Verify with `npm run lint` and `npm run build`, and in the browser on the demo as Jordan with the override on:
+- [x] 5.2 Add the kids' screens: the `/chat` list with "New chat" and the two modes, `/chat/$chatId` with the transcript, composer and streaming reply, the notice "Your parents can review these chats" on both, and the "isn't set up yet" state. Add the compact Chat card at the top of a kid's homepage. Verify with `npm run lint` and `npm run build`, and in the browser on the demo as Jordan with the override on:
   - the card and the notice show;
   - a new Homework help chat streams a reply that gives a hint, not the answer;
   - reloading keeps the conversation.
+  - Result (2026-10-24), with the override, on `openai/gpt-4.1-mini` and `gpt-4.1-nano` through the main key:
+    - Jordan's page shows the "Ask Porchlight" card with the notice.
+    - In Homework help, "what's the answer to 3x + 5 = 20" got "What do you think the first step is to solve 3x + 5 = 20?", with no answer.
+    - An Explore chat, "why is the sky blue?", was titled "Why is the sky blue" and got a kid-level answer, and the conversation survived a reload.
+    - Two fixes came out of this: the title request moved into the check's user message (nano had left the title empty), and requests the browser cancels are no longer logged as errors.
 - [ ] 5.3 Add the parents' screens: "Reviews (n)" in the family sidebar, `/reviews` with the queue (crisis first, mark reviewed, a link to the transcript with the message highlighted), each kid's conversation list and read-only transcript with a delete button that confirms first, the `CrisisAlert` banner (polling every 60 s and on focus), and the birth year field in the parent's view of a kid's profile. Verify with lint and build, and in the browser on the demo as Maya:
   - Lily's seeded flag is listed;
   - marking it reviewed moves it;

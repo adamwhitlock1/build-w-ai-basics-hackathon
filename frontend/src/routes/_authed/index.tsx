@@ -13,6 +13,7 @@ import {
   useMe,
   useUpdateProfile,
 } from '../../api/hooks'
+import { ChatCard } from '../../chat/ChatCard'
 import { FamilySidebar } from '../../family/FamilySidebar'
 import { MemberPage } from '../../family/MemberPage'
 import { layoutOf } from '../../puck/layout'
@@ -288,6 +289,10 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
       <p role="status" className="sr-only">
         {announcement}
       </p>
+
+      {/* Kids get the Chat card above their cards. It isn't one of the
+          arranged cards, so it steps aside while arranging. */}
+      {me && !me.user.isAdmin && !arranging && <ChatCard />}
 
       {editor.focusRequest && (
         <div className="mb-6 max-w-2xl sm:mb-8">
