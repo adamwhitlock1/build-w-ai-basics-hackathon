@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"porchlight/internal/calendar"
 	"porchlight/internal/layout"
@@ -131,6 +132,34 @@ func TestSeedDemo(t *testing.T) {
 	}
 	if _, err := st.GetLayout(ctx, user("sam@rivera.test").ID); err == nil {
 		t.Error("Sam has a saved layout; want the default page")
+	}
+
+	// Kids' ages and sample chats: Jordan's two, Lily's one with a flag to
+	// review, no crisis, and none for the Chen kid.
+	thisYear := time.Now().Year()
+	for email, wantAge := range map[string]int{"jordan@rivera.test": 15, "lily@rivera.test": 9} {
+		year, ok, err := st.GetBirthYear(ctx, user(email).ID)
+		if err != nil || !ok || thisYear-year != wantAge {
+			t.Errorf("%s: birth year %d (set %v, %v), want age %d", email, year, ok, err, wantAge)
+		}
+	}
+	for email, want := range map[string]int{"jordan@rivera.test": 2, "lily@rivera.test": 1, "riley@chen.test": 0} {
+		u := user(email)
+		chats, err := st.ListConversations(ctx, u.FamilyID, u.ID)
+		if err != nil || len(chats) != want {
+			t.Errorf("%s: %d chats (%v), want %d", email, len(chats), err, want)
+		}
+	}
+	queue, err := st.ReviewQueue(ctx, maya.FamilyID, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(queue) != 1 || queue[0].MemberID != user("lily@rivera.test").ID || queue[0].Category != "strangers" ||
+		queue[0].Severity != "medium" || queue[0].Crisis || !queue[0].ReviewedAt.IsZero() {
+		t.Errorf("review queue = %+v, want Lily's one unreviewed medium strangers flag", queue)
+	}
+	if crises, _ := st.UnreviewedCrises(ctx, maya.FamilyID); len(crises) != 0 {
+		t.Errorf("crises = %+v, want none", crises)
 	}
 
 	// Everyone has remembered Articles and events.

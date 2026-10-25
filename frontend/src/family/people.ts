@@ -75,6 +75,14 @@ export function formatShortDate(timestamp: string): string {
   return Number.isNaN(date.getTime()) ? '' : shortDate.format(date)
 }
 
+const dateTime = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
+/** "Oct 24, 5:58 PM" for an RFC 3339 timestamp, or "" if it can't be read. */
+export function formatWhen(timestamp: string): string {
+  const date = new Date(timestamp)
+  return Number.isNaN(date.getTime()) ? '' : dateTime.format(date)
+}
+
 /**
  * How to name a family in a sentence: "the Rivera family", but just "The
  * Riveras" (not "the The Riveras family") and "the Rivera Family" (not "the

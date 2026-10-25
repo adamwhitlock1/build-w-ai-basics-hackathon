@@ -14,6 +14,7 @@ import {
   useUpdateProfile,
 } from '../../api/hooks'
 import { ChatCard } from '../../chat/ChatCard'
+import { CrisisAlert } from '../../chat/CrisisAlert'
 import { FamilySidebar } from '../../family/FamilySidebar'
 import { MemberPage } from '../../family/MemberPage'
 import { layoutOf } from '../../puck/layout'
@@ -94,6 +95,8 @@ function HomePage() {
     <div className="min-h-dvh lg:flex">
       <FamilySidebar arranging={arranging} building={building} shownMemberId={memberId} />
       <main className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
+        {/* Parents only, and only while a possible crisis is unreviewed. */}
+        <CrisisAlert />
         {memberId === null ? (
           <YourPage headingRef={headingRef} building={building} onArrangingChange={setArranging} />
         ) : (

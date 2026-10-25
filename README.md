@@ -95,8 +95,8 @@ Every account's password is `password1`.
 | --- | --- | --- |
 | `maya@rivera.test` | Parent, created the family | Interests, location, calendar, three described widgets (one weather), a custom page arrangement |
 | `sam@rivera.test` | Parent | Different interests, the default page, a calendar with a moved meeting |
-| `jordan@rivera.test` | Kid (~15) | Kid-safe cards and widget, a calendar with a deleted practice |
-| `lily@rivera.test` | Kid (~9) | Interests and location but no calendar: the "Add your calendar" path |
+| `jordan@rivera.test` | Kid (15) | Kid-safe cards and widget, a calendar with a deleted practice, two sample chats (a homework one showing the hint ladder, and an Explore one) |
+| `lily@rivera.test` | Kid (9) | Interests and location but no calendar: the "Add your calendar" path; one sample chat with a flag for parents to review |
 | `grandma@rivera.test` | Invited as a parent | The pending invites list, and joining: `make demo` prints the invite link |
 | `alex@chen.test`, `riley@chen.test` | Parent and kid in a second family | That one family can't see another's members, pages or widgets |
 

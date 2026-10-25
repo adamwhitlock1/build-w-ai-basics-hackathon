@@ -192,7 +192,54 @@ func fillMember(ctx context.Context, st *store.Store, u store.User, m demoMember
 			return "", err
 		}
 	}
+
+	if m.age != 0 {
+		if err := st.SetBirthYear(ctx, u.ID, now.Year()-m.age); err != nil {
+			return "", err
+		}
+	}
+	for _, c := range m.chats {
+		if err := addDemoChat(ctx, st, u, c); err != nil {
+			return "", fmt.Errorf("chat %q: %w", c.title, err)
+		}
+	}
 	return calendarNote, nil
+}
+
+// addDemoChat stores c as one of u's conversations, flagging the kid's
+// turn c.flag names. Nothing is sent to any AI model.
+func addDemoChat(ctx context.Context, st *store.Store, u store.User, c demoChat) error {
+	conv, err := st.CreateConversation(ctx, u.FamilyID, u.ID, c.mode)
+	if err != nil {
+		return err
+	}
+	if err := st.SetConversationTitle(ctx, conv.ID, c.title); err != nil {
+		return err
+	}
+	for i, text := range c.turns {
+		role := store.RoleKid
+		if i%2 == 1 {
+			role = store.RoleAgent
+		}
+		msg, err := st.AddChatMessage(ctx, conv.ID, role, text)
+		if err != nil {
+			return err
+		}
+		if c.flag == nil || c.flag.turn != i {
+			continue
+		}
+		if role != store.RoleKid {
+			return fmt.Errorf("turn %d is the agent's; only a kid's message can be flagged", i)
+		}
+		_, err = st.AddChatFlag(ctx, store.ChatFlag{
+			MessageID: msg.ID, ConversationID: conv.ID, FamilyID: u.FamilyID, MemberID: u.ID,
+			Category: c.flag.category, Severity: c.flag.severity, Reason: c.flag.reason,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // calendarLink is m's calendar link: the one in SEED_CALENDAR_<NAME> if
