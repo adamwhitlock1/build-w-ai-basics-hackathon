@@ -109,6 +109,6 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 
 ## 6. Docs and end to end
 
-- [ ] 6.1 Update the README: the Kinlight name and the lockup at the top, a "formerly Porchlight" line, the renamed variables and files, the theme switch, and self-hosted fonts. Verify by reading it.
+- [x] 6.1 Update the README: the Kinlight name and the lockup at the top, a "formerly Porchlight" line, the renamed variables and files, the theme switch, and self-hosted fonts. Verify by reading it.
 - [ ] 6.2 On the demo, in the browser, walk every page in Daybreak and in Porch light: sign-in, invite, create-family, home, arrange, chat, Assistant, Reviews, and member pages. Check the header lockup, the fonts, the theme switch, and that nothing is unreadable or still light in Porch light. Check the guard: starting with an old variable set stops with its message. Record the results here, with any page fixed.
 - [ ] 6.3 Run `openspec validate kinlight-identity --strict`, `make check`, and the frontend lint, build and contrast check. Push, open the PR, and confirm CI passes on it. Add the "Kinlight identity" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
