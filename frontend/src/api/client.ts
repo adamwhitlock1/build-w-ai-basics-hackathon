@@ -1,4 +1,4 @@
-// Typed API client for the Porchlight Go backend. Every request goes through
+// Typed API client for the Kinlight Go backend. Every request goes through
 // apiFetch so headers, credentials and error handling live in one place.
 
 /** How a widget lays out its items. Mirrors the backend contract. */
@@ -65,7 +65,7 @@ export interface SavedWidget extends Widget, Freshness {
 export type EmptyReason = '' | 'no_interests' | 'no_location'
 
 /**
- * A widget Porchlight picks for you from your interests and location: what
+ * A widget Kinlight picks for you from your interests and location: what
  * GET /api/widgets/articles and GET /api/widgets/events return. The server
  * remembers each person's latest one (so it has no id of its own) and picks
  * again when asked with `?refresh=1` or when their interests change.
@@ -371,7 +371,7 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
     // Otherwise fetch only rejects on network failure (server down, offline).
     throw new ApiError(
       0,
-      "Couldn't reach the Porchlight server.",
+      "Couldn't reach the Kinlight server.",
       'Check that the backend is running, then try again.',
     )
   }
@@ -410,7 +410,7 @@ async function toApiError(res: Response): Promise<ApiError> {
   }
 
   if (res.status === 404) {
-    // Porchlight's own 404s are JSON (handled above). A plain-text one means
+    // Kinlight's own 404s are JSON (handled above). A plain-text one means
     // the backend has no such endpoint: usually an older build still running.
     return new ApiError(
       404,

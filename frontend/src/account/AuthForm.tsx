@@ -18,7 +18,7 @@ const COPY = {
     pending: 'Logging in…',
     passwordHint: undefined,
     passwordAutoComplete: 'current-password',
-    switchPrompt: 'New to Porchlight?',
+    switchPrompt: 'New to Kinlight?',
     switchLabel: 'Create an account',
     switchTo: '/signup',
   },

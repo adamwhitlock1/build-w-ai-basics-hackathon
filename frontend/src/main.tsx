@@ -51,7 +51,7 @@ setUnauthorizedHandler(() => void endSession(queryClient, router))
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {
-  throw new Error('Porchlight: #root element is missing from index.html')
+  throw new Error('Kinlight: #root element is missing from index.html')
 }
 
 createRoot(rootElement).render(

@@ -16,7 +16,7 @@ export function ChatCard() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="chat-card-heading" className="text-2xl text-ink">
-            Ask Porchlight
+            Ask Kinlight
           </h2>
           <p className="mt-1 text-sm text-ink-soft">Help with homework, or explore anything you’re curious about.</p>
         </div>

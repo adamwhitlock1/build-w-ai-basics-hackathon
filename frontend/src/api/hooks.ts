@@ -558,7 +558,7 @@ export function setCachedLayout(queryClient: QueryClient, layout: Layout) {
 // Widgets picked for you
 // ---------------------------------------------------------------------------
 
-/** The two widgets Porchlight curates from a member's interests and location. */
+/** The two widgets Kinlight curates from a member's interests and location. */
 export type CuratedKind = 'articles' | 'events'
 
 /**

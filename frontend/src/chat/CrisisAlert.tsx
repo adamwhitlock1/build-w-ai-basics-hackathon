@@ -26,7 +26,7 @@ export function CrisisAlert() {
     <div role="alert" className="mb-6 rounded-3xl bg-danger px-5 py-4 text-on-danger shadow-card sm:mb-8">
       <p className="text-lg font-medium">{who} may need help now.</p>
       <p className="mt-1 text-sm text-on-danger">
-        Something {names.length === 1 ? 'they' : 'one of them'} wrote in Porchlight chat was flagged as a possible
+        Something {names.length === 1 ? 'they' : 'one of them'} wrote in Kinlight chat was flagged as a possible
         crisis. Please check in with them, and review it.
       </p>
       <Link

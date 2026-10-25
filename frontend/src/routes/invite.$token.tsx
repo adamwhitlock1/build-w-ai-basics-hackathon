@@ -87,7 +87,7 @@ function InvitePage() {
   }
 
   const details = invite.data
-  const title = `Join ${familyPhrase(details.familyName)} on Porchlight`
+  const title = `Join ${familyPhrase(details.familyName)} on Kinlight`
 
   // Someone is logged in on this device already (a parent testing the link,
   // say). Accepting would switch accounts, so make that a clear choice.
