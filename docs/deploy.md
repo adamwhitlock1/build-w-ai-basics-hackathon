@@ -119,17 +119,51 @@ Litestream sends each change to the bucket within seconds, takes a full snapshot
 
   3. Replace `kinlight.db` with `restored.db` on the volume, and start the service.
 
-**The restore drill.** Do it once now, and again after any change to the backup settings. It restores the backup into a throwaway container that serves the copy and never writes back to the bucket:
+**Confirm uploads.** After a recognizable change in Kinlight, wait about a minute, then check the backup bucket's `kinlight/` prefix (or your configured `LITESTREAM_PATH`) for recent uploads. Litestream 0.5 stores backup data in `.ltx` files. Backblaze's bucket “Snapshots” counter is separate from these files. Check the Kinlight container logs for replication errors too; uploaded files alone do not prove the database can be restored.
 
-1. **Make an env file.** On the homelab, create `kinlight.env` with the same `LITESTREAM_*`, `OPENROUTER_API_KEY`, `BRAVE_API_KEY` and `KINLIGHT_PUBLIC_URL` values as in Coolify.
-2. **Restore and serve the copy.** Run the image Coolify built. Its name is under the resource, or in `docker images`.
+**The restore drill.** Run this after initial deployment and after backup-setting changes. In Coolify, open the terminal for the running **Kinlight container**. Its environment already contains the backup settings, so no second credentials file is needed. Restore to a separate temporary directory while the app stays live:
 
-   ```bash
-   docker run --rm -p 127.0.0.1:18090:8080 --env-file kinlight.env --entrypoint sh <image> -c 'litestream restore -config /etc/litestream.yml -o /tmp/drill.db "$DB_PATH" && DB_PATH=/tmp/drill.db exec /app/kinlight'
+```sh
+restore_dir=$(mktemp -d /tmp/kinlight-restore.XXXXXX)
+litestream restore \
+  -config /etc/litestream.yml \
+  -integrity-check full \
+  -o "$restore_dir/kinlight.db" \
+  "$DB_PATH"
+```
+
+Immediately check the result:
+
+```sh
+echo "Restore exit code: $?"
+ls -lh "$restore_dir/kinlight.db"
+```
+
+A zero exit code, no integrity-check errors, and a nonempty database confirm that the backup can be fetched and reconstructed. Do not use `-if-replica-exists` for this drill: a missing backup must fail. The output is separate from `/data/kinlight.db`; do not delete or replace the live database or its WAL files. See the [Litestream restore reference](https://litestream.io/reference/restore/) for the output-path and integrity-check options.
+
+**Inspect the contents, optionally on your laptop.** Check for familiar records and a recent change to assess freshness. To download the restored copy:
+
+1. In the container terminal, run `echo "$restore_dir/kinlight.db"` and note the full path.
+2. SSH into the server, find the container name with `docker ps --format '{{.Names}}'`, and substitute the actual name and temporary path below:
+
+   ```sh
+   docker cp CONTAINER_NAME:/tmp/kinlight-restore.XXXXXX/kinlight.db ~/kinlight-restored.db
+   chmod 600 ~/kinlight-restored.db
    ```
 
-3. **Log in.** From your laptop, open an SSH tunnel (`ssh -L 18090:127.0.0.1:18090 <homelab>`), then visit `http://127.0.0.1:18090` and log in. Your family, pages and chats should be there.
-4. **Clean up.** Stop the container with Ctrl-C, and delete `kinlight.env`.
+3. From your laptop, substitute your SSH user and server address:
+
+   ```sh
+   scp YOUR_USER@YOUR_SERVER:~/kinlight-restored.db ~/Downloads/kinlight-restored.db
+   ```
+
+Open the restored database read-only in a SQLite viewer. It contains family data and authentication records; keep it private. Inspect the restored copy, not a bare copy of the live database, whose recent transactions may still be in its WAL file.
+
+**Cleanup.** In the same container terminal session, run `rm -r -- "$restore_dir"`. If you downloaded it, remove `~/kinlight-restored.db` on the server and the downloaded copy on your laptop after inspection. No live volume is removed during this drill.
+
+This drill validates a database restore, not a browser login or a full replacement-server recovery. A separate browser drill must account for production Secure cookies and HTTPS; serving the production-configured copy over a plain HTTP SSH tunnel is not a reliable login test.
+
+**Owner verification, 2026-10-25.** The owner reported that Kinlight is live through the Cloudflare Tunnel using host port 1337, that Backblaze contains backup files, and that a restore succeeded, the restored database was inspected locally, and the temporary copy was removed. This is owner-reported evidence. The exact restored transaction/freshness and a full replacement-server recovery were not independently verified.
 
 ## Never on the homelab
 
