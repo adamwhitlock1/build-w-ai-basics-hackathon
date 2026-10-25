@@ -2,7 +2,7 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
 
 ## 1. Production mode
 
-- [ ] 1.1 Add `KINLIGHT_PUBLIC_URL` to `loadConfig`, with its validation and the production refusals (design decision 1). Pass it on: Secure cookies through `auth`, the site URL through `aikit` and `llm`. Tests:
+- [x] 1.1 Add `KINLIGHT_PUBLIC_URL` to `loadConfig`, with its validation and the production refusals (design decision 1). Pass it on: Secure cookies through `auth`, the site URL through `aikit` and `llm`. Tests:
   - an `http://` URL or a path is refused;
   - each development setting is refused in production, with its name;
   - without the URL nothing changes;
@@ -10,6 +10,9 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
   - the OpenRouter site and referer follow the URL.
 
   Verify with `make check`.
+  - Done. Production behavior hangs off `deps` (`PublicURL`, `WebDir`, `TrustCloudflare`), so route tests can set it, through a new `startServerOpts` helper. `routes` sets the cookie's Secure flag.
+  - **Tests:** `parsePublicURL` (good and bad addresses), `devOnlySettings` (each dev setting named, off values ignored), the Secure cookie in production only (and always HttpOnly and SameSite=Lax), and `llm.NewClientForSite` sending the public URL as `HTTP-Referer`.
+  - The Genkit side passes the same URL through `aikit.Config.SiteURL` to the OpenRouter plugin. Its tests use a scripted model with no HTTP, so the header is tested on the `llm` client. `make check` passes.
 - [ ] 1.2 Add the security-headers middleware, with the CSP's script hash computed from the served `index.html` (design decision 3). Tests: the headers appear only in production, and the hash matches a fixture `index.html`'s inline script. Verify with `make check`.
 
 ## 2. One server

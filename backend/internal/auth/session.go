@@ -37,7 +37,7 @@ func NewSessionManager(sessionStore scs.Store, logger *slog.Logger) *scs.Session
 	// here, so every localhost port counts as the same site; main's
 	// rejectCrossSite middleware covers that gap.
 	sm.Cookie.SameSite = http.SameSiteLaxMode
-	sm.Cookie.Secure = false // we serve plain http:// locally; true behind HTTPS
+	sm.Cookie.Secure = false // plain http:// locally; routes sets it in production
 	sm.Cookie.Persist = true // survives closing the browser
 	sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
 		logger.ErrorContext(r.Context(), "session store failed", "err", err)

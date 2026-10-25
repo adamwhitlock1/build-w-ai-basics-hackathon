@@ -35,6 +35,16 @@ type deps struct {
 	// Assistant is the parents' Assistant. nil means it's off: routes
 	// builds a Service with no agents.
 	Assistant *assistant.Service
+
+	// PublicURL is the https:// address people use; set, it's production
+	// mode (secure cookies, security headers, closed sign-up). Empty is
+	// development.
+	PublicURL string
+	// WebDir is the built frontend to serve beside the API; empty serves
+	// only the API.
+	WebDir string
+	// TrustCloudflare takes the client's address from CF-Connecting-IP.
+	TrustCloudflare bool
 }
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
@@ -42,6 +52,8 @@ type deps struct {
 func routes(d deps) http.Handler {
 	logger, st, sessions, srcs := d.Logger, d.Store, d.Sessions, d.Sources
 	planner, curator, briefer, calendars := d.Planner, d.Curator, d.Briefer, d.Calendars
+	// In production the session cookie only travels over HTTPS.
+	sessions.Cookie.Secure = d.PublicURL != ""
 	authn := auth.New(sessions, st, logger)
 	familyHandler := family.NewHandler(st, authn, logger)
 	layoutHandler := layout.NewHandler(st, logger)
