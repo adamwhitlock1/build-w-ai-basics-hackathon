@@ -57,7 +57,14 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 - [x] 3.1 Copy `favicon.svg`, `favicon.ico` and `apple-touch-icon.png` from `brand/logo/` into `frontend/public/`. In `index.html`, set the title to Kinlight, link the icons, and add a `theme-color` meta per color scheme. Rework `BrandMark` into the themed lantern and wordmark lockup (design decision 5), with hidden text "Kinlight" and the family name kept. Verify in the browser in both themes: the tab icon, the header lockup, and the screen reader name (read_page shows "Kinlight").
   - Done: the tab is titled Kinlight and links the ICO, SVG and touch icons. The SVG favicon follows the device's scheme on its own. The header lockup is 32 px tall (24 px left the wordmark too small beside the glow), with ink and light from the theme in both themes, and the accessible name is "Kinlight". The lockup is copied to `frontend/src/brand/lockup.svg` and inlined.
 - [x] 3.2 Rename the user-visible strings and comments in the frontend (design decision 7, pass 2). Verify with lint and build.
-- [ ] 3.3 Rename the user-visible strings, AI context and comments in the backend (design decision 7, pass 2): handler errors, `internal/llm` prompts, `aikit` prompts and the tool description, the transcript label, the OpenRouter titles, `AppName`, and the calendar `User-Agent`. Update the tests and evaluation text that quote them. Verify with `make check`, and with the end check of design decision 7: `git grep -i porchlight` outside the history folders finds only the guard, its test and the README's "formerly" line.
+- [x] 3.3 Rename the user-visible strings, AI context and comments in the backend (design decision 7, pass 2): handler errors, `internal/llm` prompts, `aikit` prompts and the tool description, the transcript label, the OpenRouter titles, `AppName`, and the calendar `User-Agent`. Update the tests and evaluation text that quote them. Verify with `make check`, and with the end check of design decision 7: `git grep -i porchlight` outside the history folders finds only the guard, its test and the README's "formerly" line.
+  - Done. `make check` passes. `migrations/001_init.sql`'s comment changed too: migrations are tracked by file name, so editing a comment is safe.
+  - End check (outside `devpost/`, archived changes, `brand/` research, naming and brief, and this change's own docs), what's left:
+    - the guard's table, comments and message in `backend/main.go`, and its test;
+    - `openspec/config.yaml`'s "Kinlight (formerly Porchlight)";
+    - the roadmap's hackathon-era section (history) and its note on the rename;
+    - `openspec/specs/demo-data` (this change's delta renames the fixture host at archive);
+    - the README (task 6.1).
 
 ## 4. The theme choice
 

@@ -339,7 +339,7 @@ func TestSessionCookie(t *testing.T) {
 		t.Fatalf("no %s cookie in %v", auth.CookieName, resp.Header["Set-Cookie"])
 	}
 	// Partitioned (scs v2.9.0+) would tie the cookie to a top-level site
-	// (CHIPS); Porchlight's cookie is first-party only, so it stays off.
+	// (CHIPS); Kinlight's cookie is first-party only, so it stays off.
 	if !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Secure || cookie.Path != "/" || cookie.Domain != "" || cookie.Partitioned {
 		t.Errorf("cookie = %+v, want HttpOnly, SameSite=Lax, not Secure, not Partitioned, Path=/, no Domain", cookie)
 	}

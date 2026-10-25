@@ -24,7 +24,7 @@ type Tools interface {
 	Search(ctx context.Context, kid store.User, query string) ([]aikit.SearchResult, error)
 }
 
-// ToolSources is Tools on Porchlight's own data and sources: the kid's
+// ToolSources is Tools on Kinlight's own data and sources: the kid's
 // profile, the Today card's calendar, their page's remembered picks, the
 // forecast source, and kid-safe web search.
 type ToolSources struct {

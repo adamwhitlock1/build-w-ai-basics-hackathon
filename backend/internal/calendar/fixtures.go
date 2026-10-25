@@ -167,7 +167,7 @@ func writeFeed(events []fixtureEvent, now time.Time) []byte {
 	}
 	line("BEGIN:VCALENDAR")
 	line("VERSION:2.0")
-	line("PRODID:-//Porchlight//Dev fixtures//EN")
+	line("PRODID:-//Kinlight//Dev fixtures//EN")
 	line("CALSCALE:GREGORIAN")
 	for _, e := range events {
 		line("BEGIN:VEVENT")

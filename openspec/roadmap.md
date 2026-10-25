@@ -1,4 +1,4 @@
-# Porchlight Post-PoC Roadmap
+# Kinlight Post-PoC Roadmap
 
 The proof of concept is done (tag `poc-complete`). This roadmap orders the features added after it. Each item becomes one OpenSpec change (`/opsx:propose` → `/opsx:apply` → `/opsx:archive`). When a change is archived, add a line to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`.
 

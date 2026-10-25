@@ -163,7 +163,7 @@ func orNone(s string) string {
 
 // articlesSystemPrompt explains how to turn interests into news queries.
 func articlesSystemPrompt(now time.Time) string {
-	return `You choose the news for one member of a family on Porchlight, a family homepage. Their Articles card shows a few recent articles picked for them.
+	return `You choose the news for one member of a family on Kinlight, a family homepage. Their Articles card shows a few recent articles picked for them.
 
 Today is ` + now.Format("Monday, January 2, 2006") + `.
 
@@ -179,7 +179,7 @@ Reply only with JSON that matches the schema.`
 // eventsSystemPrompt explains how to turn a location and interests into
 // queries for upcoming local events.
 func eventsSystemPrompt(now time.Time) string {
-	return `You look for local events for one member of a family on Porchlight, a family homepage. Their Local Events card lists upcoming things to do near them.
+	return `You look for local events for one member of a family on Kinlight, a family homepage. Their Local Events card lists upcoming things to do near them.
 
 Today is ` + now.Format("Monday, January 2, 2006") + `.
 

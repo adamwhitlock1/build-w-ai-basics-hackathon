@@ -14,7 +14,7 @@ import (
 
 // Agenda works out the Today card: a member's events for today and
 // tomorrow, from the calendar link they connected. TodayHandler serves it
-// over HTTP; anything else in Porchlight can call it with a context and a
+// over HTTP; anything else in Kinlight can call it with a context and a
 // member.
 //
 // A day's events are remembered and given again without fetching; after

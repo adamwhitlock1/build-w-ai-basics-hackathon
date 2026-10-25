@@ -20,7 +20,7 @@ const (
 	// SessionLifetime is how long a login lasts.
 	SessionLifetime = 30 * 24 * time.Hour
 
-	// userIDKey is the only value Porchlight keeps in a session.
+	// userIDKey is the only value Kinlight keeps in a session.
 	userIDKey = "userID"
 )
 

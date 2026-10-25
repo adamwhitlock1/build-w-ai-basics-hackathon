@@ -241,7 +241,7 @@ func encodeResults(results []sources.Result) (string, error) {
 
 // shapeSystemPrompt explains how to turn search results into grounded items.
 func shapeSystemPrompt(now time.Time) string {
-	return `You fill in the items of a small widget on Porchlight, a family homepage, using web search results.
+	return `You fill in the items of a small widget on Kinlight, a family homepage, using web search results.
 
 Today is ` + now.Format("Monday, January 2, 2006") + `.
 

@@ -224,7 +224,7 @@ func (h *TodayHandler) SetCalendar(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, calendar.ErrNotCalendar):
 			respond.Error(w, http.StatusUnprocessableEntity, "That link didn't give us a calendar.", calendarHelp)
 		case errors.Is(err, calendar.ErrBlockedAddress):
-			respond.Error(w, http.StatusUnprocessableEntity, "That link points somewhere Porchlight can't reach.", "Use the calendar's public https:// address. "+calendarHelp)
+			respond.Error(w, http.StatusUnprocessableEntity, "That link points somewhere Kinlight can't reach.", "Use the calendar's public https:// address. "+calendarHelp)
 		default:
 			respond.Error(w, http.StatusUnprocessableEntity, "Couldn't open that calendar link.", "Check it and try again. "+calendarHelp)
 		}

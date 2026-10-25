@@ -27,7 +27,7 @@ var (
 	// error, a timeout, a feed that's too big, too many redirects.
 	ErrUnavailable = errors.New("calendar unavailable")
 	// ErrBlockedAddress is returned when the link leads to a private or
-	// local network address, which Porchlight never connects to.
+	// local network address, which Kinlight never connects to.
 	ErrBlockedAddress = errors.New("calendar link points to a blocked address")
 )
 

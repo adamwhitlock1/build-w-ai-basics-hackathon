@@ -1,5 +1,5 @@
 // Package usage records how many AI tokens each family member's use of
-// Porchlight consumes, without ever slowing a request down: entries go on a
+// Kinlight consumes, without ever slowing a request down: entries go on a
 // queue, and one background goroutine writes them to the database.
 package usage
 

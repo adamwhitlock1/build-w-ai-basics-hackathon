@@ -20,7 +20,7 @@ const (
 	maxConversationsShown = 10
 )
 
-// ToolSources is Tools on Porchlight's own data: the family's members, each
+// ToolSources is Tools on Kinlight's own data: the family's members, each
 // member's calendar, weather and picks (through kid chat's ToolSources,
 // which work for any member), unfiltered web search, and the kids' chats
 // through chat.Service's parent operations, which check permissions.
@@ -254,7 +254,7 @@ func (t *ToolSources) transcript(ctx context.Context, parent, kid store.User, wh
 	for _, m := range msgs {
 		who := FirstName(kid.Email)
 		if m.Role == store.RoleAgent {
-			who = "Porchlight"
+			who = "Kinlight"
 		}
 		line := fmt.Sprintf("%s: %s", who, cut(m.Text))
 		if f, ok := flagged[m.ID]; ok {
@@ -274,7 +274,7 @@ func cut(s string) string {
 	return s
 }
 
-// FirstName is what Porchlight calls a member: the part of their email
+// FirstName is what Kinlight calls a member: the part of their email
 // before the "@", capitalized, as the web app shows it.
 func FirstName(email string) string {
 	local, _, _ := strings.Cut(email, "@")

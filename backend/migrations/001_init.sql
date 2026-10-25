@@ -1,4 +1,4 @@
--- Porchlight's first schema: accounts, families, invites, sessions,
+-- Kinlight's first schema: accounts, families, invites, sessions,
 -- per-member profiles and layouts, and user-described widgets.
 
 -- One row per user. Family membership is via family_id.

@@ -79,8 +79,8 @@ func NewClient(apiKey, model, baseURL string) *Client {
 			// Optional OpenRouter attribution headers.
 			headers: map[string]string{
 				"HTTP-Referer":       "http://localhost:5174",
-				"X-Title":            "Porchlight",
-				"X-OpenRouter-Title": "Porchlight",
+				"X-Title":            "Kinlight",
+				"X-OpenRouter-Title": "Kinlight",
 			},
 		},
 	}

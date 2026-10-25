@@ -15,7 +15,7 @@ import (
 
 // WidgetBuilder builds described widgets: it turns a sentence into a live
 // widget and saves it for a member, and refreshes saved ones. Handler serves
-// it over HTTP; anything else in Porchlight can call it with a context and a
+// it over HTTP; anything else in Kinlight can call it with a context and a
 // member.
 //
 // Each call works within RequestBudget, and once the AI calls and searches

@@ -140,7 +140,7 @@ func setEnum(schema *jsonschema.Definition, property string, values []string) {
 // and the member's saved location, when there is one, so "weather" or "near
 // me" can name a place.
 func specSystemPrompt(sourceList, location string, now time.Time) string {
-	return `You design small widgets for Porchlight, a family homepage. A family member describes a widget in one sentence; you decide where its data comes from and how it looks.
+	return `You design small widgets for Kinlight, a family homepage. A family member describes a widget in one sentence; you decide where its data comes from and how it looks.
 
 Today is ` + now.Format("Monday, January 2, 2006") + `.
 

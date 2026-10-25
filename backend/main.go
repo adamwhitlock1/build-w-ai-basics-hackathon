@@ -1,4 +1,4 @@
-// Command porchlight runs the Porchlight API server.
+// Command kinlight runs the Kinlight API server.
 //
 // It reads configuration from the environment (and backend/.env), checks
 // that OpenRouter will accept its requests, opens the SQLite database, then

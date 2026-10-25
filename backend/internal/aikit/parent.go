@@ -118,7 +118,7 @@ func (t *ParentTools) build(run *toolRun) []toolRef {
 	}
 	if t.KidsChats != nil {
 		tools = append(tools, ai.NewTool(ToolKidsChats,
-			"Reads the kids' chats with Porchlight's kid agent: the review queue of flagged messages, a kid's recent conversations, or one conversation's transcript. Read-only.",
+			"Reads the kids' chats with Kinlight's kid agent: the review queue of flagged messages, a kid's recent conversations, or one conversation's transcript. Read-only.",
 			func(ctx *ai.ToolContext, in KidsChatsQuery) (map[string]any, error) {
 				b.note(ToolNote{Tool: ToolKidsChats, Detail: strings.TrimSpace(in.Kid)})
 				out, err := t.KidsChats(ctx, in)
@@ -166,13 +166,13 @@ func (a *ParentAgent) Reply(ctx context.Context, in ParentReplyInput, onChunk fu
 	return text, nil
 }
 
-const parentIntro = `You are Porchlight's Assistant for a parent in this family. Porchlight is the family's homepage. Be clear, practical and brief; the parent is busy.`
+const parentIntro = `You are Kinlight's Assistant for a parent in this family. Kinlight is the family's homepage. Be clear, practical and brief; the parent is busy.`
 
-const parentReadOnly = `You can only read and answer. You can't change anything: you can't mark flags reviewed, delete chats, change profiles, birth years, calendars or widgets, or send messages. If the parent asks for one of those, say you can't and tell them where in Porchlight to do it: flags are marked reviewed on the Reviews page, a kid's chats are read and deleted from Reviews, and profiles, birth years and calendars are on each member's page.`
+const parentReadOnly = `You can only read and answer. You can't change anything: you can't mark flags reviewed, delete chats, change profiles, birth years, calendars or widgets, or send messages. If the parent asks for one of those, say you can't and tell them where in Kinlight to do it: flags are marked reviewed on the Reviews page, a kid's chats are read and deleted from Reviews, and profiles, birth years and calendars are on each member's page.`
 
 const parentAnythingKind = `This is an "Ask anything" conversation. It can't read the kids' chats. If the parent asks about what their kids have been chatting about, say so and suggest starting an "About the kids" conversation in the Assistant.`
 
-const parentKidsKind = `This is an "About the kids" conversation, for questions about the kids and their chats with Porchlight's kid agent. When summarizing a kid's chats, lead with anything flagged and not yet reviewed, describe concerns plainly and calmly, and don't quote more of what the kid wrote than you need.`
+const parentKidsKind = `This is an "About the kids" conversation, for questions about the kids and their chats with Kinlight's kid agent. When summarizing a kid's chats, lead with anything flagged and not yet reviewed, describe concerns plainly and calmly, and don't quote more of what the kid wrote than you need.`
 
 var parentToolPrompts = map[string]string{
 	ToolSearch:    "- search: web and news search, for current information. At most four searches per message. Cite what you use with its link.",

@@ -1,4 +1,4 @@
-// Package store is Porchlight's SQLite access layer. It owns the schema
+// Package store is Kinlight's SQLite access layer. It owns the schema
 // (applied from the migrations package at startup) and exposes one typed
 // method per query, so no SQL lives outside this package.
 package store
@@ -56,7 +56,7 @@ func (e *EmailTakenError) Unwrap() error { return ErrEmailTaken }
 // Times we write ourselves use it too, so SQL can compare them as text.
 const timeFormat = "2006-01-02 15:04:05"
 
-// Store reads and writes Porchlight's data. It is safe for concurrent use:
+// Store reads and writes Kinlight's data. It is safe for concurrent use:
 // *sql.DB is a connection pool, not a single connection.
 type Store struct {
 	db *sql.DB

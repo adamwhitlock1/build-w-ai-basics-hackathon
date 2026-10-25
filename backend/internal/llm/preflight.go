@@ -15,7 +15,7 @@ import (
 var ErrUnreachable = errors.New("couldn't complete the OpenRouter check")
 
 // CheckModel confirms the configured model exists on OpenRouter and supports
-// structured outputs, which Porchlight relies on.
+// structured outputs, which Kinlight relies on.
 func (c *Client) CheckModel(ctx context.Context) error {
 	var body struct {
 		Data []struct {
@@ -37,7 +37,7 @@ func (c *Client) CheckModel(ctx context.Context) error {
 			continue
 		}
 		if !slices.Contains(m.SupportedParameters, "structured_outputs") {
-			return fmt.Errorf("model %q doesn't support structured outputs, which Porchlight needs; "+
+			return fmt.Errorf("model %q doesn't support structured outputs, which Kinlight needs; "+
 				"set OPENROUTER_MODEL in backend/.env to one that does, such as openai/gpt-4.1-mini or openai/gpt-4o-mini", c.model)
 		}
 		return nil

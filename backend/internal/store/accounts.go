@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// User is one Porchlight account. Every user belongs to exactly one family.
+// User is one Kinlight account. Every user belongs to exactly one family.
 type User struct {
 	ID           int64
 	Email        string

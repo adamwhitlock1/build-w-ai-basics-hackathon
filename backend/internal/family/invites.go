@@ -360,5 +360,5 @@ func writeInviteIDNotFound(w http.ResponseWriter) {
 // writeEmailTaken answers an invite for an email that already has an
 // account somewhere else.
 func writeEmailTaken(w http.ResponseWriter) {
-	respond.Error(w, http.StatusConflict, "That email already has a Porchlight account.", "Each account belongs to one family for now.")
+	respond.Error(w, http.StatusConflict, "That email already has a Kinlight account.", "Each account belongs to one family for now.")
 }

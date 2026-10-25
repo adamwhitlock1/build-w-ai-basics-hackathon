@@ -282,7 +282,7 @@ func (h *Handler) CreateFamily(w http.ResponseWriter, r *http.Request) {
 	case errors.As(err, &taken):
 		// 400, like a mistyped co-admin email above: something to fix in
 		// the form. (On this page, 409 means the family is already set up.)
-		respond.Error(w, http.StatusBadRequest, fmt.Sprintf("%s already has a Porchlight account.", taken.Email),
+		respond.Error(w, http.StatusBadRequest, fmt.Sprintf("%s already has a Kinlight account.", taken.Email),
 			"Each account belongs to one family for now, so leave that email out.")
 		return
 	case err != nil:
