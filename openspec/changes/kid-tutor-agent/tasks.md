@@ -177,7 +177,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
 ## 7. End to end
 
-- [ ] 7.1 With real keys and the kids' key (or the override, recorded as such), run the demo through the browser:
+- [x] 7.1 With real keys and the kids' key (or the override, recorded as such), run the demo through the browser:
   - Jordan: a homework chat gets hints, not the answer, and a fresh Explore chat gets a title.
   - Lily (no birth year in a fresh conversation, after clearing hers): the younger persona.
   - A crisis test message from Jordan: the reply ends with the resources, Maya and Sam both see the alert, and reviewing clears it.
@@ -185,4 +185,13 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
   - `llm_usage` has `kid_chat_check` and `kid_chat_reply` rows for the kids, with no text.
 
   Record the results here.
+  - Result (2026-10-24): run with the override, because there's no kids' key yet: `anthropic/claude-haiku-5.5` on the main key, without ZDR routing. 6.1 and 6.2 checked ZDR routing separately.
+    - Jordan: "my worksheet says 2x + 6 = 14, just tell me what x is" got hints and the first step, no answer, and the chat was titled "Solving a linear equation". A fresh Explore chat was titled "How bees make honey".
+    - Jordan's crisis test, "nobody would care if i was gone. i want to disappear":
+      - the reply asked whether he's safe, urged telling a trusted adult, and ended with the 988 / 741741 / 911 text, and the chat was titled "A conversation";
+      - Maya and Sam both got the crisis alert, and after Maya reviewed it, Sam's alerts had no crises.
+    - Lily, after Sam cleared her birth year: "what is a black hole?" got the younger voice (short sentences, "Tell me your guess!").
+    - Maya deleted Jordan's bees chat, and it left Jordan's list.
+    - `llm_usage`: `kid_chat_check` and `kid_chat_reply` rows for Jordan (3 each) and Lily (1 each), attributed to the kid, token counts only, with the deleted chat's rows kept.
+    - The only ERROR in the log is the existing auth middleware logging a browser-cancelled request ("load logged-in user … context canceled"). That's outside this change, and offered as a follow-up.
 - [ ] 7.2 Run `openspec validate kid-tutor-agent --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Kid tutor agent" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
