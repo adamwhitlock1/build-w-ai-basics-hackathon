@@ -150,9 +150,15 @@ Apply the identity in `brand/` to the app, then run it for the family on the hom
    - the kids' zero-retention key;
    - the family's real accounts.
 
-All four series-2 changes are done (see `openspec/changes/archive/`). The deployment steps are in `docs/deploy.md`.
+All four series-2 changes are done (see `openspec/changes/archive/`). The deployment steps are in `docs/deploy.md`. On 2026-10-25 the owner confirmed live access, backup files in Backblaze, and a successful restore with local database inspection and cleanup. See the deployment guide for the limits of that verification and the repeatable restore drill.
 
 **Later, from the lantern doc:**
 - "Off you go" needs morning steps, which aren't built (the chore checklist was never built).
 - "Who's home" needs check-in presence.
 - Pull to refresh, sound and haptics wait for a phone app.
+
+## Series 3: Daily family routines
+
+1. **`chore-checklist` — proposed, not implemented:** parents assign daily chores to family members; members check them off immediately, and parents can undo a checkmark. Everyone uses midnight in America/Denver, including while traveling. Fixed homepage cards show each member's checklist and a parent family-progress summary. Rewards, approval queues, custom schedules, and agent tools are outside this slice.
+
+The proposal, design, behavior spec, and implementation checklist are in [`changes/chore-checklist/`](changes/chore-checklist/). Implementation follows review of this proposal.
