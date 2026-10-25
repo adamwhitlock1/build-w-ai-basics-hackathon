@@ -1,4 +1,4 @@
-# Porchlight frontend
+# Kinlight frontend
 
 React 18 + TypeScript + Vite, styled with Tailwind CSS v4, with TanStack Router (file-based, SPA) and TanStack Query.
 

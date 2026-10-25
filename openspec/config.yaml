@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Porchlight is a family homepage where every member's widgets are AI-driven.
+  Kinlight (formerly Porchlight) is a family homepage where every member's widgets are AI-driven.
   It began as a Devpost "Build With AI: Basics" entry. The proof of concept
   (tag `poc-complete`) was planned with the Devpost Learn skill pack, and
   later features were planned with OpenSpec. The hackathon submission was

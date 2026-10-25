@@ -1,7 +1,7 @@
 # llm-usage Specification
 
 ## Purpose
-Records how many AI tokens each family member's use of Porchlight consumes, broken down by feature, so that parents can later see where the usage goes and set limits, all without keeping anything anyone wrote or read.
+Records how many AI tokens each family member's use of Kinlight consumes, broken down by feature, so that parents can later see where the usage goes and set limits, all without keeping anything anyone wrote or read.
 
 ## Requirements
 

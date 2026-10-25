@@ -61,7 +61,7 @@ If a kid asks for the answer outright, the agent SHALL explain kindly that it's 
 - **THEN** the agent doesn't write it, and offers to help them plan, outline or improve their own draft
 
 ### Requirement: Age personas
-The agent SHALL speak at the kid's age, using a younger persona for kids aged 12 and under and a teen persona for ages 13 to 17. Age SHALL come from the kid's birth year, which a parent can set in the kid's profile and the kid can't change. A kid with no birth year SHALL get the younger persona. The kid-safe guidance used elsewhere in Porchlight SHALL apply to every reply.
+The agent SHALL speak at the kid's age, using a younger persona for kids aged 12 and under and a teen persona for ages 13 to 17. Age SHALL come from the kid's birth year, which a parent can set in the kid's profile and the kid can't change. A kid with no birth year SHALL get the younger persona. The kid-safe guidance used elsewhere in Kinlight SHALL apply to every reply.
 
 #### Scenario: A parent sets a birth year
 - **WHEN** Maya sets Jordan's birth year so that Jordan is 15
