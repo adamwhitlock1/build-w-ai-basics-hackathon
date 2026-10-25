@@ -71,11 +71,17 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
     - A described card mounts before it's marked fresh, so checking `fresh` only at mount missed it. Turning fresh on at any point now counts.
     - To keep lint clean, arrivals are worked out during render, by comparing with the last update time kept in state, and counted rather than timed. The effect only runs the timer and the swing.
   - Two cards were described on the demo while checking. Rebuilding the demo removes them.
-- [ ] 4.3 Add the freshness edge (design decision 7) to every card with an update time. Verify:
+- [x] 4.3 Add the freshness edge (design decision 7) to every card with an update time. Verify:
   - a just-refreshed card has a warm edge;
   - a card from hours ago is dimmer, and one older than 6 h has none;
   - the edge dims while the page stays open (shorten the clock in devtools to check);
   - the "Updated …" label is unchanged.
+  - Done (2026-10-25), on Maya's page:
+    - Edges matched their labels: 0.449 at "just now", 0.446 at 2 min, 0.415 at 28 min.
+    - With the page's clock moved three hours ahead, every edge dimmed to about half (0.19 to 0.22) at the next minute tick, without a reload. The labels read "Updated 3h ago". The briefing, by then before noon, became the lit thing at 1.0.
+    - Nothing left after six hours is covered by the unit tests.
+  - **Fixed during apply:** a card whose footer, with its time, isn't showing (an empty "Happening near you") still had an edge, which made the light its only signal. The edge now follows the same condition as the visible time.
+  - **For checking:** while the browser pane is hidden it doesn't render frames, so CSS transitions freeze at their start, and the computed opacity read 0 for cards that loaded after the page. The inline style holds the real level.
 
 ## 5. Dusk
 

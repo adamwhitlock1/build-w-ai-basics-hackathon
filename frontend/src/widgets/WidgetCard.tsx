@@ -4,7 +4,7 @@ import { ShieldIcon } from './icons'
 import { WidgetItems } from './renderers/WidgetItems'
 import { formatUpdatedAgo, useNow } from './updatedAgo'
 import { Breathing } from '../components/Breathing'
-import { arrived } from '../motion/light'
+import { arrived, edgeLevel } from '../motion/light'
 import { swingLantern } from '../motion/swing'
 import { useLight } from '../motion/useLight'
 
@@ -125,6 +125,7 @@ export function WidgetCard({
   }, [arrival])
   const arriving = arrival !== 0 && cooled !== arrival
   const catching = useLight('arrival', arriving)
+  const showsFooter = !!(widget?.query || footerNote) && !loading
 
   return (
     <article
@@ -133,7 +134,8 @@ export function WidgetCard({
       // @container lets renderers adapt to the card's width, not the window's.
       className="@container relative flex flex-col rounded-3xl border border-line bg-surface p-6 shadow-card focus:outline-none sm:p-7"
     >
-      <CardEdge level={lit ? 1 : 0} />
+      {/* The edge only shows a freshness the footer also says in words. */}
+      <CardEdge lit={lit} updatedAt={showsFooter ? updatedAt : undefined} />
       {arriving && <CardCatch key={arrival} strength={catching ? 1 : EDGE_UNLIT_CATCH} />}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
@@ -164,7 +166,7 @@ export function WidgetCard({
         )}
       </div>
 
-      {(widget?.query || footerNote) && !loading && (
+      {showsFooter && (
         <div className="mt-6 flex items-baseline gap-3 border-t border-line pt-4 text-xs text-ink-muted">
           {footerNote ? (
             <p className="min-w-0 flex-1 truncate">{footerNote}</p>
@@ -247,11 +249,15 @@ const PLACEHOLDER_WIDTHS = [
 /** Soft, gently pulsing placeholder rows while a widget's first load runs. */
 /**
  * The light along a card's top edge: a line of lamplight, brightest in the
- * middle, with a soft glow beneath. `level` is its strength, from 0 (none)
- * to 1 (the screen's one lit thing). It's inset from the rounded corners,
- * and changes in strength fade, slowly, as a lamp dims.
+ * middle, with a soft glow beneath. It's full when the card is the screen's
+ * one lit thing; otherwise it shows how fresh the card is, fading over six
+ * hours (edgeLevel), checked once a minute like the "Updated" label. It's
+ * inset from the rounded corners, and changes in strength fade, slowly, as
+ * a lamp dims.
  */
-function CardEdge({ level }: { level: number }) {
+function CardEdge({ lit, updatedAt }: { lit: boolean; updatedAt?: string }) {
+  const now = useNow(60_000)
+  const level = lit ? 1 : edgeLevel(updatedAt, now)
   return (
     <span
       aria-hidden="true"
