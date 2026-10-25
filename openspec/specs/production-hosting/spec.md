@@ -55,14 +55,14 @@ After 5 failed logins within 15 minutes, for one email or from one client addres
 - **THEN** the sixth attempt is refused with "Too many tries. Wait 15 minutes and try again.", even with the right password
 
 ### Requirement: Host-based Cloudflare Tunnel
-The homelab Compose configuration SHALL publish container port 8080 only on the host's IPv4 loopback address, as `127.0.0.1:8080:8080`. cloudflared SHALL run directly on that server and forward the public hostname to this local endpoint while preserving the request Host header. The deployment guide SHALL document this setup. Cloudflare client-address headers SHALL be trusted only when the tunnel is the sole external entry point and local host processes are trusted.
+The homelab Compose configuration SHALL publish container port 8080 only on the host's IPv4 loopback address, as `127.0.0.1:1337:8080`. cloudflared SHALL run directly on that server and forward the public hostname to this local endpoint while preserving the request Host header. The deployment guide SHALL document this setup. Cloudflare client-address headers SHALL be trusted only when the tunnel is the sole external entry point and local host processes are trusted.
 
 #### Scenario: The tunnel reaches Kinlight
-- **WHEN** Kinlight is deployed with the homelab Compose configuration and cloudflared connects to `http://127.0.0.1:8080`
+- **WHEN** Kinlight is deployed with the homelab Compose configuration and cloudflared connects to `http://127.0.0.1:1337`
 - **THEN** the request reaches the Kinlight container on port 8080
 
 #### Scenario: A direct LAN connection
-- **WHEN** a client on another machine connects to the server's LAN address on port 8080
+- **WHEN** a client on another machine connects to the server's LAN address on port 1337
 - **THEN** the Compose port mapping does not expose Kinlight on that address
 
 ### Requirement: Backups that restore

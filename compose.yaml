@@ -1,13 +1,13 @@
 # Kinlight on the homelab, for Coolify (see docs/deploy.md). Coolify lists
 # every ${…} below as an environment variable to fill in; the ones ending
 # in :? are required. cloudflared runs on the host and reaches the service
-# through port 8080, published only on the host loopback interface.
+# through host port 1337, published only on the host loopback interface.
 services:
   kinlight:
     build: .
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:1337:8080"
     volumes:
       - kinlight-data:/data
     environment:
