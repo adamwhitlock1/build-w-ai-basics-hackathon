@@ -44,7 +44,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
     - **Conversation ids:** `kids_chats` lists each conversation with its id, and reads a transcript by id (or title). Kid chat gives every flagged chat the neutral title "A conversation", so a title alone is ambiguous.
     - **Search:** Brave Web only, not Web plus News. Brave's web results include news, and a second call would double the credit per search.
     - **Reuse:** weather, picks and each member's day come from kid chat's `ToolSources`, which work for any member.
-- [ ] 3.2 Add the handler and routes of design decision 5, and change kid chat's message for parents. Wire it in `main.go`: two `ParentAgent`s on the two Kits, `PARENT_CHAT_MODEL`, and `ToolSources`. Route tests:
+- [x] 3.2 Add the handler and routes of design decision 5, and change kid chat's message for parents. Wire it in `main.go`: two `ParentAgent`s on the two Kits, `PARENT_CHAT_MODEL`, and `ToolSources`. Route tests:
   - a parent's full flow, with the SSE sequence including `tool`;
   - kids get a 403;
   - the other parent gets a 404;

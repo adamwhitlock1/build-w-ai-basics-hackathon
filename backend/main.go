@@ -27,6 +27,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"porchlight/internal/aikit"
+	"porchlight/internal/assistant"
 	"porchlight/internal/auth"
 	"porchlight/internal/calendar"
 	"porchlight/internal/chat"
@@ -79,6 +80,9 @@ type config struct {
 	// key if there's no kids' key, for prototyping with the demo family.
 	// Development only: PORCHLIGHT_KIDS_ALLOW_RETENTION=1.
 	kidsAllowRetention bool
+	// parentChatModel is the parents' Assistant's OpenRouter model, on
+	// both the main and the kids' key.
+	parentChatModel string
 	// devFixtures makes the server answer the demo family's fixture
 	// calendar links itself (see calendar.FixtureFetcher). Local
 	// development only: PORCHLIGHT_DEV_FIXTURES=1.
@@ -109,6 +113,7 @@ func loadConfig() (config, error) {
 		kidsChatModel:      envOr("KIDS_CHAT_MODEL", defaultKidsChatModel),
 		kidsSafetyModel:    envOr("KIDS_SAFETY_MODEL", defaultKidsSafetyModel),
 		kidsAllowRetention: os.Getenv("PORCHLIGHT_KIDS_ALLOW_RETENTION") == "1",
+		parentChatModel:    envOr("PARENT_CHAT_MODEL", defaultParentChatModel),
 		devFixtures:        os.Getenv("PORCHLIGHT_DEV_FIXTURES") == "1",
 	}
 
@@ -140,6 +145,9 @@ func loadConfig() (config, error) {
 const (
 	defaultKidsChatModel   = "anthropic/claude-haiku-5.5"
 	defaultKidsSafetyModel = "anthropic/claude-haiku-5.5"
+	// defaultParentChatModel also runs on the kids' key for "About the
+	// kids", so it too needs a zero-retention endpoint that doesn't block.
+	defaultParentChatModel = "anthropic/claude-haiku-5.5"
 )
 
 // defaultMiniMaxBaseURL is MiniMax's Anthropic-compatible API root.
@@ -262,13 +270,27 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	// The kid agent's tools look things up on the same data and sources as
 	// the kid's cards: their calendar (through the same fetcher), their
 	// remembered picks, the forecast, and kid-safe web search.
-	chatService.SetTools(&chat.ToolSources{
+	lookups := &chat.ToolSources{
 		Profiles: st,
 		Agenda:   widgets.NewAgenda(calendars, st, logger),
 		Results:  st,
 		Forecast: openMeteo.Forecast(),
 		Web:      brave.Web(),
-	})
+	}
+	chatService.SetTools(lookups)
+
+	// The parents' Assistant: "Ask anything" on the main Kit, "About the
+	// kids" on the kids' Kit (no-retention), which only exists when kid chat
+	// is on. Its tools reuse kid chat's lookups for any member, search the
+	// web unfiltered, and read the kids' chats through chatService.
+	parentModel := "openrouter/" + cfg.parentChatModel
+	var kidsParentAgent assistant.Agent
+	if kids != nil {
+		kidsParentAgent = aikit.NewParentAgent(kids.kit, parentModel)
+	}
+	assistantService := assistant.NewService(aikit.NewParentAgent(kit, parentModel), kidsParentAgent, st, logger)
+	assistantService.SetTools(&assistant.ToolSources{Members: st, Lookups: lookups, Web: brave.Web(), Chats: chatService})
+	logger.Info("parents' Assistant is on", "model", cfg.parentChatModel, "about_the_kids", kids != nil)
 
 	srv := &http.Server{
 		Handler: routes(deps{
@@ -281,6 +303,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			Sources:   registry,
 			Calendars: calendars,
 			Chat:      chatService,
+			Assistant: assistantService,
 		}),
 		BaseContext:       func(net.Listener) context.Context { return requestsCtx },
 		ReadHeaderTimeout: 10 * time.Second,

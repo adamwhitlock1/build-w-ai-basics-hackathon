@@ -6,6 +6,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 
+	"porchlight/internal/assistant"
 	"porchlight/internal/auth"
 	"porchlight/internal/chat"
 	"porchlight/internal/family"
@@ -31,6 +32,9 @@ type deps struct {
 	// Chat is kid chat. nil means kid chat is off (as with no kids' key):
 	// routes builds a Service with no agent.
 	Chat *chat.Service
+	// Assistant is the parents' Assistant. nil means it's off: routes
+	// builds a Service with no agents.
+	Assistant *assistant.Service
 }
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
@@ -52,6 +56,11 @@ func routes(d deps) http.Handler {
 		chatService = chat.NewService(nil, st, logger)
 	}
 	chatHandler := chat.NewHandler(chatService, logger)
+	assistantService := d.Assistant
+	if assistantService == nil {
+		assistantService = assistant.NewService(nil, nil, st, logger)
+	}
+	assistantHandler := assistant.NewHandler(assistantService, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
 	// needs that user to be a family admin. A method value such as
@@ -116,6 +125,13 @@ func routes(d deps) http.Handler {
 	mux.Handle("POST /api/me/chats", private(chatHandler.Start))
 	mux.Handle("GET /api/me/chats/{id}", private(chatHandler.Get))
 	mux.Handle("POST /api/me/chats/{id}/messages", private(chatHandler.Send))
+	// The parents' Assistant. The service refuses kids, and keeps each
+	// parent to their own conversations (the other parent's included).
+	mux.Handle("GET /api/me/assistant", private(assistantHandler.List))
+	mux.Handle("POST /api/me/assistant", private(assistantHandler.Start))
+	mux.Handle("GET /api/me/assistant/{id}", private(assistantHandler.Get))
+	mux.Handle("DELETE /api/me/assistant/{id}", private(assistantHandler.Delete))
+	mux.Handle("POST /api/me/assistant/{id}/messages", private(assistantHandler.Send))
 
 	// A parent looking at someone in their family, and setting their
 	// interests and location. These reuse the handlers above, which act on
