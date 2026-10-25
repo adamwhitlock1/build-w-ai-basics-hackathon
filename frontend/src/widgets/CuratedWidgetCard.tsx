@@ -2,7 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { useOpenInterestsEditor, type ProfileField } from '../account/interestsEditorContext'
 import type { ApiError, CuratedWidget, EmptyReason } from '../api/client'
-import { useShowKidSafe } from '../api/hooks'
+import { useKidSafeFor } from '../api/hooks'
 import { RefreshButton } from './RefreshButton'
 import { WidgetCard } from './WidgetCard'
 
@@ -44,7 +44,7 @@ interface CuratedWidgetCardProps {
 export function CuratedWidgetCard({ result, onRefresh, title, noun, loadingMessage, missing }: CuratedWidgetCardProps) {
   const { data, error, isFetching, isPending } = result
   const openEditor = useOpenInterestsEditor()
-  const showKidSafe = useShowKidSafe(data)
+  const kidSafeFor = useKidSafeFor(data)
   const refreshRef = useRef<HTMLButtonElement>(null)
 
   const hasItems = (data?.items?.length ?? 0) > 0
@@ -82,7 +82,7 @@ export function CuratedWidgetCard({ result, onRefresh, title, noun, loadingMessa
     <WidgetCard
       widget={data}
       title={title}
-      showKidSafe={showKidSafe}
+      kidSafeFor={kidSafeFor}
       loading={loading}
       loadingMessage={loadingMessage}
       emptyMessage={NOTHING_NEW}
@@ -116,6 +116,11 @@ interface LoadErrorProps {
 }
 
 /** A small inline error with a "Try again" button; the rest of the page carries on. */
+/** "your briefing" → "Your briefing". */
+function sentenceCase(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 export function LoadError({ noun, error, stale, onRetry }: LoadErrorProps) {
   return (
     <div
@@ -124,9 +129,11 @@ export function LoadError({ noun, error, stale, onRetry }: LoadErrorProps) {
     >
       <div>
         <p className="font-medium text-danger">
-          {stale ? `Couldn’t load fresh ${noun}` : `Couldn’t load ${noun}`}
+          {stale ? `${sentenceCase(noun)} didn’t refresh.` : `${sentenceCase(noun)} didn’t load.`}{' '}
+          {error.hint || 'Try again in a minute.'}
         </p>
-        <p className="mt-0.5 text-ink-soft">{[error.message, error.hint].filter(Boolean).join(' ')}</p>
+        {/* What went wrong, in the server's words, below the plain sentence. */}
+        <p className="mt-0.5 text-ink-soft">{error.message}</p>
       </div>
       <button
         type="button"

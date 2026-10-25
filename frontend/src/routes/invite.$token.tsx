@@ -100,7 +100,7 @@ function InvitePage() {
       intro={
         details.isAdmin
           ? 'You’re invited as a parent, so you can invite and look after the family too. Choose a password and your own page will be ready.'
-          : 'Choose a password and your own page will be ready, with articles, events and widgets picked just for you.'
+          : 'Choose a password and your own page will be ready, with articles, events and cards picked just for you.'
       }
       footer={
         <p>

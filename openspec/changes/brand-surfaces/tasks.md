@@ -51,9 +51,19 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
     - `aikit/structured.go` 85 and `llm/client.go` 220 ("Try describing the widget differently.");
     - `widgets/errors.go` 94, 96, 98, 156, 215;
     - `widgets/handler.go` 338.
-- [ ] 3.2 Rename "widget" to "card" in every frontend string it found, write the empty-state and error copy, and change the kid-safe marker to "Picked with <name>'s age in mind" (design decision 5). Verify:
+- [x] 3.2 Rename "widget" to "card" in every frontend string it found, write the empty-state and error copy, and change the kid-safe marker to "Picked with <name>'s age in mind" (design decision 5). Verify:
   - `npm run check:copy` passes;
   - in the browser: "Add a card", "Building your card…", an empty spot, a card's load error, and the marker on Jordan's page as Maya (and no marker as Jordan).
+  - Done (2026-10-25). `npm run check:copy` finds nothing in the frontend, and lint, build and `npm test` (11) pass. In the browser as Maya:
+    - "Add a card", and "Building your card…" (held by a patched `fetch`);
+    - a failed Articles refresh: "Articles didn't refresh. Try again in a minute.", with the server's reason below and the old articles kept;
+    - on Jordan's page, "Picked with Jordan's age in mind" on each kid-safe card.
+
+    Jordan's own view is checked in 4.2.
+  - **The empty spot** reads "An empty spot. Add a card to fill it."
+  - **The design's "new page" empty state has no home:** a page always has its built-in cards, so the empty spot is the page's empty state.
+  - **Load errors** use each card's noun: the card's title for a described card, and "today's events" for Today.
+  - **The marker:** `useKidSafeFor` replaces the `showKidSafe` flag with the kid's name ("Jordan's", or "their" until the family list loads).
 - [ ] 3.3 Rename "widget" to "card" in the backend messages and hints it found, and update the tests that quote them. Verify `make check` and `npm run check:copy`.
 
 ## 4. Docs and end to end

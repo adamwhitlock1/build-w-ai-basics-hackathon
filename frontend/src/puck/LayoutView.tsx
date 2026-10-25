@@ -12,7 +12,7 @@ interface LayoutViewProps {
   layout: Layout
   /** The widget that was just built, if any: its card gets the "fresh" look. */
   freshWidgetId?: number | null
-  /** Shown above the cards, across the whole grid (the "Add a widget" prompt). */
+  /** Shown above the cards, across the whole grid (the "Add a card" prompt). */
   top?: ReactNode
   /** The "+" tile, placed after the cards. Without it, no empty spots are shown. */
   addTile?: ReactNode
@@ -63,7 +63,7 @@ export function LayoutView({ layout, freshWidgetId = null, top, addTile }: Layou
           key={`empty-${i}`}
           className="hidden min-h-40 items-center justify-center rounded-3xl border-2 border-dashed border-line p-6 text-center text-sm text-ink-muted lg:flex"
         >
-          This spot is empty — add a widget to fill it
+          An empty spot. Add a card to fill it.
         </div>
       ))}
 

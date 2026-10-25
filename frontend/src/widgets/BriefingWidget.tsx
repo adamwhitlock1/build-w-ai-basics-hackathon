@@ -1,6 +1,6 @@
 import { useOpenInterestsEditor } from '../account/interestsEditorContext'
 import type { BriefingUse } from '../api/client'
-import { useBriefing, useFamilyMember, useMe, usePageOwner, useShowKidSafe } from '../api/hooks'
+import { useBriefing, useFamilyMember, useKidSafeFor, useMe, usePageOwner } from '../api/hooks'
 import { nameFor } from '../family/people'
 import { LoadError, MissingNudge } from './CuratedWidgetCard'
 import { isMorning } from '../motion/light'
@@ -38,7 +38,7 @@ export function BriefingWidget() {
   const { data: me } = useMe()
   const member = useFamilyMember(owner.isYou ? -1 : owner.userId)
   const openEditor = useOpenInterestsEditor()
-  const showKidSafe = useShowKidSafe(data)
+  const kidSafeFor = useKidSafeFor(data)
   // Once a minute, so the greeting moves from morning to afternoon by itself.
   const now = useNow(60_000)
 
@@ -76,7 +76,7 @@ export function BriefingWidget() {
   return (
     <WidgetCard
       title={title}
-      showKidSafe={showKidSafe}
+      kidSafeFor={kidSafeFor}
       loading={isPending && !failed}
       loadingMessage={owner.isYou ? 'Writing your briefing…' : 'Writing their briefing…'}
       notice={notice}

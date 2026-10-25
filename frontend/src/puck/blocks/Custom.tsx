@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { SavedWidget } from '../../api/client'
-import { usePageHomepage, usePageOwner, useRefreshCustomWidget, useShowKidSafe } from '../../api/hooks'
+import { usePageHomepage, usePageOwner, useKidSafeFor, useRefreshCustomWidget } from '../../api/hooks'
 import { LoadError } from '../../widgets/CuratedWidgetCard'
 import { RefreshButton } from '../../widgets/RefreshButton'
 import { WidgetCard } from '../../widgets/WidgetCard'
@@ -30,20 +30,20 @@ export function CustomBlock({ widgetId, fresh = false }: CustomBlockProps) {
   const page = usePageHomepage()
   const { isYou } = usePageOwner()
   const widget = page.customWidgets.find((w) => w.id === widgetId)
-  const showKidSafe = useShowKidSafe(widget)
+  const kidSafeFor = useKidSafeFor(widget)
 
   if (!widget) {
     // The layout mentions a widget this page doesn't have (the server tidies
     // that up on the next load), so say so quietly rather than show nothing.
     return (
       <div className="flex min-h-40 items-center justify-center rounded-3xl border-2 border-dashed border-line p-6 text-center text-sm text-ink-muted">
-        This widget is gone
+        This card is gone
       </div>
     )
   }
   // Someone else's page is a parent looking at a family member's, the only
-  // place the Kid-safe marker shows (see useShowKidSafe).
-  if (!isYou) return <WidgetCard widget={widget} fresh={fresh} showKidSafe={showKidSafe} />
+  // place the kid-safe marker shows (see useKidSafeFor).
+  if (!isYou) return <WidgetCard widget={widget} fresh={fresh} kidSafeFor={kidSafeFor} />
   return <OwnCustomWidget widget={widget} fresh={fresh} />
 }
 
@@ -79,7 +79,7 @@ function OwnCustomWidget({ widget, fresh }: { widget: SavedWidget; fresh: boolea
     <WidgetCard
       widget={widget}
       fresh={fresh}
-      notice={failed && <LoadError noun="results" error={failed} stale={widget.items.length > 0} onRetry={retry} />}
+      notice={failed && <LoadError noun={widget.title} error={failed} stale={widget.items.length > 0} onRetry={retry} />}
       headerAction={
         <>
           <RefreshButton

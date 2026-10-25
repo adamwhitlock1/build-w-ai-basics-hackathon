@@ -174,7 +174,7 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
           {isAdmin && !arranging && members.length > 1 && (
             <p className="mt-3 px-2 text-xs leading-relaxed text-ink-muted">
               {building
-                ? 'Once your new widget is ready, you can pick someone to see their page.'
+                ? 'Once your new card is ready, you can pick someone to see their page.'
                 : 'Pick someone to see their page and set their interests.'}
             </p>
           )}

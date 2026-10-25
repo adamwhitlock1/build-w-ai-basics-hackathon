@@ -251,7 +251,7 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
               // Can't start arranging while a new widget is on its way:
               // its card is added to the page when it arrives.
               disabled={building && !arranging}
-              title={building && !arranging ? 'Your new widget is still being built' : undefined}
+              title={building && !arranging ? 'Your new card is still being built' : undefined}
               aria-disabled={finishing || undefined}
               onClick={() => (arranging ? void finishArranging() : startArranging())}
               // Start downloading the editor as soon as it looks likely to be wanted.
@@ -284,7 +284,7 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
           </div>
         </div>
         <p className="mt-2 max-w-prose text-ink-soft">
-          Describe anything you’d like to keep an eye on, and we’ll build a widget for it.
+          Describe anything you’d like to keep an eye on, and we’ll build a card for it.
         </p>
       </header>
 
@@ -338,7 +338,7 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
               >
                 <PlusIcon className="size-6" />
               </span>
-              {building ? 'Building your widget…' : 'Add a widget'}
+              {building ? 'Building your card…' : 'Add a card'}
             </button>
           }
         />

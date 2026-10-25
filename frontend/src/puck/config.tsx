@@ -77,7 +77,7 @@ export const config: KinlightConfig = {
       ),
     },
     Custom: {
-      label: 'Your widget',
+      label: 'Your card',
       inline: true,
       // No real widget has id 0, so a card missing its id says "gone".
       defaultProps: { span: DEFAULT_SPAN, widgetId: 0 },
