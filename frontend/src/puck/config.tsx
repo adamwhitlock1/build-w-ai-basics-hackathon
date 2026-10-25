@@ -5,7 +5,7 @@ import { CustomBlock } from './blocks/Custom'
 import { LocalEventsBlock } from './blocks/LocalEvents'
 import { TodayBlock } from './blocks/Today'
 import { DEFAULT_SPAN } from './layout'
-import type { PorchlightConfig } from './types'
+import type { KinlightConfig } from './types'
 
 /**
  * Puck's map of the page for the Arrange editor: which kinds of card exist
@@ -16,7 +16,7 @@ import type { PorchlightConfig } from './types'
  * of cards, laid out as a four-column grid. Puck lets you drag the cards
  * around inside it; ArrangeFrame adds resizing on top.
  */
-export const config: PorchlightConfig = {
+export const config: KinlightConfig = {
   root: {
     fields: { blocks: { type: 'slot' } },
     // `blocks` arrives as a component that renders the slot's cards. Its

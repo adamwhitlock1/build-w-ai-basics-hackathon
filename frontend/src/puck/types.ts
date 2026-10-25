@@ -19,7 +19,7 @@ export interface RootProps {
 }
 
 /** Our Puck configuration's type: which cards exist and what they store. */
-export type PorchlightConfig = Config<{ components: BlockPropsMap; root: RootProps }>
+export type KinlightConfig = Config<{ components: BlockPropsMap; root: RootProps }>
 
 /** A layout as Puck sees it while arranging. */
-export type PorchlightData = Data<BlockPropsMap, RootProps>
+export type KinlightData = Data<BlockPropsMap, RootProps>
