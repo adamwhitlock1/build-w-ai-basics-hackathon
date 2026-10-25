@@ -38,7 +38,7 @@ const (
 // conversation's transcript.
 type KidsChatsQuery struct {
 	Kid          string `json:"kid,omitempty" jsonschema_description:"a kid's first name, or empty for the whole family"`
-	Conversation string `json:"conversation,omitempty" jsonschema_description:"a conversation's title, to read that conversation; needs kid"`
+	Conversation string `json:"conversation,omitempty" jsonschema_description:"a conversation's id (as listed, e.g. 12) or title, to read that conversation; needs kid"`
 }
 
 // familyDayInput is the family_day tool's input.
