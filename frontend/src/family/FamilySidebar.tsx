@@ -102,7 +102,7 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
   return (
     <aside
       aria-labelledby={nameId}
-      className="border-b border-line bg-surface px-4 py-4 sm:px-6 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-b-0 lg:px-5 lg:py-10 xl:w-72"
+      className="wood-grain relative border-b border-line bg-surface px-4 py-4 sm:px-6 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:border-r lg:border-b-0 lg:px-5 lg:py-10 xl:w-72"
     >
       <div className="flex items-center justify-between gap-3">
         <BrandMark />

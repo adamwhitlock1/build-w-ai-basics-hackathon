@@ -334,7 +334,7 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
             >
               <span
                 aria-hidden="true"
-                className="flex size-12 items-center justify-center rounded-full bg-primary text-on-primary transition-colors group-hover:bg-primary-strong group-disabled:bg-primary"
+                className="brass-edge flex size-12 items-center justify-center rounded-full text-on-primary [--brass-fill:var(--color-primary)] group-hover:[--brass-fill:var(--color-primary-strong)] group-disabled:[--brass-fill:var(--color-primary)]"
               >
                 <PlusIcon className="size-6" />
               </span>

@@ -318,10 +318,22 @@
     --puck-slot-component-color-border-dragging: var(--color-accent);
     /* Where a dragged card will land. */
     --puck-slot-component-color-placeholder: var(--color-accent-soft);
+    /* The card action bar is lantern glass (see .lantern-glass below), with
+       ink on it; the active width uses the text-safe light. */
+    --puck-actionbar-color-bg: color-mix(in srgb, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent)) 95%, transparent);
+    --puck-actionbar-color-text: var(--color-ink-soft);
+    --puck-color-text-inverse: var(--color-ink);
     /* The active width button in the action bar. */
-    --puck-actionbar-color-action-active: var(--color-accent);
+    --puck-actionbar-color-action-active: var(--color-accent-strong);
     --puck-actionbar-color-action-hover: var(--color-accent-soft);
     --puck-actionbar-radius: 0.75rem;
+  }
+
+  /* Puck's action bar root (its CSS-module class starts with _ActionBar_):
+     frosted like the rest of the lantern glass, with a hairline edge. */
+  .arrange-canvas [class^="_ActionBar_"] {
+    backdrop-filter: blur(14px) saturate(1.1);
+    box-shadow: 0 0 0 1px var(--color-line), var(--shadow-card);
   }
 
   /* Round the hover and selection outlines to match the cards' corners. */

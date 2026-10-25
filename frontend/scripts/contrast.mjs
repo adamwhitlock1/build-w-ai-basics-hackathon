@@ -118,6 +118,7 @@ const PAIRINGS = [
   ['ink-soft', 'on-glass', TEXT, 'labels on lantern glass'],
   ['ink-muted', 'on-glass', TEXT, 'hints on lantern glass'],
   ['primary', 'on-glass', TEXT, 'buttons and links on lantern glass'],
+  ['accent-strong', 'on-glass', TEXT, 'the active width in the card action bar'],
   ['ink', 'on-wood', TEXT, 'titles on the welcome pages'],
   ['ink-soft', 'on-wood', TEXT, 'intros and footers on the welcome pages'],
   ['ink-muted', 'on-wood', TEXT, 'sidebar hints and empty states on wood'],

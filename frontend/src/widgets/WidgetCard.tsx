@@ -28,6 +28,8 @@ interface WidgetCardProps {
    * light. Without it, the edge shows how fresh the card is.
    */
   lit?: boolean
+  /** A brass hairline edge: only the briefing card has one. */
+  brass?: boolean
   /** A small control beside the heading, such as a refresh button. */
   headerAction?: ReactNode
   /** Show the "Kid-safe" marker by the heading (see useShowKidSafe). */
@@ -76,6 +78,7 @@ export function WidgetCard({
   title,
   fresh = false,
   lit = false,
+  brass = false,
   headerAction,
   showKidSafe = false,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
@@ -132,7 +135,9 @@ export function WidgetCard({
       ref={ref}
       tabIndex={-1}
       // @container lets renderers adapt to the card's width, not the window's.
-      className="@container relative flex flex-col rounded-3xl border border-line bg-surface p-6 shadow-card focus:outline-none sm:p-7"
+      className={`@container relative flex flex-col rounded-3xl p-6 shadow-card focus:outline-none sm:p-7 ${
+        brass ? 'brass-edge' : 'border border-line bg-surface'
+      }`}
     >
       {/* The edge only shows a freshness the footer also says in words. */}
       <CardEdge lit={lit} updatedAt={showsFooter ? updatedAt : undefined} />

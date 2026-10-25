@@ -83,6 +83,7 @@ export function BriefingWidget() {
       footerNote={uses.length > 0 ? `From ${your} ${list.format(uses)}` : undefined}
       updatedAt={written?.updatedAt}
       lit={lit}
+      brass
       headerAction={
         // Always mounted, so screen readers hear it when the text changes.
         <span role="status" className="sr-only">

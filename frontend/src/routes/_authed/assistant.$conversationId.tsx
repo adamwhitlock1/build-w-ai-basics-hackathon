@@ -146,7 +146,7 @@ function AssistantPage() {
 
       {conversation.data && (
         <>
-          <form onSubmit={handleSubmit} className="sticky bottom-0 mt-4 bg-bg pt-2 pb-3">
+          <form onSubmit={handleSubmit} className="lantern-glass sticky bottom-0 mt-4 -mx-2 rounded-t-3xl px-2 pt-2 pb-3">
             <label htmlFor="assistant-message" className="sr-only">
               Your message
             </label>

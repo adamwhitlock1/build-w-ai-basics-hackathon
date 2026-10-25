@@ -12,10 +12,16 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
 
     These are the strongest values that pass.
   - Raising the seam to 20% on purpose made the check fail (exit 1).
-- [ ] 1.3 Apply brass to the briefing card and the add-a-card button, glass to the arrange toolbar, Puck's action bar and both composers, and wood grain to the sidebar (design decision 3). Verify in the browser in both themes:
+- [x] 1.3 Apply brass to the briefing card and the add-a-card button, glass to the arrange toolbar, Puck's action bar and both composers, and wood grain to the sidebar (design decision 3). Verify in the browser in both themes:
   - brass on exactly those two;
   - glass stays readable with cards scrolled under it, including Puck's bar in Porch light;
   - the sidebar grain is faint, and no card, chat or form has texture behind its text.
+  - Done (2026-10-25), on the demo as Maya:
+    - **Brass:** exactly two elements, the briefing card and the add button's "+".
+    - **The arrange toolbar's glass** stayed readable with the briefing scrolled under it in Porch light.
+    - **Puck's card action bar** is glass with ink text and a hairline edge in both themes, which fixes the earlier note that its dark bar sat too close to Porch light's ground. Its active width moved from amber to the text-safe `accent-strong`, which is readable on light glass. That pairing was added to the contrast check, now 44 pairings.
+    - **The Assistant's composer** sticks as glass over a long reply.
+    - **The sidebar grain** is faint, and nothing else has texture yet.
 
 ## 2. The illustration slot
 
