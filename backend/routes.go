@@ -11,6 +11,7 @@ import (
 	"kinlight/internal/assistant"
 	"kinlight/internal/auth"
 	"kinlight/internal/chat"
+	"kinlight/internal/chores"
 	"kinlight/internal/family"
 	"kinlight/internal/layout"
 	"kinlight/internal/respond"
@@ -24,6 +25,7 @@ import (
 // search sources and the calendar fetcher. Named fields keep call sites
 // readable where a long list of positional arguments would not.
 type deps struct {
+	Chores    *chores.Service
 	Logger    *slog.Logger
 	Store     *store.Store
 	Sessions  *scs.SessionManager
@@ -123,6 +125,21 @@ func routes(d deps) http.Handler {
 	mux.HandleFunc("GET /api/invites/{token}", familyHandler.ShowInvite)
 	mux.HandleFunc("POST /api/invites/{token}/accept", familyHandler.AcceptInvite)
 
+	// Daily household chores use the same viewer/subject authorization as member pages.
+	choreService := d.Chores
+	if choreService == nil {
+		choreService = chores.New(st, nil)
+	}
+	choreHandler := chores.NewHandler(choreService, logger)
+	mux.Handle("GET /api/me/chores", private(choreHandler.Serve("list")))
+	mux.Handle("PUT /api/me/chores/{choreId}/completion", private(choreHandler.Serve("completion")))
+	mux.Handle("GET /api/members/{id}/chores", asParent(choreHandler.Serve("list")))
+	mux.Handle("POST /api/members/{id}/chores", asParent(choreHandler.Serve("create")))
+	mux.Handle("PUT /api/members/{id}/chores/{choreId}", asParent(choreHandler.Serve("rename")))
+	mux.Handle("DELETE /api/members/{id}/chores/{choreId}", asParent(choreHandler.Serve("remove")))
+	mux.Handle("PUT /api/members/{id}/chores/{choreId}/completion", asParent(choreHandler.Serve("completion")))
+	mux.Handle("GET /api/family/chores", parentsOnly("Only parents can see family chore progress.", choreHandler.Serve("summary")))
+
 	// Logged in.
 	mux.Handle("GET /api/me", private(familyHandler.Me))
 	mux.Handle("GET /api/me/family", private(familyHandler.Family))
@@ -160,7 +177,7 @@ func routes(d deps) http.Handler {
 	// interests and location. These reuse the handlers above, which act on
 	// the request's subject: the logged-in user there, member {id} here.
 	// There are deliberately no member routes for changing a layout or
-	// widgets: parents look, and only edit interests, location and calendar.
+	// widgets: parents look, and edit interests, location, calendar, and chores.
 	mux.Handle("GET /api/members/{id}/homepage", asParent(layoutHandler.Homepage))
 	mux.Handle("PUT /api/members/{id}/profile", asParent(familyHandler.UpdateProfile))
 	mux.Handle("GET /api/members/{id}/widgets/articles", asParent(curatedHandler.Articles))

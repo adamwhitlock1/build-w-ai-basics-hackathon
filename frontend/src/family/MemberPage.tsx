@@ -1,3 +1,4 @@
+import { ChoreChecklist } from '../chores/ChoreCards'
 import { Link } from '@tanstack/react-router'
 import { useRef, useState, type RefObject } from 'react'
 import { InterestsEditor, type InterestsEditorProps } from '../account/InterestsEditor'
@@ -5,7 +6,7 @@ import { BirthYearField } from '../chat/BirthYearField'
 import { InterestsEditorContext } from '../account/interestsEditorContext'
 import { useInterestsEditorPanel } from '../account/useInterestsEditorPanel'
 import type { ApiError } from '../api/client'
-import { useFamilyMember, useFreshPageProfile, useMemberHomepage, useUpdateMemberProfile } from '../api/hooks'
+import { useMe, useFamilyMember, useFreshPageProfile, useMemberHomepage, useUpdateMemberProfile } from '../api/hooks'
 import { ViewedMemberContext } from '../api/pageOwner'
 import { layoutOf } from '../puck/layout'
 import { LayoutView } from '../puck/LayoutView'
@@ -29,8 +30,8 @@ const secondaryButton =
  * in their own order and widths, the widgets they described, and articles
  * and events picked from their interests and location. It's read-only (no
  * "+", no empty spots, no Arrange, no Remove), since the page is theirs to
- * arrange; what a parent can change is their interests and location, with
- * "Their interests".
+ * arrange. Parents can edit interests, location, calendar, and the separate
+ * daily chore checklist.
  *
  * The cards are the same ones as on your page. ViewedMemberContext tells
  * them whose page they're on, so they load this member's data, from the
@@ -42,6 +43,7 @@ const secondaryButton =
  * this says so calmly, with the way back to your own page.
  */
 export function MemberPage({ memberId, headingRef }: MemberPageProps) {
+  const { data: me } = useMe()
   const page = useMemberHomepage(memberId)
   // Their email comes from the family list, which the sidebar loads anyway.
   const member = useFamilyMember(memberId)
@@ -123,6 +125,8 @@ export function MemberPage({ memberId, headingRef }: MemberPageProps) {
             />
           </div>
         )}
+
+        {page.data && me?.user.isAdmin && <ChoreChecklist key={`${me.user.id}:${memberId}`} viewer={me.user.id} subject={memberId} parent /> }
 
         {/* No addTile: without the "+", LayoutView shows no empty spots either. */}
         {page.data ? <LayoutView layout={layoutOf(page.data)} /> : <CardsLoading />}
