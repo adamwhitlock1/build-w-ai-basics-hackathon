@@ -77,11 +77,20 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 6. End to end
 
-- [ ] 6.1 On the demo with real keys (the override, unless a kids' key exists), in the browser:
+- [x] 6.1 On the demo with real keys (the override, unless a kids' key exists), in the browser:
   - Jordan: a weather question, a "my day" question, and an Explore current-events question each show the right note and a sensible answer;
   - Jordan in Homework help: no search note;
   - Maya: Jordan's transcript shows the notes and search queries;
   - `llm_usage` has a row for each round of the tool loop.
 
   Record the results here.
+  - Result (2026-10-24), demo with the override (no kids' key yet), Claude Haiku 5.5:
+    - Jordan, in Explore:
+      - "what do I have after school today?" used `my_day`, in his time zone ("It's Saturday evening… study group… already ended", then tomorrow's science test);
+      - "do I need a jacket today?" used `weather` (see 4.1);
+      - "latest news about NASA's Artemis moon missions?" made one search ("NASA Artemis moon mission latest news") and summarized it in its own words.
+    - Jordan, in Homework help: "who was the first person to walk on the moon? … worksheet" used no tools and gave hints.
+    - Maya: Jordan's transcript shows "Searched: NASA Artemis moon mission latest news" above the reply.
+    - `llm_usage`: 4 `kid_chat_check` rows and 7 `kid_chat_reply` rows for Jordan's 4 messages, one per round of the tool loop (2 each for the three tool replies, 1 for homework).
+    - Found and fixed: Haiku's replies used Markdown (`**bold**`), which the chat shows as raw asterisks. The prompt now asks for plain text, with "- " lists. A rerun of the Artemis question came back with no asterisks or headings.
 - [ ] 6.2 Run `openspec validate agent-tools --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Agent tools" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
