@@ -194,8 +194,8 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
     - Maya deleted Jordan's bees chat, and it left Jordan's list.
     - `llm_usage`: `kid_chat_check` and `kid_chat_reply` rows for Jordan (3 each) and Lily (1 each), attributed to the kid, token counts only, with the deleted chat's rows kept.
     - The only ERROR in the log is the existing auth middleware logging a browser-cancelled request ("load logged-in user … context canceled"). That's outside this change, and offered as a follow-up.
-- [ ] 7.2 Run `openspec validate kid-tutor-agent --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Kid tutor agent" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+- [x] 7.2 Run `openspec validate kid-tutor-agent --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Kid tutor agent" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
   - Progress (2026-10-24):
     - Strict validation, `make check` (0 reachable vulnerabilities), `go test -race ./...`, and the frontend lint and build all pass.
     - The Post-PoC line is in both files. It names `2026-10-24-kid-tutor-agent`, so fix the date if the change is archived later.
-    - Still to do: push, the PR, and CI.
+    - origin/main (#13) was merged in, and the same checks passed again. CI passed on PR #14 (run 40147442359, head `0fe2389`: backend `make check`, the race detector, and the frontend lint and build), and the PR was merged 2026-10-25.
