@@ -315,7 +315,7 @@ func TestDeleteWidget(t *testing.T) {
 	// Nobody else can delete it, and nor can another site.
 	bob := newClient(t, srv)
 	bob.signup("bob@example.com")
-	bob.wantError("DELETE", path(first.ID), nil, http.StatusNotFound, "That widget doesn't exist.")
+	bob.wantError("DELETE", path(first.ID), nil, http.StatusNotFound, "That card doesn't exist.")
 	if status := sendRaw(t, c, "DELETE", path(first.ID), "", map[string]string{"Origin": "http://localhost:5173"}); status != http.StatusForbidden {
 		t.Errorf("cross-site DELETE: status = %d, want 403", status)
 	}
@@ -355,8 +355,8 @@ func TestDeleteWidget(t *testing.T) {
 	}
 
 	// It can't be read, deleted again, or put back on the page.
-	c.wantError("GET", path(first.ID), nil, http.StatusNotFound, "That widget doesn't exist.")
-	c.wantError("DELETE", path(first.ID), nil, http.StatusNotFound, "That widget doesn't exist.")
+	c.wantError("GET", path(first.ID), nil, http.StatusNotFound, "That card doesn't exist.")
+	c.wantError("DELETE", path(first.ID), nil, http.StatusNotFound, "That card doesn't exist.")
 	c.wantError("PUT", "/api/me/homepage", map[string]any{"layout": blocks(custom(first.ID, "back", 2))},
 		http.StatusBadRequest, "That layout mentions a widget that isn't yours.")
 

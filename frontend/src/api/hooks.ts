@@ -12,6 +12,7 @@ import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import { useNow } from '../widgets/updatedAgo'
 import { rekindle } from '../motion/kindle'
+import { nameFor } from '../family/people'
 import { changeTheme, forgetTheme } from '../theme'
 import {
   ApiError,
@@ -396,6 +397,21 @@ export function useMemberHomepage(memberId: number) {
 export function useShowKidSafe(widget: Pick<Widget, 'kidSafe'> | undefined): boolean {
   const { data: me } = useMe()
   return Boolean(widget?.kidSafe && me?.user.isAdmin)
+}
+
+/**
+ * Whose age a kid-safe card was picked with in mind, for the marker parents
+ * see ("Picked with Jordan's age in mind"): the page owner's name, "their"
+ * until the family list has loaded, or undefined when there's no marker.
+ */
+export function useKidSafeFor(widget: Pick<Widget, 'kidSafe'> | undefined): string | undefined {
+  const show = useShowKidSafe(widget)
+  const owner = usePageOwner()
+  const { data: me } = useMe()
+  const member = useFamilyMember(owner.isYou ? -1 : (owner.userId ?? -1))
+  if (!show) return undefined
+  const email = owner.isYou ? me?.user.email : member?.email
+  return email ? `${nameFor(email)}'s` : 'their'
 }
 
 /**

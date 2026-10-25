@@ -28,10 +28,15 @@ interface WidgetCardProps {
    * light. Without it, the edge shows how fresh the card is.
    */
   lit?: boolean
+  /** A brass hairline edge: only the briefing card has one. */
+  brass?: boolean
   /** A small control beside the heading, such as a refresh button. */
   headerAction?: ReactNode
-  /** Show the "Kid-safe" marker by the heading (see useShowKidSafe). */
-  showKidSafe?: boolean
+  /**
+   * Whose age a kid-safe card was picked for ("Jordan's", from useKidSafeFor):
+   * shows the marker parents see by the heading. Undefined: no marker.
+   */
+  kidSafeFor?: string
   /** What to say when the widget has no items. */
   emptyMessage?: string
   /** The first load is under way: soft placeholder rows instead of items. */
@@ -76,8 +81,9 @@ export function WidgetCard({
   title,
   fresh = false,
   lit = false,
+  brass = false,
   headerAction,
-  showKidSafe = false,
+  kidSafeFor,
   emptyMessage = DEFAULT_EMPTY_MESSAGE,
   loading = false,
   loadingMessage = 'Loading…',
@@ -132,7 +138,9 @@ export function WidgetCard({
       ref={ref}
       tabIndex={-1}
       // @container lets renderers adapt to the card's width, not the window's.
-      className="@container relative flex flex-col rounded-3xl border border-line bg-surface p-6 shadow-card focus:outline-none sm:p-7"
+      className={`@container relative flex flex-col rounded-3xl p-6 shadow-card focus:outline-none sm:p-7 ${
+        brass ? 'brass-edge' : 'border border-line bg-surface'
+      }`}
     >
       {/* The edge only shows a freshness the footer also says in words. */}
       <CardEdge lit={lit} updatedAt={showsFooter ? updatedAt : undefined} />
@@ -140,7 +148,7 @@ export function WidgetCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
           <h2 className="min-w-0 break-words text-2xl leading-tight text-ink">{title || widget?.title}</h2>
-          {showKidSafe && <KidSafeTag />}
+          {kidSafeFor && <KidSafeTag whose={kidSafeFor} />}
         </div>
         {headerAction && <div className="-mt-1 -mr-2 shrink-0">{headerAction}</div>}
       </div>
@@ -212,14 +220,15 @@ function WeatherCredit({ place }: { place: string }) {
 }
 
 /** Tells a parent this card was searched and chosen for their kid. */
-function KidSafeTag() {
+/** "Picked with Jordan's age in mind": the kid-safe marker, for parents. */
+function KidSafeTag({ whose }: { whose: string }) {
   return (
     <span
       title="Searched with strict safe-search and chosen for under-18s"
       className="inline-flex shrink-0 items-center gap-1 rounded-full bg-bg px-2 py-0.5 text-xs font-medium text-ink-soft ring-1 ring-line"
     >
       <ShieldIcon className="size-3.5" />
-      Kid-safe
+      Picked with {whose} age in mind
     </span>
   )
 }

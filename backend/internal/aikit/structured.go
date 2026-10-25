@@ -82,7 +82,7 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 		case ai.FinishReasonLength:
 			return zero, &llm.UpstreamError{Reason: "the AI model's answer was cut off", Hint: "Try again in a moment.", Err: errors.New("finish_reason=length")}
 		case ai.FinishReasonBlocked:
-			return zero, &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.", Err: ErrBlocked}
+			return zero, &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the card differently.", Err: ErrBlocked}
 		}
 
 		content := resp.Text()

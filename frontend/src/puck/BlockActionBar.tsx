@@ -119,7 +119,7 @@ function RemoveWidget({ cardId, widgetId }: RemoveWidgetProps) {
   if (!confirming) {
     return (
       <ActionBar.Group>
-        <ActionBar.Action label="Remove this widget" onClick={() => setConfirming(true)}>
+        <ActionBar.Action label="Remove this card" onClick={() => setConfirming(true)}>
           <span className="flex items-center gap-1 text-xs font-semibold">
             <TrashIcon className="size-3.5" />
             Remove
@@ -131,13 +131,13 @@ function RemoveWidget({ cardId, widgetId }: RemoveWidgetProps) {
 
   return (
     <ActionBar.Group>
-      <ActionBar.Label label={deleteWidget.isError ? 'Couldn’t delete it. Try again?' : 'Delete this widget for good?'} />
-      <ActionBar.Action label="Yes, delete this widget" onClick={() => void remove()}>
+      <ActionBar.Label label={deleteWidget.isError ? 'Couldn’t delete it. Try again?' : 'Delete this card for good?'} />
+      <ActionBar.Action label="Yes, delete this card" onClick={() => void remove()}>
         <span className="text-xs font-semibold">Delete</span>
       </ActionBar.Action>
       <ActionBar.Action
         ref={keepRef}
-        label="No, keep this widget"
+        label="No, keep this card"
         onClick={() => {
           setConfirming(false)
           deleteWidget.reset() // forget a failed attempt

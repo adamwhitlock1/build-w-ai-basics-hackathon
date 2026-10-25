@@ -13,6 +13,7 @@ import type { ChatMessage, ToolCall } from '../../api/chat'
 import { ApiError } from '../../api/client'
 import { MessageList } from '../../chat/MessageList'
 import { FormError } from '../../components/FormError'
+import { EmptyState } from '../../components/EmptyState'
 
 export const Route = createFileRoute('/_authed/assistant/$conversationId')({
   component: AssistantPage,
@@ -123,11 +124,11 @@ function AssistantPage() {
 
       <div className="flex-1" aria-live="polite" aria-busy={sending}>
         {messages.length === 0 && conversation.data ? (
-          <p className="text-ink-soft">
+          <EmptyState>
             {kind === 'kids'
               ? 'Ask about the kids: “Anything I should know about Lily’s chats this week?”'
               : 'Ask anything: “What does everyone have tomorrow?” or “Find a good beginner robotics kit.”'}
-          </p>
+          </EmptyState>
         ) : (
           <MessageList
             messages={messages}
@@ -146,7 +147,7 @@ function AssistantPage() {
 
       {conversation.data && (
         <>
-          <form onSubmit={handleSubmit} className="sticky bottom-0 mt-4 bg-bg pt-2 pb-3">
+          <form onSubmit={handleSubmit} className="lantern-glass sticky bottom-0 mt-4 -mx-2 rounded-t-3xl px-2 pt-2 pb-3">
             <label htmlFor="assistant-message" className="sr-only">
               Your message
             </label>

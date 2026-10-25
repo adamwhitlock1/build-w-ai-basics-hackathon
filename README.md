@@ -5,7 +5,7 @@
 
 # Kinlight
 
-Kinlight (formerly Porchlight) is a homepage for each member of a family where every widget is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new widget appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a widget, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into widget items, using only what the search returned. Your API keys never leave the server.
+Kinlight (formerly Porchlight) is a homepage for each member of a family where every card is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new card appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a card, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into card items, using only what the search returned. Your API keys never leave the server.
 
 > Status: slice 6 (accounts, family setup, widgets that are saved to you, Articles and Local Events cards that pick themselves from your interests and location, a page you can arrange, a family sidebar where parents invite the rest of the family, each of whom gets their own page, and parents switching to any member's page to set their interests).
 
@@ -49,17 +49,17 @@ Then open **<http://localhost:5174>**. Port 5173 is taken by another app on this
 
 On startup the backend checks that both keys are set, that your `OPENROUTER_MODEL` exists and supports structured outputs, and that OpenRouter accepts your key. If any check fails, it stops and prints what to fix. These checks cost no credit. The Brave key isn't checked at startup, because every Brave call uses credit.
 
-To arrange your page, press **Arrange** at the top (it shows on screens at least tablet-wide). Drag a card to move it, or drag its right edge to make it 1/4 to 4/4 of the page wide (the width buttons above a selected card do the same). Changes save as you go; press **Done** (or Escape) to use the page again. A widget you described can also be deleted there, with **Remove**.
+To arrange your page, press **Arrange** at the top (it shows on screens at least tablet-wide). Drag a card to move it, or drag its right edge to make it 1/4 to 4/4 of the page wide (the width buttons above a selected card do the same). Changes save as you go; press **Done** (or Escape) to use the page again. A card you described can also be deleted there, with **Remove**.
 
 To invite your family, use **Invite member** in the sidebar (on a phone, open **Family** first): enter their email and choose **Parent** (can invite and manage) or **Kid**. Kinlight sends no email. Instead it shows a link to copy and send them however you like. The link uses the address you opened the app at (for example `http://localhost:5174/invite/...`), so they need to be able to reach that address. A link works for 14 days, and until someone uses it, it stays under **Pending invites**, where you can copy it again or revoke it. Co-parents you named while setting up your family are listed there too. Opening the link while logged out asks the new member to choose a password, and then they land on their own page.
 
-To look at a family member's page, a parent picks them in the sidebar's member list (on a phone, under **Family**). Their page opens at `/?as=<their id>`: their cards in their own order, read-only, since arranging it and adding widgets is up to them. **Their interests** sets the interests and location their Articles and Local Events are picked from. Pick yourself, or press **Back to your page**, to return. Kids see only their own page; the server refuses anyone else's.
+To look at a family member's page, a parent picks them in the sidebar's member list (on a phone, under **Family**). Their page opens at `/?as=<their id>`: their cards in their own order, read-only, since arranging it and adding cards is up to them. **Their interests** sets the interests and location their Articles and Local Events are picked from. Pick yourself, or press **Back to your page**, to return. Kids see only their own page; the server refuses anyone else's.
 
-Widgets remember their results, so a page you've opened before shows its cards straight away, without searching. Every card says when it was last updated. Each kind stays fresh for a while: Articles for 3 hours, Local Events for 12, and widgets you described for 6. After that, the card still shows what it has and quietly fetches new results in the background. New interests or a new location pick that member's Articles and Local Events again at once. Every card's refresh button gets new results whenever you like, and widgets you described have one too. If a refresh fails, the card keeps its current items and offers "Try again".
+Cards remember their results, so a page you've opened before shows its cards straight away, without searching. Every card says when it was last updated. Each kind stays fresh for a while: Articles for 3 hours, Local Events for 12, and cards you described for 6. After that, the card still shows what it has and quietly fetches new results in the background. New interests or a new location pick that member's Articles and Local Events again at once. Every card's refresh button gets new results whenever you like, and cards you described have one too. If a refresh fails, the card keeps its current items and offers "Try again".
 
-What that costs: picking Articles takes up to 5 Brave news searches, Local Events up to 3 web searches, each with a few small LLM calls, and refreshing a described widget takes 1 search and 1 LLM call. A visit while everything is fresh spends nothing. Pressing refresh twice within a minute spends only once. A family member's cards are shared with their parents' view of them, so whoever opens them first pays, and the other gets them for free.
+What that costs: picking Articles takes up to 5 Brave news searches, Local Events up to 3 web searches, each with a few small LLM calls, and refreshing a described card takes 1 search and 1 LLM call. A visit while everything is fresh spends nothing. Pressing refresh twice within a minute spends only once. A family member's cards are shared with their parents' view of them, so whoever opens them first pays, and the other gets them for free.
 
-Accounts, families, saved widgets and page layouts live in a SQLite file, `backend/kinlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/kinlight.db*`. Set `DB_PATH` to use a different file.
+Accounts, families, saved cards and page layouts live in a SQLite file, `backend/kinlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/kinlight.db*`. Set `DB_PATH` to use a different file.
 
 ### Why `make run` and not `go run .`?
 
@@ -73,7 +73,7 @@ To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go tes
 ## Data sources
 
 - **[Brave Search](https://brave.com/search/api/)**: news, web and events searches. Needs `BRAVE_API_KEY`.
-- **[Open-Meteo](https://open-meteo.com/)**: weather widgets (the place lookup and the 7-day forecast). It needs no key. Its free API is for non-commercial use only and its data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), so every weather card says "Weather data by Open-Meteo.com". A commercial Kinlight would need Open-Meteo's paid plan.
+- **[Open-Meteo](https://open-meteo.com/)**: weather cards (the place lookup and the 7-day forecast). It needs no key. Its free API is for non-commercial use only and its data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), so every weather card says "Weather data by Open-Meteo.com". A commercial Kinlight would need Open-Meteo's paid plan.
 
 ## Local test accounts
 
@@ -105,12 +105,12 @@ Every account's password is `password1`.
 
 | Account | Who | What it tests |
 | --- | --- | --- |
-| `maya@rivera.test` | Parent, created the family | Interests, location, calendar, three described widgets (one weather), a custom page arrangement |
+| `maya@rivera.test` | Parent, created the family | Interests, location, calendar, three described cards (one weather), a custom page arrangement |
 | `sam@rivera.test` | Parent | Different interests, the default page, a calendar with a moved meeting |
-| `jordan@rivera.test` | Kid (15) | Kid-safe cards and widget, a calendar with a deleted practice, two sample chats (a homework one showing the hint ladder, and an Explore one) |
+| `jordan@rivera.test` | Kid (15) | Kid-safe cards, including a described one, a calendar with a deleted practice, two sample chats (a homework one showing the hint ladder, and an Explore one) |
 | `lily@rivera.test` | Kid (9) | Interests and location but no calendar: the "Add your calendar" path; one sample chat with a flag for parents to review |
 | `grandma@rivera.test` | Invited as a parent | The pending invites list, and joining: `make demo` prints the invite link |
-| `alex@chen.test`, `riley@chen.test` | Parent and kid in a second family | That one family can't see another's members, pages or widgets |
+| `alex@chen.test`, `riley@chen.test` | Parent and kid in a second family | That one family can't see another's members, pages or cards |
 
 `.test` addresses can never reach a real inbox. The data lives in `backend/cmd/seed/demo.go`, as a plain Go list you can add members to.
 
@@ -128,7 +128,7 @@ Two limits come with building feeds around "now". Between about 11 pm and 1 am, 
 
 **Real calendars instead.** To try a real feed, set `SEED_CALENDAR_MAYA`, `SEED_CALENDAR_SAM`, `SEED_CALENDAR_JORDAN` or `SEED_CALENDAR_ALEX` in `backend/.env` to a private iCal link and run `make demo` again. That member gets the real link instead of the fixture. The link goes only into `kinlight.db.demo`, and `make demo` never prints it.
 
-**What browsing the demo costs.** `make demo` fills every member's Articles, "Happening near you" and described widgets with realistic results, marked as just updated. Their links go to real home pages; refreshing a card replaces them with real results. While they're fresh, opening any page as anyone runs no Brave search and no AI call. Two things still cost:
+**What browsing the demo costs.** `make demo` fills every member's Articles, "Happening near you" and described cards with realistic results, marked as just updated. Their links go to real home pages; refreshing a card replaces them with real results. While they're fresh, opening any page as anyone runs no Brave search and no AI call. Two things still cost:
 
 - **The morning briefing:** it's written on each member's first visit of the day, with one small AI call.
 - **Stale results:** once a result passes its freshness window (Articles after 3 hours, for example), or someone presses refresh, that card searches again and costs credit as usual.
@@ -283,6 +283,21 @@ The identity comes from `brand/`: the name Kinlight, the lantern mark, and the c
 
 The timings are tokens in `index.css`. The rules (who gets the glow, what counts as arriving, how an edge fades, when it's morning) are plain functions in `frontend/src/motion/light.ts`, and `npm test` runs their tests with Node's own test runner.
 
+**Materials** (`brand/lantern-ux.md`). They're used sparingly, and never behind content:
+- **Brass:** a hairline on the briefing card and the add-a-card button only.
+- **Lantern glass:** frosted, faintly warm, on what floats over the page: the arrange toolbar, the card action bar while arranging, and the chat and Assistant message boxes.
+- **Wood:** porch boards and faint grain on the welcome pages, faint grain on the sidebar and in empty states.
+
+`npm run check:contrast` checks text on glass and wood in the worst case. That's why glass is 95% opaque and the boards' seams 7%.
+
+**The porch illustration.** The welcome pages show a porch scene under the card, and empty states a small one beside their sentence. Today it's a plain stand-in, `frontend/src/brand/porch.svg`. A commissioned drawing replaces that file with no code change, following [`brand/illustration.md`](brand/illustration.md): the canvas, the theme's color variables, and what not to draw.
+
+**Voice** (`brand/brief.md`, section 8). Plain, warm, specific and brief:
+- They're **cards**, never widgets, in everything people read. Code, the API and the database still say widget.
+- Errors say what didn't work and when to try again, for example "Articles didn't refresh. Try again in a minute."
+- Parents see "Picked with Jordan's age in mind" on a kid's kid-safe cards.
+- `npm run check:copy` fails if text people read says "widget", or uses "mental load", "in sync", "supercharge", "seamless" or "powered by AI".
+
 ## Tests
 
 ```sh
@@ -297,12 +312,12 @@ The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (c
 GitHub Actions (`.github/workflows/ci.yml`) runs three checks on every pull request and every push to `main`:
 - **Backend:** `make check`, on Go 1.27.3.
 - **Backend race detector:** `go test -race ./...`. On Linux it needs cgo, so this job turns cgo on.
-- **Frontend:** `npm run lint`, `npm run check:contrast`, `npm test` and `npm run build`.
+- **Frontend:** `npm run lint`, `npm run check:contrast`, `npm run check:copy`, `npm test` and `npm run build`.
 
 ## AI usage
 
 Every answer from the AI model records its token counts in the `llm_usage` table. Each record has:
-- the feature it was for (describing a widget, refreshing one, Articles, Local Events or the morning briefing);
+- the feature it was for (describing a card, refreshing one, Articles, Local Events or the morning briefing);
 - the step within that feature;
 - the model;
 - the family member it was for;

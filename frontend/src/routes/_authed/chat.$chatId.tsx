@@ -14,6 +14,7 @@ import {
 import { ChatNotice } from '../../chat/ChatNotice'
 import { MessageList } from '../../chat/MessageList'
 import { FormError } from '../../components/FormError'
+import { EmptyState } from '../../components/EmptyState'
 
 export const Route = createFileRoute('/_authed/chat/$chatId')({
   component: ChatPage,
@@ -127,11 +128,11 @@ function ChatPage() {
 
       <div className="flex-1" aria-live="polite" aria-busy={sending}>
         {messages.length === 0 && chat.data ? (
-          <p className="text-ink-soft">
+          <EmptyState>
             {chat.data.conversation.mode === 'homework'
               ? 'What are you working on? Share the question and what you’ve tried so far.'
               : 'What are you curious about today?'}
-          </p>
+          </EmptyState>
         ) : (
           <MessageList messages={messages} toolCalls={[...(chat.data?.toolCalls ?? []), ...liveTools]} />
         )}
@@ -145,7 +146,7 @@ function ChatPage() {
       )}
 
       {chat.data && (
-        <form onSubmit={handleSubmit} className="sticky bottom-0 mt-4 bg-bg pt-2 pb-4">
+        <form onSubmit={handleSubmit} className="lantern-glass sticky bottom-0 mt-4 -mx-2 rounded-t-3xl px-2 pt-2 pb-4">
           <label htmlFor="chat-message" className="sr-only">
             Your message
           </label>

@@ -7,6 +7,11 @@
 //
 // PAIRINGS lists every foreground-on-background pair the app uses. When a
 // component puts a token on a new background, add the pair here.
+//
+// Text also sits on two materials, lantern glass and wood grain, whose
+// strengths are read from their @utility blocks. Each is checked in its worst
+// case: glass over the most contrasting thing that can scroll under it (ink),
+// and wood where a board's seam and the grain are both at full strength.
 
 import { readFileSync } from 'node:fs'
 
@@ -30,6 +35,43 @@ const daybreak = tokens('@theme {')
 const themes = {
   Daybreak: daybreak,
   'Porch light': { ...daybreak, ...tokens(':root[data-theme="dark"] {') },
+}
+
+/** A number captured by re, from the @utility block named name. */
+function strength(name, re) {
+  const start = css.indexOf(`@utility ${name} {`)
+  if (start < 0) throw new Error(`index.css has no @utility ${name}`)
+  const match = css.slice(start, css.indexOf('\n}', start)).match(re)
+  if (!match) throw new Error(`can't read ${re} in @utility ${name}`)
+  return Number(match[1])
+}
+
+const glass = {
+  // color-mix(in srgb, color-mix(in srgb, surface N%, accent) M%, transparent)
+  surface: strength('lantern-glass', /var\(--color-surface\) (\d+)%, var\(--color-accent\)\) \d+%/) / 100,
+  opacity: strength('lantern-glass', /var\(--color-accent\)\) (\d+)%, transparent/) / 100,
+  grain: strength('lantern-glass', /opacity: ([\d.]+);/),
+}
+const wood = {
+  seam: strength('porch-boards', /var\(--color-wood-deep\) (\d+)%/) / 100,
+  grain: strength('wood-grain', /opacity: ([\d.]+);/),
+}
+
+function rgb(hex) {
+  return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+}
+
+/** a with amount t of b painted over it. */
+function mix(a, b, t) {
+  const [x, y] = [rgb(a), rgb(b)]
+  return '#' + x.map((c, i) => Math.round(c * (1 - t) + y[i] * t).toString(16).padStart(2, '0')).join('')
+}
+
+// The two materials' worst-case backgrounds, as extra colors in each theme.
+for (const colors of Object.values(themes)) {
+  const tint = mix(colors.surface, colors.accent, 1 - glass.surface)
+  colors['on-glass'] = mix(mix(colors.ink, tint, glass.opacity), colors.ink, glass.grain)
+  colors['on-wood'] = mix(mix(colors.bg, colors['wood-deep'], wood.seam), colors['wood-deep'], wood.grain)
 }
 
 const TEXT = 4.5
@@ -72,6 +114,15 @@ const PAIRINGS = [
   ['control', 'bg', UI, 'field edges'],
   ['control', 'surface', UI, 'field and composer edges'],
   ['on-danger', 'danger', UI, 'focus rings on the crisis alert'],
+  ['ink', 'on-glass', TEXT, 'text on lantern glass'],
+  ['ink-soft', 'on-glass', TEXT, 'labels on lantern glass'],
+  ['ink-muted', 'on-glass', TEXT, 'hints on lantern glass'],
+  ['primary', 'on-glass', TEXT, 'buttons and links on lantern glass'],
+  ['accent-strong', 'on-glass', TEXT, 'the active width in the card action bar'],
+  ['ink', 'on-wood', TEXT, 'titles on the welcome pages'],
+  ['ink-soft', 'on-wood', TEXT, 'intros and footers on the welcome pages'],
+  ['ink-muted', 'on-wood', TEXT, 'sidebar hints and empty states on wood'],
+  ['primary', 'on-wood', TEXT, 'links on wood'],
 ]
 
 function luminance(hex) {

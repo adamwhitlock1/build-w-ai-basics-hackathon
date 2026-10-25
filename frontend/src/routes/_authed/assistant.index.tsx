@@ -3,6 +3,7 @@ import { kindNames, useAssistantList, useStartAssistant, type AssistantKind } fr
 import { useMe } from '../../api/hooks'
 import { FormError } from '../../components/FormError'
 import { formatShortDate } from '../../family/people'
+import { EmptyState } from '../../components/EmptyState'
 
 export const Route = createFileRoute('/_authed/assistant/')({
   component: AssistantListPage,
@@ -75,6 +76,10 @@ function AssistantListPage() {
           })}
           {start.isError && <FormError message={start.error.message} hint={start.error.hint} />}
         </section>
+      )}
+
+      {list.data && list.data.conversations.length === 0 && (
+        <EmptyState>No conversations yet. Pick one of the two above to start.</EmptyState>
       )}
 
       {list.data && list.data.conversations.length > 0 && (

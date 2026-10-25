@@ -630,7 +630,7 @@ func TestWidgetsAreSavedPerUser(t *testing.T) {
 	// Bob, in another family, can't see Alice's widget and has none of his own.
 	bob := newClient(t, srv)
 	bob.signup("bob@example.com")
-	bob.wantError("GET", path, nil, http.StatusNotFound, "That widget doesn't exist.")
+	bob.wantError("GET", path, nil, http.StatusNotFound, "That card doesn't exist.")
 	var bobsPage struct {
 		CustomWidgets []widgets.SavedWidget `json:"customWidgets"`
 	}

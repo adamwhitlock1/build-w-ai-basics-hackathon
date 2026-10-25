@@ -50,6 +50,15 @@
   /* The lantern's glass core, brighter than the light around it. */
   --color-glass-core: #ffe3a6;
 
+  /* Materials (brand/lantern-ux.md). Brass is a metal, not a theme color:
+     the same in both themes, and only on the briefing card and the add
+     button. Wood is pine and cedar, for grain and porch boards on brand
+     surfaces only. */
+  --color-brass-light: #e7c98e;
+  --color-brass-deep: #b08d57;
+  --color-wood: #ddbe95;
+  --color-wood-deep: #9a6440;
+
   --font-display: "Fraunces Variable", ui-serif, Georgia, Cambria, "Times New Roman", serif;
   --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -184,6 +193,14 @@
     --duration-catch: 1200ms;
     --duration-dusk: 1100ms;
     --duration-breathe: 2800ms;
+
+    /*
+     * Textures, as masks: an element paints a theme color through one, so
+     * the same texture works on either ground. --grain is fine and even,
+     * for lantern glass; --wood-grain is stretched along the boards.
+     */
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    --wood-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='240'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.18' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.6 -0.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
   }
 
   /*
@@ -262,6 +279,9 @@
 
     --color-glass-core: #ffe8b8;
 
+    --color-wood: #b07a52;
+    --color-wood-deep: #6b4529;
+
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -12px rgb(0 0 0 / 0.55);
   }
 
@@ -298,10 +318,22 @@
     --puck-slot-component-color-border-dragging: var(--color-accent);
     /* Where a dragged card will land. */
     --puck-slot-component-color-placeholder: var(--color-accent-soft);
+    /* The card action bar is lantern glass (see .lantern-glass below), with
+       ink on it; the active width uses the text-safe light. */
+    --puck-actionbar-color-bg: color-mix(in srgb, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent)) 95%, transparent);
+    --puck-actionbar-color-text: var(--color-ink-soft);
+    --puck-color-text-inverse: var(--color-ink);
     /* The active width button in the action bar. */
-    --puck-actionbar-color-action-active: var(--color-accent);
+    --puck-actionbar-color-action-active: var(--color-accent-strong);
     --puck-actionbar-color-action-hover: var(--color-accent-soft);
     --puck-actionbar-radius: 0.75rem;
+  }
+
+  /* Puck's action bar root (its CSS-module class starts with _ActionBar_):
+     frosted like the rest of the lantern glass, with a hairline edge. */
+  .arrange-canvas [class^="_ActionBar_"] {
+    backdrop-filter: blur(14px) saturate(1.1);
+    box-shadow: 0 0 0 1px var(--color-line), var(--shadow-card);
   }
 
   /* Round the hover and selection outlines to match the cards' corners. */
@@ -378,5 +410,79 @@
 
   :root[data-dusk]::view-transition-new(root) {
     animation: fade-in var(--duration-dusk) linear both;
+  }
+}
+
+/*
+ * Materials (brand/lantern-ux.md, "Materials that make it feel premium").
+ * scripts/contrast.mjs checks text on glass and on wood in both themes, in
+ * the worst case, so these strengths can only go down.
+ */
+
+/* A 1 px brass hairline, drawn as a second background under a transparent
+   border so it follows rounded corners. --brass-fill is the element's own
+   fill (the surface unless set). */
+@utility brass-edge {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--brass-fill, var(--color-surface)), var(--brass-fill, var(--color-surface))) padding-box,
+    linear-gradient(135deg, var(--color-brass-light), var(--color-brass-deep)) border-box;
+}
+
+/* Lantern glass, for surfaces that float over the page: frosted, faintly
+   warm, with a whisper of grain. The element must be positioned (sticky
+   or relative) for the grain layer. Without backdrop-filter, it's solid. */
+@utility lantern-glass {
+  isolation: isolate;
+  background-color: color-mix(in srgb, color-mix(in srgb, var(--color-surface) 96%, var(--color-accent)) 95%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--color-ink);
+    mask-image: var(--grain);
+    opacity: 0.02;
+    pointer-events: none;
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: color-mix(in srgb, var(--color-surface) 96%, var(--color-accent));
+  }
+}
+
+/* Faint wood grain behind a brand surface's own content, never behind a
+   card's. The element must be positioned. */
+@utility wood-grain {
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-wood-deep);
+    mask-image: var(--wood-grain);
+    mask-size: 600px 240px;
+    opacity: 0.03;
+    pointer-events: none;
+  }
+}
+
+/* Porch boards: horizontal bands with a fine seam, for the welcome pages'
+   ground. Pairs with wood-grain; the element must be positioned. */
+@utility porch-boards {
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0 55px,
+      color-mix(in srgb, var(--color-wood-deep) 7%, transparent) 55px 56px
+    );
+    pointer-events: none;
   }
 }

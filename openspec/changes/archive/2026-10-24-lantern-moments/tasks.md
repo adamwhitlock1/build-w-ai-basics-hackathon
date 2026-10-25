@@ -111,5 +111,6 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
     - **Words beside every glow:** every glow has them (a status, an "Updated …" time, or the briefing's text). The freshness edge is hidden whenever the time isn't showing.
     - **Reduced motion:** not emulatable in this browser pane (only the color scheme is). The CSS maps every moment to a plain fade or cross-fade of the same length, `fade-in` and `fade-out` are in the build, and the swing is `none`.
     - The demo was rebuilt afterwards, removing the cards and messages made while checking.
-- [ ] 6.3 Run `openspec validate lantern-moments --strict`, `make check`, and the frontend lint, `npm test`, contrast check and build. Push, open the PR, and confirm CI passes on it. Add the "Lantern moments" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+- [x] 6.3 Run `openspec validate lantern-moments --strict`, `make check`, and the frontend lint, `npm test`, contrast check and build. Push, open the PR, and confirm CI passes on it. Add the "Lantern moments" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
   - Progress (2026-10-25): the change and all 13 specs validate strictly, and `make check` passes. The frontend lint is clean, `npm test` passes 5 tests, the contrast check passes 35 pairings, and the build passes. The Post-PoC line is in both files. Pushing, the PR and CI are next.
+  - CI passed on PR #18, and the owner merged it (2026-10-25).

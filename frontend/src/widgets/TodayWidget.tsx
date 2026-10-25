@@ -54,7 +54,7 @@ export function TodayWidget() {
 
   let notice = null
   if (failed) {
-    notice = <LoadError noun="events" error={failed} stale={hasEvents} onRetry={retry} />
+    notice = <LoadError noun="today’s events" error={failed} stale={hasEvents} onRetry={retry} />
   } else if (missing) {
     notice = <MissingNudge info={missing} onOpen={openEditor} />
   }

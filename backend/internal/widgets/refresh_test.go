@@ -107,15 +107,15 @@ func TestRefreshCustom(t *testing.T) {
 		},
 		{
 			name: "someone else's widget", id: "1", widget: func() store.CustomWidget { w := oldLaunches("p"); w.UserID = 99; return w }(),
-			planner: &fakePlanner{}, results: found, wantStatus: 404, wantError: "That widget doesn't exist.",
+			planner: &fakePlanner{}, results: found, wantStatus: 404, wantError: "That card doesn't exist.",
 		},
 		{
 			name: "missing widget", id: "2", widget: oldLaunches("p"),
-			planner: &fakePlanner{}, results: found, wantStatus: 404, wantError: "That widget doesn't exist.",
+			planner: &fakePlanner{}, results: found, wantStatus: 404, wantError: "That card doesn't exist.",
 		},
 		{
 			name: "not a number", id: "abc", widget: oldLaunches("p"),
-			planner: &fakePlanner{}, wantStatus: 404, wantError: "That widget doesn't exist.",
+			planner: &fakePlanner{}, wantStatus: 404, wantError: "That card doesn't exist.",
 		},
 		{
 			name: "source no longer exists", id: "1", widget: func() store.CustomWidget { w := oldLaunches("p"); w.Source = "gone_search"; return w }(),

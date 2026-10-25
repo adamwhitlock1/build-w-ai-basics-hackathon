@@ -5,6 +5,7 @@ import { useFamily } from '../../api/hooks'
 import { ReviewsLayout } from '../../chat/ReviewsLayout'
 import { FormError } from '../../components/FormError'
 import { formatWhen, nameFor } from '../../family/people'
+import { EmptyState } from '../../components/EmptyState'
 
 export const Route = createFileRoute('/_authed/reviews/')({
   component: ReviewsPage,
@@ -49,7 +50,7 @@ function ReviewsPage() {
         <h2 id="waiting-heading" className="mb-3 text-2xl text-ink">
           To review {waiting.length > 0 && <span className="text-ink-muted">({waiting.length})</span>}
         </h2>
-        {reviews.data && waiting.length === 0 && <p className="text-ink-soft">Nothing waiting. All caught up.</p>}
+        {reviews.data && waiting.length === 0 && <EmptyState>Nothing waiting. All caught up.</EmptyState>}
         <ul className="flex flex-col gap-3">
           {waiting.map((f) => (
             <FlagItem key={f.id} flag={f} kidName={nameOf(f.memberId)} />

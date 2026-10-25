@@ -64,7 +64,7 @@ export function ArrangeCanvas({ initial, onChange, save }: ArrangeCanvasProps) {
  */
 function ArrangeToolbar({ save }: { save: SaveState }) {
   return (
-    <div className="sticky top-3 z-20 mb-14 rounded-2xl border border-line bg-surface/95 px-4 py-3 shadow-card backdrop-blur-sm sm:px-5">
+    <div className="lantern-glass sticky top-3 z-20 mb-14 rounded-2xl border border-line px-4 py-3 shadow-card sm:px-5">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
         <p className="text-sm text-ink-soft">
           Drag cards to reorder <span aria-hidden="true">·</span> drag a card’s right edge to resize

@@ -76,7 +76,7 @@ export function DescribeWidgetPrompt({ id, onCreated, onClose }: DescribeWidgetP
     >
       <div className="mb-3 flex items-center justify-between gap-4">
         <h2 id={headingId} className="text-xl text-ink">
-          Add a widget
+          Add a card
         </h2>
         <div className="flex items-center gap-3">
           <p className="hidden text-xs text-ink-muted sm:block">Describe it in your own words</p>
@@ -106,7 +106,7 @@ export function DescribeWidgetPrompt({ id, onCreated, onClose }: DescribeWidgetP
             onKeyDown={handleKeyDown}
             placeholder={`try: ${example}`}
             maxLength={MAX_PROMPT_LENGTH}
-            aria-label="Describe a widget"
+            aria-label="Describe a card"
             aria-describedby={createWidget.isError ? `${headingId}-error` : undefined}
             autoComplete="off"
             enterKeyHint="go"
@@ -165,7 +165,7 @@ function ThinkingState({ prompt }: { prompt: string }) {
     >
       <Breathing className="size-6" />
       <p className="min-w-0 truncate text-ink">
-        Building your widget…
+        Building your card…
         <span className="ml-2 text-ink-muted">“{prompt}”</span>
       </p>
     </div>
