@@ -20,7 +20,8 @@ export interface Conversation {
 
 export interface ChatMessage {
   id: number
-  role: 'kid' | 'agent'
+  /** Who wrote it: the kid (kid chat), the parent (the Assistant) or the agent. */
+  role: 'kid' | 'parent' | 'agent'
   text: string
   createdAt: string
 }
@@ -61,6 +62,10 @@ export function toolNoteText(tool: string, detail: string): string {
       return 'Looked at your day'
     case 'my_picks':
       return 'Looked at your picks'
+    case 'family_day':
+      return "Looked at the family's day"
+    case 'kids_chats':
+      return "Read the kids' chats"
     case 'search':
       return `Searched: ${detail}`
     default:
@@ -158,9 +163,17 @@ export interface StreamHandlers {
  * pieces that did arrive were reported.
  */
 export async function sendChatMessage(chatId: number, text: string, handlers: StreamHandlers, signal?: AbortSignal) {
+  return streamMessage(`/api/me/chats/${chatId}/messages`, text, handlers, signal)
+}
+
+/**
+ * Posts a message to path and reads the reply's server-sent events: the
+ * stream kid chat and the parents' Assistant both answer with.
+ */
+export async function streamMessage(path: string, text: string, handlers: StreamHandlers, signal?: AbortSignal) {
   let res: Response
   try {
-    res = await fetch(`/api/me/chats/${chatId}/messages`, {
+    res = await fetch(path, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },

@@ -15,6 +15,8 @@ interface MessageListProps {
    * sent before it.
    */
   toolCalls?: ToolCall[]
+  /** Make http(s) links in the agent's replies clickable (the parents' Assistant). */
+  linkify?: boolean
 }
 
 /**
@@ -22,7 +24,7 @@ interface MessageListProps {
  * agent's on the left. Line breaks in a message are kept, so lists and the
  * crisis resources read as written.
  */
-export function MessageList({ messages, kidName, flags, highlightId, toolCalls }: MessageListProps) {
+export function MessageList({ messages, kidName, flags, highlightId, toolCalls, linkify }: MessageListProps) {
   const flagsByMessage = new Map<number, ChatFlag>()
   for (const f of flags ?? []) flagsByMessage.set(f.messageId, f)
 
@@ -43,7 +45,8 @@ export function MessageList({ messages, kidName, flags, highlightId, toolCalls }
   return (
     <ol className="flex flex-col gap-3">
       {messages.map((m) => {
-        const fromKid = m.role === 'kid'
+        // The kid or the parent: whoever is talking to the agent.
+        const fromKid = m.role !== 'agent'
         const flag = flagsByMessage.get(m.id)
         const highlighted = m.id === highlightId
         return (
@@ -60,7 +63,7 @@ export function MessageList({ messages, kidName, flags, highlightId, toolCalls }
                 fromKid ? 'rounded-br-lg bg-primary text-white' : 'rounded-bl-lg bg-surface text-ink shadow-card'
               } ${highlighted ? 'ring-4 ring-accent' : ''}`}
             >
-              {m.text}
+              {linkify && !fromKid ? <Linked text={m.text} /> : m.text}
             </div>
             {flag && (
               <span
@@ -91,5 +94,34 @@ function ToolNotes({ calls }: { calls: ToolCall[] }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+/** Matches an http(s) link, up to whitespace or a closing bracket. */
+const LINK = /(https?:\/\/[^\s)<>\]]+)/g
+
+/**
+ * text with its http(s) links made clickable, opening in a new tab. Only
+ * http and https become links; anything else stays text. A full stop or
+ * comma right after a link is left out of it.
+ */
+function Linked({ text }: { text: string }) {
+  const parts = text.split(LINK)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (i % 2 === 0) return part
+        const trailing = /[.,;:!?]+$/.exec(part)?.[0] ?? ''
+        const url = part.slice(0, part.length - trailing.length)
+        return (
+          <span key={i}>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="break-all underline underline-offset-2">
+              {url}
+            </a>
+            {trailing}
+          </span>
+        )
+      })}
+    </>
   )
 }

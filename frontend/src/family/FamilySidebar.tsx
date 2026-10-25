@@ -180,8 +180,17 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
 
         {isAdmin && !arranging && (
           <Link
+            to="/assistant"
+            className="mt-6 flex h-11 items-center rounded-2xl px-3 text-sm font-medium text-ink transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Assistant
+          </Link>
+        )}
+
+        {isAdmin && !arranging && (
+          <Link
             to="/reviews"
-            className="mt-6 flex h-11 items-center justify-between rounded-2xl px-3 text-sm font-medium text-ink transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex h-11 items-center justify-between rounded-2xl px-3 text-sm font-medium text-ink transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Reviews
             {unreviewed > 0 && (

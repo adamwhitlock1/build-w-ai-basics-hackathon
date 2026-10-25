@@ -62,6 +62,11 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
   - a research question shows "Searched:" notes and clickable source links;
   - with the override on, "About the kids" for Lily mentions her seeded flag;
   - Jordan has no Assistant link, and gets a 403 from the API.
+  - Progress (2026-10-24), in the browser on the demo:
+    - Maya has an "Assistant" link. The page shows both kinds, with "About the kids" enabled under the override.
+    - An "Ask anything" conversation starts. Its messages stream, and a failed reply shows an error and keeps her message.
+    - Jordan has no Assistant or Reviews link, and gets a 403 ("The Assistant is for parents."). Maya gets kid chat's new 403 ("Kid chat is for kids. Try your Assistant.").
+    - **Not yet checked: real replies.** From 19:53 every TLS connection from a Go program on this machine stalls ("TLS handshake timeout" or "socket is not connected", to example.com too), while curl connects fine, so it isn't Porchlight code. The reply checks wait until Go programs can reach the network again.
 
 ## 5. Evaluation, smoke test and docs
 
