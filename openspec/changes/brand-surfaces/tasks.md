@@ -71,7 +71,7 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
 
 - [x] 4.1 Update the README's "Look and themes" with the materials, the illustration slot (pointing to `brand/illustration.md`), the voice rules and `check:copy`. Verify by reading it.
   - Done. The README's own product prose now says "card" too: the intro, arranging, freshness, the data file, the demo table and usage. Code names (`WidgetBuilder`, `internal/llm`'s description) and the historical status line keep "widget".
-- [ ] 4.2 On the demo, as Maya and as Jordan, in both themes: walk the welcome pages, home, arrange, Lily's page, chat, Assistant and Reviews. Check:
+- [x] 4.2 On the demo, as Maya and as Jordan, in both themes: walk the welcome pages, home, arrange, Lily's page, chat, Assistant and Reviews. Check:
   - materials only where the spec allows;
   - contrast holds;
   - the illustration in both slots;
@@ -79,4 +79,17 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
   - the marker's wording.
 
   Record the results here.
+  - Result (2026-10-25), on the demo. Each part was checked as it was built (1.3 to 3.2, recorded above), then together:
+    - **Welcome pages:** the sign-in and not-found pages show porch boards and grain on the ground, with the card plain and the porch scene below, in both themes.
+    - **As Maya:**
+      - brass on the briefing card and the add button only;
+      - glass on the arrange toolbar, Puck's card bar and the Assistant's composer, readable with content scrolled under it in both themes;
+      - faint sidebar grain;
+      - "Add a card" and "Building your card…";
+      - a plain-sentence load error;
+      - "Picked with Jordan's age in mind" on Jordan's kid-safe cards;
+      - a small porch scene in an empty "About the kids" conversation.
+    - **As Jordan:** no kid-safe marker on his own page, "Add a card", and a new Explore chat's empty state with the small scene, in Porch light.
+    - **Checks:** `check:contrast` (44 pairings, including the worst case on glass and wood) and `check:copy` pass.
+    - The demo was rebuilt afterwards.
 - [ ] 4.3 Run `openspec validate brand-surfaces --strict`, `make check`, and the frontend lint, `npm test`, `check:contrast`, `check:copy` and build. Push, open the PR, and confirm CI passes on it. Add the "Brand surfaces" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
