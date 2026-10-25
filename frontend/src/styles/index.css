@@ -41,10 +41,11 @@
   --color-danger-soft: #f8e8e2;
   --color-on-danger: #fffdf9;
 
-  /* Avatar tints: haint, pine and lamplight, each under ink. */
+  /* Avatar tints: haint, pine, lamplight and cedar, each under ink. */
   --color-avatar-1: #cfe5e1;
   --color-avatar-2: #f0dec6;
   --color-avatar-3: #f9e2bd;
+  --color-avatar-4: #ebd5c4;
 
   /* The lantern's glass core, brighter than the light around it. */
   --color-glass-core: #ffe3a6;
@@ -100,22 +101,24 @@
 
     --color-primary: #9fd0c9;
     --color-primary-strong: #b9e0da;
-    /* Each "soft" tint is its color at 14% over surface. */
+    /* Each "soft" tint is its color at 14% over surface (amber at 12%,
+       so muted ink on it still passes 4.5:1). */
     --color-primary-soft: #34342f;
     --color-on-primary: #18120e;
 
     --color-accent: #ffb547;
     --color-accent-strong: #ffb547;
-    --color-accent-soft: #42311d;
+    --color-accent-soft: #3d2d1c;
 
     --color-danger: #e08a72;
     --color-danger-soft: #3d2b23;
     --color-on-danger: #18120e;
 
-    /* The same three hues at 24% over surface. */
+    /* The same four hues at 24% over surface. */
     --color-avatar-1: #414641;
     --color-avatar-2: #504234;
     --color-avatar-3: #584022;
+    --color-avatar-4: #453224;
 
     --color-glass-core: #ffe8b8;
 

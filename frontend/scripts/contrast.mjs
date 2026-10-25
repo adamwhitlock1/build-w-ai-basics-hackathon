@@ -62,11 +62,16 @@ const PAIRINGS = [
   ['ink', 'avatar-1', TEXT, 'avatar initials'],
   ['ink', 'avatar-2', TEXT, 'avatar initials'],
   ['ink', 'avatar-3', TEXT, 'avatar initials'],
+  ['ink', 'avatar-4', TEXT, 'avatar initials'],
+  ['ink-muted', 'accent-soft', TEXT, 'the widget being written'],
+  ['ink-soft', 'danger-soft', TEXT, 'hints under errors'],
+  ['bg', 'ink', TEXT, 'dark buttons and labels'],
   ['primary', 'bg', UI, 'focus rings'],
   ['primary', 'surface', UI, 'focus rings on cards'],
   ['accent-strong', 'surface', UI, 'focus rings on light-colored controls'],
   ['control', 'bg', UI, 'field edges'],
   ['control', 'surface', UI, 'field and composer edges'],
+  ['on-danger', 'danger', UI, 'focus rings on the crisis alert'],
 ]
 
 function luminance(hex) {

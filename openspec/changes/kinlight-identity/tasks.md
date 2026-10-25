@@ -34,13 +34,20 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
   - Done: 30 pairings, all passing in both themes. The brief's own values needed no change.
   - Added during apply: a `control` token for field and composer edges (Daybreak `#9a8670`, 3.4:1 on surface; Porch light `#7a6857`, 3.2:1). The brief's `line` is 1.3:1, so it stays for decorative separators only.
   - Made to fail on purpose (Porch light `control` at `#4a3d33`): it named both failing pairings and exited 1.
-- [ ] 2.3 Replace raw colors in components:
+- [x] 2.3 Replace raw colors in components:
   - `text-white` → `text-on-primary` or `text-on-danger`;
   - the four amber-filled buttons → `bg-primary text-on-primary`;
   - avatar tints → `avatar-*`;
   - `CrisisAlert`'s whites → tokens.
 
   Verify with a grep for `-white`, `indigo`, `emerald`, `amber-` and hex colors in `frontend/src`: nothing is left outside `index.css`. Lint and build pass.
+  - Done. Beyond the list:
+    - `bg-ink text-white` (dark buttons and the resize label) became `text-bg`, and the "you" pill's white became `text-bg`, since both would be unreadable in Porch light.
+    - The amber borders on the add-widget tile and the chat mode cards became haint, with the buttons they frame.
+    - Fields and the two chat composers got the `control` edge.
+    - Avatars use four brand tints (haint, pine, lamplight, cedar) instead of six Tailwind hues.
+    - Amber stays on light only: spinners, the fresh-card edge, the thinking state, and the arrange grip.
+  - The contrast list grew to 35 pairings. It caught one: muted ink on Porch light's amber tint was 4.31:1, so that derived tint went from 14% to 12% over surface (`#3d2d1c`).
 - [ ] 2.4 Replace Fontshare with `@fontsource-variable/fraunces` (full axes) and `@fontsource-variable/figtree`, imported in `main.tsx`. Point `--font-display` and `--font-sans` at them, and give headings the soft axis. Verify in the browser's network panel that no request goes to another host for fonts, and that headings render in soft Fraunces.
 
 ## 3. The mark and the name

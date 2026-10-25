@@ -194,7 +194,7 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
           >
             Reviews
             {unreviewed > 0 && (
-              <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-white">
+              <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-on-danger">
                 {unreviewed}
                 <span className="sr-only"> to review</span>
               </span>
@@ -334,7 +334,7 @@ function MemberRow({ member }: { member: FamilyMember }) {
         <span className="mt-0.5 flex items-center gap-1.5">
           <RoleTag isAdmin={member.isAdmin} />
           {member.isYou && (
-            <span className="rounded-full bg-ink-soft px-2 py-0.5 text-xs font-medium text-white">you</span>
+            <span className="rounded-full bg-ink-soft px-2 py-0.5 text-xs font-medium text-bg">you</span>
           )}
         </span>
       </span>

@@ -23,7 +23,7 @@ export function ChatCard() {
         {chats.data?.available !== false && (
           <Link
             to="/chat"
-            className="inline-flex h-11 items-center rounded-2xl bg-accent px-4 font-medium text-ink transition-colors hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong"
+            className="inline-flex h-11 items-center rounded-2xl bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Start a chat
           </Link>

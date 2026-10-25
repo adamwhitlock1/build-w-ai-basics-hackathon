@@ -60,7 +60,7 @@ export function MessageList({ messages, kidName, flags, highlightId, toolCalls, 
             <span className="mb-1 px-1 text-xs text-ink-muted">{fromKid ? (kidName ?? 'You') : 'Porchlight'}</span>
             <div
               className={`max-w-[85%] rounded-3xl px-4 py-2.5 whitespace-pre-wrap break-words ${
-                fromKid ? 'rounded-br-lg bg-primary text-white' : 'rounded-bl-lg bg-surface text-ink shadow-card'
+                fromKid ? 'rounded-br-lg bg-primary text-on-primary' : 'rounded-bl-lg bg-surface text-ink shadow-card'
               } ${highlighted ? 'ring-4 ring-accent' : ''}`}
             >
               {linkify && !fromKid ? <Linked text={m.text} /> : m.text}
@@ -68,7 +68,7 @@ export function MessageList({ messages, kidName, flags, highlightId, toolCalls, 
             {flag && (
               <span
                 className={`mt-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  flag.crisis ? 'bg-danger text-white' : 'bg-danger-soft text-danger'
+                  flag.crisis ? 'bg-danger text-on-danger' : 'bg-danger-soft text-danger'
                 }`}
               >
                 {flag.crisis ? 'Possible crisis' : `Flagged: ${categoryNames[flag.category] ?? flag.category}`} ·{' '}

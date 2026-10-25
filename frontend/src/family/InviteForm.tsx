@@ -163,7 +163,7 @@ export function InviteForm({ id, familyId, pendingInvites, onClose, onAnnounce }
             <button
               type="button"
               onClick={onClose}
-              className="h-10 rounded-2xl bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="h-10 rounded-2xl bg-ink px-4 text-sm font-medium text-bg transition-colors hover:bg-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Done
             </button>

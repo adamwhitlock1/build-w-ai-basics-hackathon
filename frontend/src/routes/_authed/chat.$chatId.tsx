@@ -152,7 +152,7 @@ function ChatPage() {
           <label htmlFor="chat-message" className="sr-only">
             Your message
           </label>
-          <div className="flex items-end gap-2 rounded-3xl bg-surface p-2 shadow-card">
+          <div className="flex items-end gap-2 rounded-3xl border border-control bg-surface p-2 shadow-card">
             <textarea
               id="chat-message"
               value={text}
@@ -166,7 +166,7 @@ function ChatPage() {
             <button
               type="submit"
               disabled={sending || text.trim() === ''}
-              className="h-11 shrink-0 rounded-2xl bg-accent px-4 font-medium text-ink transition-colors hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-11 shrink-0 rounded-2xl bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
             </button>

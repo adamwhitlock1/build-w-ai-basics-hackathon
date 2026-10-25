@@ -23,16 +23,16 @@ export function CrisisAlert() {
   const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 
   return (
-    <div role="alert" className="mb-6 rounded-3xl bg-danger px-5 py-4 text-white shadow-card sm:mb-8">
+    <div role="alert" className="mb-6 rounded-3xl bg-danger px-5 py-4 text-on-danger shadow-card sm:mb-8">
       <p className="text-lg font-medium">{who} may need help now.</p>
-      <p className="mt-1 text-sm text-white/90">
+      <p className="mt-1 text-sm text-on-danger">
         Something {names.length === 1 ? 'they' : 'one of them'} wrote in Porchlight chat was flagged as a possible
         crisis. Please check in with them, and review it.
       </p>
       <Link
         to="/reviews"
         hash={`flag-${crises[0].flagId}`}
-        className="mt-3 inline-flex h-10 items-center rounded-2xl bg-white px-4 text-sm font-medium text-danger hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="mt-3 inline-flex h-10 items-center rounded-2xl bg-surface px-4 text-sm font-medium text-danger hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-danger"
       >
         Review it now
       </Link>

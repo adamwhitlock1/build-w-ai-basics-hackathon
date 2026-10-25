@@ -259,7 +259,7 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
               onFocus={() => void loadArrangeCanvas()}
               className={`rounded-lg px-2.5 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60 aria-disabled:cursor-wait ${
                 arranging
-                  ? 'bg-ink text-white hover:bg-ink-soft'
+                  ? 'bg-ink text-bg hover:bg-ink-soft'
                   : 'text-ink-soft underline-offset-4 hover:text-primary hover:underline disabled:hover:text-ink-soft disabled:hover:no-underline max-md:hidden'
               }`}
             >
@@ -330,11 +330,11 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
               aria-controls={promptId}
               disabled={building}
               onClick={() => (promptOpen ? closePrompt() : setPromptOpen(true))}
-              className="group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-accent/50 p-6 text-sm font-medium text-ink-soft transition-colors hover:border-accent hover:bg-accent-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:cursor-wait disabled:opacity-60 disabled:hover:border-accent/50 disabled:hover:bg-transparent"
+              className="group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-primary/40 p-6 text-sm font-medium text-ink-soft transition-colors hover:border-primary hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60 disabled:hover:border-primary/40 disabled:hover:bg-transparent"
             >
               <span
                 aria-hidden="true"
-                className="flex size-12 items-center justify-center rounded-full bg-accent text-ink transition-colors group-hover:bg-accent-strong group-disabled:bg-accent"
+                className="flex size-12 items-center justify-center rounded-full bg-primary text-on-primary transition-colors group-hover:bg-primary-strong group-disabled:bg-primary"
               >
                 <PlusIcon className="size-6" />
               </span>

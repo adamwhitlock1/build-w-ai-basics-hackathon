@@ -153,7 +153,7 @@ function AssistantPage() {
             <label htmlFor="assistant-message" className="sr-only">
               Your message
             </label>
-            <div className="flex items-end gap-2 rounded-3xl bg-surface p-2 shadow-card">
+            <div className="flex items-end gap-2 rounded-3xl border border-control bg-surface p-2 shadow-card">
               <textarea
                 id="assistant-message"
                 value={text}
@@ -167,7 +167,7 @@ function AssistantPage() {
               <button
                 type="submit"
                 disabled={sending || text.trim() === ''}
-                className="h-11 shrink-0 rounded-2xl bg-primary px-4 font-medium text-white transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 shrink-0 rounded-2xl bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Send
               </button>
@@ -181,7 +181,7 @@ function AssistantPage() {
                   type="button"
                   disabled={remove.isPending}
                   onClick={() => void deleteConversation().catch(() => {})}
-                  className="h-9 rounded-2xl bg-danger px-3 font-medium text-white hover:opacity-90 disabled:opacity-60"
+                  className="h-9 rounded-2xl bg-danger px-3 font-medium text-on-danger hover:opacity-90 disabled:opacity-60"
                 >
                   Delete
                 </button>

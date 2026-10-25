@@ -107,7 +107,7 @@ function FlagItem({ flag, kidName, reviewerName }: { flag: ChatFlag; kidName: st
         <span className="text-ink-muted">{formatWhen(flag.createdAt)}</span>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            flag.crisis ? 'bg-danger text-white' : 'bg-danger-soft text-danger'
+            flag.crisis ? 'bg-danger text-on-danger' : 'bg-danger-soft text-danger'
           }`}
         >
           {flag.crisis ? 'Possible crisis' : (categoryNames[flag.category] ?? flag.category)} · {flag.severity}
@@ -137,7 +137,7 @@ function FlagItem({ flag, kidName, reviewerName }: { flag: ChatFlag; kidName: st
             type="button"
             disabled={mark.isPending}
             onClick={() => mark.mutate(flag.id)}
-            className="ml-auto h-9 rounded-2xl bg-ink px-4 font-medium text-white hover:bg-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+            className="ml-auto h-9 rounded-2xl bg-ink px-4 font-medium text-bg hover:bg-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
           >
             Mark reviewed
           </button>

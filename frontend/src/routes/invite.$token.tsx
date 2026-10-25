@@ -249,7 +249,7 @@ function LoggedInAlready({ me, details, onLogOut }: LoggedInAlreadyProps) {
               onLogOut()
               logout.mutate()
             }}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 font-medium text-white transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-disabled:cursor-wait aria-disabled:bg-primary-strong"
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 font-medium text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-disabled:cursor-wait aria-disabled:bg-primary-strong"
           >
             {logout.isPending ? 'Logging out…' : 'Log out and continue'}
           </button>
