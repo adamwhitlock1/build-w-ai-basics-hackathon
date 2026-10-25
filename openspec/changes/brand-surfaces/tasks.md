@@ -25,7 +25,13 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
 
 ## 2. The illustration slot
 
-- [ ] 2.1 Add the stand-in `porch.svg` and `PorchScene` with its `wide` and `small` slots (design decision 4). Put `wide` and the porch-board wood on `WelcomeLayout`, and `small` in the empty states: a new kid chat, a new Assistant conversation, Reviews with nothing to review, and the Assistant list with none. Write `brand/illustration.md`. Verify in the browser in both themes on each of those pages: no faces, hidden from screen readers. Swap in a test SVG made to the format and confirm it shows in both slots with no code change.
+- [x] 2.1 Add the stand-in `porch.svg` and `PorchScene` with its `wide` and `small` slots (design decision 4). Put `wide` and the porch-board wood on `WelcomeLayout`, and `small` in the empty states: a new kid chat, a new Assistant conversation, Reviews with nothing to review, and the Assistant list with none. Write `brand/illustration.md`. Verify in the browser in both themes on each of those pages: no faces, hidden from screen readers. Swap in a test SVG made to the format and confirm it shows in both slots with no code change.
+  - Done (2026-10-25):
+    - **The wide slot** on the welcome layout (checked on the not-found page) and **the small slot** in a new "About the kids" conversation show the stand-in in both themes. Both are hidden from screen readers and have no faces.
+    - **Welcome pages:** porch boards and grain on the ground, with the card plain.
+    - **The swap:** a test SVG made to the format showed in both slots, filled from the theme (`--pw` resolved to pine), with no code change. The stand-in is restored.
+    - **Changed from the design:** the wide slot keeps the drawing's own 2:1 shape instead of a fixed 144 to 176 px height. The fixed height cropped off the haint-blue ceiling, which is part of the brand. `brand/illustration.md` says so.
+    - **Also:** the Assistant list had no empty state at all; it now says "No conversations yet. Pick one of the two above to start." The four empty states share an `EmptyState` component.
 
 ## 3. Voice
 

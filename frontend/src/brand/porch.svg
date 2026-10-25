@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600">
+  <!-- Stand-in for the commissioned porch scene: see brand/illustration.md. -->
+  <!-- The haint-blue ceiling, beadboard, and the beam under it. -->
+  <rect x="0" y="0" width="1200" height="96" style="fill:var(--ph)"/>
+  <g style="stroke:var(--pd)" stroke-width="2" opacity="0.18">
+    <line x1="0" y1="24" x2="1200" y2="24"/>
+    <line x1="0" y1="48" x2="1200" y2="48"/>
+    <line x1="0" y1="72" x2="1200" y2="72"/>
+  </g>
+  <rect x="0" y="96" width="1200" height="18" style="fill:var(--pd)" opacity="0.55"/>
+  <!-- The lantern's light on the boards and posts. -->
+  <circle cx="600" cy="232" r="190" style="fill:var(--pl)" opacity="0.10"/>
+  <circle cx="600" cy="232" r="110" style="fill:var(--pl)" opacity="0.16"/>
+  <!-- Two posts. -->
+  <rect x="150" y="114" width="30" height="376" style="fill:var(--pw)"/>
+  <rect x="1020" y="114" width="30" height="376" style="fill:var(--pw)"/>
+  <rect x="150" y="114" width="30" height="376" style="fill:var(--pd)" opacity="0.25"/>
+  <rect x="1020" y="114" width="30" height="376" style="fill:var(--pd)" opacity="0.25"/>
+  <!-- The floor: boards with fine seams. -->
+  <rect x="0" y="490" width="1200" height="110" style="fill:var(--pw)"/>
+  <g style="stroke:var(--pd)" stroke-width="2" opacity="0.35">
+    <line x1="0" y1="490" x2="1200" y2="490"/>
+    <line x1="0" y1="526" x2="1200" y2="526"/>
+    <line x1="0" y1="562" x2="1200" y2="562"/>
+  </g>
+  <!-- The lantern, hung from the beam: brand/logo/themed/lantern.svg at 2.6x. -->
+  <line x1="600" y1="114" x2="600" y2="150" style="stroke:var(--pi)" stroke-width="4"/>
+  <g transform="translate(516.8 142) scale(2.6)">
+    <circle cx="32" cy="6.5" r="2.6" style="fill:none;stroke:var(--pi);stroke-width:2"/>
+    <rect x="31" y="8.8" width="2" height="2.6" style="fill:var(--pi)"/>
+    <path d="M32 10.5 L18 21 L46 21 Z" style="fill:var(--pi);stroke:var(--pi);stroke-width:2;stroke-linejoin:round"/>
+    <rect x="19.5" y="20.5" width="25" height="4" rx="1.6" style="fill:var(--pi)"/>
+    <path d="M23.5 24.5 L40.5 24.5 L38 45 L26 45 Z" style="fill:var(--pl)"/>
+    <ellipse cx="32" cy="37" rx="3.4" ry="5.4" style="fill:var(--pg)"/>
+    <path d="M23.5 24.5 L40.5 24.5 L38 45 L26 45 Z M32 24.5 V45" style="fill:none;stroke:var(--pi);stroke-width:3;stroke-linejoin:round"/>
+    <rect x="24.5" y="44.5" width="15" height="4" rx="1.6" style="fill:var(--pi)"/>
+    <rect x="28.5" y="48.5" width="7" height="3" rx="1.2" style="fill:var(--pi)"/>
+  </g>
+</svg>
