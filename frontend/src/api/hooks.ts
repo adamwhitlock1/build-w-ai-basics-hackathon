@@ -12,7 +12,7 @@ import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import { useNow } from '../widgets/updatedAgo'
 import { rekindle } from '../motion/kindle'
-import { forgetTheme } from '../theme'
+import { changeTheme, forgetTheme } from '../theme'
 import {
   ApiError,
   apiFetch,
@@ -924,6 +924,8 @@ export function useSetTheme() {
   return useMutation<Me, ApiError, Theme, { userId?: number; before?: Theme }>({
     onMutate: (theme) => {
       const me = queryClient.getQueryData(meQueryOptions.queryKey)
+      // Shown as dusk; the root then finds the theme already chosen.
+      changeTheme(theme)
       queryClient.setQueryData(meQueryOptions.queryKey, withTheme(theme))
       return { userId: me?.user.id, before: me?.user.theme }
     },

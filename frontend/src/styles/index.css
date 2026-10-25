@@ -203,6 +203,15 @@
     }
   }
 
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     :root {
       --animate-kindle-glass: fade-in var(--duration-kindle) linear both;
@@ -317,4 +326,57 @@
  */
 .arrange-canvas > .Puck {
   overflow: visible;
+}
+
+/*
+ * Dusk (src/theme.ts): a theme change a person makes runs as a view
+ * transition. Going to Porch light, the new page grows from a circle at the
+ * header lantern (--dusk-x, --dusk-y) to the farthest corner (--dusk-r);
+ * going back to Daybreak, the dark page shrinks back into the lantern, drawn
+ * above the light one. Under reduced motion, the two cross-fade instead.
+ * Outside any @layer, since view-transition pseudo-elements sit on top of
+ * the whole page.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-dusk="out"]::view-transition-new(root) {
+  animation: dusk-spread var(--duration-dusk) var(--ease-warm) both;
+}
+
+:root[data-dusk="in"]::view-transition-old(root) {
+  z-index: 1;
+  animation: dusk-gather var(--duration-dusk) var(--ease-cool) both;
+}
+
+@keyframes dusk-spread {
+  from {
+    clip-path: circle(0 at var(--dusk-x) var(--dusk-y));
+  }
+  to {
+    clip-path: circle(var(--dusk-r) at var(--dusk-x) var(--dusk-y));
+  }
+}
+
+@keyframes dusk-gather {
+  from {
+    clip-path: circle(var(--dusk-r) at var(--dusk-x) var(--dusk-y));
+  }
+  to {
+    clip-path: circle(0 at var(--dusk-x) var(--dusk-y));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-dusk]::view-transition-old(root) {
+    z-index: auto;
+    animation: fade-out var(--duration-dusk) linear both;
+  }
+
+  :root[data-dusk]::view-transition-new(root) {
+    animation: fade-in var(--duration-dusk) linear both;
+  }
 }

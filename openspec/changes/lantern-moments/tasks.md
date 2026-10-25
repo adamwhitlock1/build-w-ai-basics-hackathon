@@ -85,12 +85,21 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 ## 5. Dusk
 
-- [ ] 5.1 Add `changeTheme` and the view-transition CSS (design decision 8). Call it from the switch and from Automatic's device listener, never from `applyTheme`. Verify:
+- [x] 5.1 Add `changeTheme` and the view-transition CSS (design decision 8). Call it from the switch and from Automatic's device listener, never from `applyTheme`. Verify:
   - choosing Porch light spreads from the header lantern, and Daybreak draws back in;
   - Automatic following the device does the same;
   - page load, reload and signing in don't animate;
   - reduced motion cross-fades;
   - a hidden tab changes at once.
+  - Done (2026-10-25), watching the view transition's animations frame by frame:
+    - **Choosing Daybreak:** `data-dusk="in"`, with `dusk-gather` on the old page. It was centred on the header lantern ((35, 56) in both the CSS variables and the lantern's box), and the marker cleared afterwards.
+    - **Choosing Porch light:** `data-dusk="out"`, with `dusk-spread` on the new page for 1100 ms.
+    - **Automatic, with the emulated device going from dark to light:** the light drew back in.
+    - **No dusk:** a reload, signing in (which applied Maya's Porch light at once), and a tab reporting itself hidden (the theme changed at once).
+    - **Reduced motion:** not emulatable here. The CSS swaps both animations for a cross-fade of the same length under that query.
+  - **Fixed during apply:**
+    - `applyTheme` now ignores a theme that's already chosen, so the root's sync can't paint a dusk's end state before the transition captures the old page.
+    - For the same reason, the module now starts from the remembered choice, as the pre-paint script does. Otherwise a member whose theme became Automatic elsewhere would keep this device's old theme.
 
 ## 6. Docs and end to end
 
