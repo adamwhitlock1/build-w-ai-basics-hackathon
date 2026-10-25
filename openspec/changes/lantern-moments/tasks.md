@@ -2,7 +2,7 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 ## 1. Foundations
 
-- [ ] 1.1 Add `src/motion/light.ts` with `holder`, `arrived`, `edgeLevel` and `isMorning` (design decisions 5 to 7), `tests/light.test.ts` on `node:test`, and `npm test`. Run it in the CI frontend job. Tests:
+- [x] 1.1 Add `src/motion/light.ts` with `holder`, `arrived`, `edgeLevel` and `isMorning` (design decisions 5 to 7), `tests/light.test.ts` on `node:test`, and `npm test`. Run it in the CI frontend job. Tests:
   - `holder` picks thinking over arrival over briefing, and the newest claim within a kind;
   - `arrived` is false for a cached result at mount and for an unchanged time, and true for a newer time or a first result written during the visit;
   - `edgeLevel` is 0.45 at 0, about half at 3 h, and 0 at 6 h and beyond;
