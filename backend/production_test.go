@@ -1,7 +1,9 @@
 package main
 
 import (
+	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -93,5 +95,68 @@ func TestSecurityHeadersOnlyInProduction(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestServesTheWebApp(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("index.html", "<!doctype html><title>Kinlight</title>")
+	write("assets/index-abc123.js", "console.log('app')")
+	write("favicon.svg", "<svg></svg>")
+	srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), func(d *deps) { d.WebDir = dir })
+
+	get := func(path string) (*http.Response, string) {
+		t.Helper()
+		resp, err := http.Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		return resp, string(body)
+	}
+
+	resp, body := get("/assets/index-abc123.js")
+	if resp.StatusCode != http.StatusOK || body != "console.log('app')" || !strings.Contains(resp.Header.Get("Cache-Control"), "immutable") {
+		t.Errorf("asset: %d %q cache %q", resp.StatusCode, body, resp.Header.Get("Cache-Control"))
+	}
+	resp, body = get("/favicon.svg")
+	if resp.StatusCode != http.StatusOK || body != "<svg></svg>" || resp.Header.Get("Cache-Control") != "no-cache" {
+		t.Errorf("file: %d %q cache %q", resp.StatusCode, body, resp.Header.Get("Cache-Control"))
+	}
+	for _, path := range []string{"/", "/invite/abc", "/chat/3", "/assets/missing.js"} {
+		resp, body = get(path)
+		if resp.StatusCode != http.StatusOK || !strings.Contains(body, "<title>Kinlight</title>") || resp.Header.Get("Cache-Control") != "no-cache" {
+			t.Errorf("%s: %d %q cache %q, want the app's page", path, resp.StatusCode, body, resp.Header.Get("Cache-Control"))
+		}
+	}
+	resp, body = get("/api/nothing-here")
+	if resp.StatusCode != http.StatusNotFound || !strings.Contains(resp.Header.Get("Content-Type"), "json") || strings.Contains(body, "Kinlight</title>") {
+		t.Errorf("/api/nothing-here: %d %s %q, want the API's JSON 404", resp.StatusCode, resp.Header.Get("Content-Type"), body)
+	}
+	resp, _ = get("/api/health")
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/api/health: %d", resp.StatusCode)
+	}
+}
+
+func TestNoWebDirServesOnlyTheAPI(t *testing.T) {
+	srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), nil)
+	resp, err := http.Get(srv.URL + "/invite/abc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("/invite/abc without a web dir: %d, want 404", resp.StatusCode)
 	}
 }

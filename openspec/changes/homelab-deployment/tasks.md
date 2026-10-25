@@ -18,7 +18,7 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
 
 ## 2. One server
 
-- [ ] 2.1 Serve `KINLIGHT_WEB_DIR` with the SPA fallback and caching, plus the `/api/` JSON 404 (design decision 2). Route tests, against a temporary directory:
+- [x] 2.1 Serve `KINLIGHT_WEB_DIR` with the SPA fallback and caching, plus the `/api/` JSON 404 (design decision 2). Route tests, against a temporary directory:
   - a file;
   - a hashed asset's cache header;
   - an app route answered with `index.html`;
@@ -26,6 +26,7 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
   - no web dir, no static routes.
 
   Verify with `make check`.
+  - Done. `web.App` serves files from `os.DirFS`: `/assets/*` immutable for a year, other files and the page `no-cache`, and anything else, a missing asset included, answered with `index.html`. `routes` registers it as `GET /`, with a `GET /api/` JSON 404 in front. It's GET-only, so other methods on API paths keep the mux's usual 405. Route tests cover each case and the no-web-dir case. `make check` passes.
 
 ## 3. Sign-up and login
 

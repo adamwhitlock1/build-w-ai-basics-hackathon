@@ -182,6 +182,15 @@ func routes(d deps) http.Handler {
 	// The first wrapper listed runs first: log, recover from panics, turn
 	// away forged cross-site requests, then load the session (and save it as
 	// the response is written).
+	// The built web app, beside the API: the lowest-priority pattern, with
+	// unknown GET /api/ paths kept to the API's JSON 404 rather than the page.
+	if d.WebDir != "" {
+		mux.HandleFunc("GET /api/", func(w http.ResponseWriter, r *http.Request) {
+			respond.Error(w, http.StatusNotFound, "There's nothing at that address.", "")
+		})
+		mux.Handle("GET /", web.App(d.WebDir))
+	}
+
 	var handler http.Handler = rejectCrossSite(sessions.LoadAndSave(mux))
 	if d.PublicURL != "" {
 		// The page's inline scripts are allowed by hash, so the policy
