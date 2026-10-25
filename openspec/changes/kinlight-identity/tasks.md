@@ -110,5 +110,12 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 ## 6. Docs and end to end
 
 - [x] 6.1 Update the README: the Kinlight name and the lockup at the top, a "formerly Porchlight" line, the renamed variables and files, the theme switch, and self-hosted fonts. Verify by reading it.
-- [ ] 6.2 On the demo, in the browser, walk every page in Daybreak and in Porch light: sign-in, invite, create-family, home, arrange, chat, Assistant, Reviews, and member pages. Check the header lockup, the fonts, the theme switch, and that nothing is unreadable or still light in Porch light. Check the guard: starting with an old variable set stops with its message. Record the results here, with any page fixed.
+- [x] 6.2 On the demo, in the browser, walk every page in Daybreak and in Porch light: sign-in, invite, create-family, home, arrange, chat, Assistant, Reviews, and member pages. Check the header lockup, the fonts, the theme switch, and that nothing is unreadable or still light in Porch light. Check the guard: starting with an old variable set stops with its message. Record the results here, with any page fixed.
+  - Result (2026-10-25), on the demo:
+    - **Pages, in both themes:** sign-in, invite, create-family (with a throwaway account, removed by rebuilding the demo), home, arrange mode, Lily's page as a parent, Reviews, a flagged transcript, the Assistant list and a conversation with a real reply, Jordan's page, the chat list, and a homework chat.
+    - **What was checked:** every page shows the lockup, soft Fraunces headings, Figtree text, haint buttons and links, and a theme switch (on member pages). Nothing is unreadable or left light in Porch light. Fields and composers show their `control` edge, and native controls follow the theme.
+    - **Minor, left as is:** Puck's own dark action bar in arrange mode sits close to Porch light's ground, though its text stays readable.
+    - **The names rule:** one Assistant reply ("connected on her member page") slipped, as the evaluation predicted.
+    - **The guard:** starting with `PORCHLIGHT_DEV_FIXTURES=1`, or with `DB_PATH=porchlight.db`, stops with exit 1 and names the replacement. No `porchlight.db` was created.
+    - **Fixes during the walk:** none were needed beyond 4.2's sign-in fix. The screenshots showing light cards in Porch light were taken mid-transition; the computed colors were right.
 - [ ] 6.3 Run `openspec validate kinlight-identity --strict`, `make check`, and the frontend lint, build and contrast check. Push, open the PR, and confirm CI passes on it. Add the "Kinlight identity" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
