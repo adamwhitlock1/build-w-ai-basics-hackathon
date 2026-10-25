@@ -100,6 +100,13 @@ func TestKidAgentReply(t *testing.T) {
 		}
 	})
 
+	t.Run("a reply the provider blocks is ErrBlocked", func(t *testing.T) {
+		agent, _, _ := newKidAgent(t, aitest.Text("").WithFinish(ai.FinishReasonBlocked))
+		if _, err := agent.Reply(ctx, kidAsks("hi"), func(string) {}); !errors.Is(err, aikit.ErrBlocked) {
+			t.Errorf("err = %v, want ErrBlocked", err)
+		}
+	})
+
 	t.Run("an empty reply is an error", func(t *testing.T) {
 		agent, _, _ := newKidAgent(t, aitest.Text("  "))
 		if _, err := agent.Reply(ctx, kidAsks("hi"), func(string) {}); err == nil {

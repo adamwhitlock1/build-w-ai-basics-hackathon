@@ -192,7 +192,7 @@ func (a *KidAgent) Reply(ctx context.Context, in ReplyInput, onChunk func(string
 	text := strings.TrimSpace(resp.Text())
 	switch {
 	case resp.FinishReason == ai.FinishReasonBlocked:
-		return "", &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try asking in a different way.", Err: errors.New("finish_reason=blocked")}
+		return "", &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try asking in a different way.", Err: ErrBlocked}
 	case text == "":
 		return "", &llm.UpstreamError{Reason: "the AI model sent back an empty answer", Hint: "Try again in a moment.", Err: errors.New("empty reply")}
 	}

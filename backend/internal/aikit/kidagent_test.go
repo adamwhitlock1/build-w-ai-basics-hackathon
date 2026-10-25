@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/firebase/genkit/go/ai"
+
 	"porchlight/internal/aikit"
 	"porchlight/internal/aikit/aitest"
 	"porchlight/internal/llm"
@@ -125,6 +127,13 @@ func TestKidAgentCheck(t *testing.T) {
 		}
 		if v.Category != aikit.CategoryOther || v.Severity != "medium" {
 			t.Errorf("verdict = %+v, want category other and severity medium", v)
+		}
+	})
+
+	t.Run("a check the provider blocks is ErrBlocked", func(t *testing.T) {
+		kit, _ := aitest.New(t, aitest.Text("").WithFinish(ai.FinishReasonBlocked))
+		if _, err := aikit.NewKidAgent(kit, "", "").Check(ctx, nil, "something", false); !errors.Is(err, aikit.ErrBlocked) {
+			t.Errorf("err = %v, want ErrBlocked", err)
 		}
 	})
 

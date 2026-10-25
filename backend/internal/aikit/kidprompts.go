@@ -74,8 +74,9 @@ func kidSystemPrompt(persona, mode string, crisis bool) string {
 	return llm.ForAudience(strings.Join(parts, "\n\n"), sources.Kids)
 }
 
-// Safety check categories. CategoryCouldntCheck is never returned by the
-// model: the chat service uses it when the check itself fails.
+// Safety check categories. CategoryCouldntCheck and CategoryBlocked are
+// never returned by the model: the chat service uses them when the check
+// itself fails, or its provider refuses to read the message.
 const (
 	CategorySelfHarm     = "self_harm"
 	CategoryAbuse        = "abuse"
@@ -87,6 +88,10 @@ const (
 	CategoryHate         = "hate"
 	CategoryOther        = "other"
 	CategoryCouldntCheck = "couldnt_check"
+	// CategoryBlocked: the safety check's provider refused to read the
+	// message (ErrBlocked), which usually means it's about self-harm,
+	// sexual content or violence.
+	CategoryBlocked = "blocked"
 )
 
 // modelCategories are the categories the safety model may return.

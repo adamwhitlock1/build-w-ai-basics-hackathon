@@ -32,6 +32,15 @@ const (
 	replyTurns = 30
 )
 
+// BlockedReply is what the kid gets when the reply model's provider refuses
+// to answer with its content filter: kind words instead of an error.
+const BlockedReply = "I can't help with that one here. If something is wrong or you're worried about something, please talk to a parent or another adult you trust. They'd want to know."
+
+// CrisisFallbackReply is what a kid whose message may be a crisis gets
+// when the reply fails or is refused: a caring message, followed (like
+// every crisis reply) by CrisisResources.
+const CrisisFallbackReply = "I'm really glad you reached out, and I'm sorry I can't give you a proper answer right now. You matter, and you don't have to handle this alone. Please talk to a parent or another adult you trust, right now if you can."
+
 // CrisisResources ends every reply to a message the safety check marked as
 // a possible crisis. The server adds it, whatever the model wrote.
 const CrisisResources = "If you're thinking about hurting yourself or you feel unsafe, you can call or text 988 any time, or text HOME to 741741. If you're in danger right now, call 911."
@@ -247,10 +256,32 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 		return store.ChatMessage{}, err
 	}
 	in := aikit.ReplyInput{Persona: s.persona(ctx, kid), Mode: c.Mode, Crisis: verdict.Crisis, History: turns(history)}
-	reply, err := s.agent.Reply(ctx, in, onChunk)
+	streamed := false
+	reply, err := s.agent.Reply(ctx, in, func(text string) {
+		streamed = true
+		onChunk(text)
+	})
 	if err != nil {
-		s.logger.WarnContext(ctx, "chat reply failed", "member_id", kid.ID, "chat_id", c.ID, "err", err)
-		return store.ChatMessage{}, err
+		s.logger.WarnContext(ctx, "chat reply failed", "member_id", kid.ID, "chat_id", c.ID, "err", err, "crisis", verdict.Crisis)
+		// A possible crisis always gets an answer with the resources, and a
+		// reply the provider refused gets kind words rather than an error.
+		// Anything else is an error the kid can retry.
+		var fallback string
+		switch {
+		case verdict.Crisis:
+			fallback = CrisisFallbackReply
+		case errors.Is(err, aikit.ErrBlocked):
+			fallback = BlockedReply
+		default:
+			return store.ChatMessage{}, err
+		}
+		if streamed {
+			// Part of a reply has already been shown: start the fallback on
+			// its own paragraph.
+			fallback = "\n\n" + fallback
+		}
+		onChunk(fallback)
+		reply = strings.TrimSpace(fallback)
 	}
 	if verdict.Crisis {
 		resources := "\n\n" + CrisisResources
@@ -265,11 +296,21 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 }
 
 // check runs the safety check on msg and stores a flag when needed. It
-// never fails: a check that can't be done is flagged "couldn't check", and
-// the verdict it returns then has no crisis.
+// never fails: a check that can't be done is flagged "couldn't check" (with
+// no crisis), and one its provider refuses with a content filter is
+// treated as a possible crisis.
 func (s *Service) check(ctx context.Context, kid store.User, c store.Conversation, msg store.ChatMessage, before []aikit.Turn, wantTitle bool) aikit.Verdict {
 	verdict, err := s.agent.Check(ctx, before, msg.Text, wantTitle)
-	if err != nil {
+	switch {
+	case errors.Is(err, aikit.ErrBlocked):
+		// The check's provider refused to read the message with its own
+		// content filter, which usually means self-harm, sexual content or
+		// violence. Fail safe: treat it as a possible crisis, so the kid
+		// gets the resources and the parents an alert.
+		s.logger.WarnContext(ctx, "chat safety check blocked by its provider; treating as a possible crisis", "member_id", kid.ID, "chat_id", c.ID)
+		verdict = aikit.Verdict{Flag: true, Category: aikit.CategoryBlocked, Severity: "high", Crisis: true,
+			Reason: "The AI provider's safety filter refused to read this message, which usually means it's about self-harm, sexual content or violence. It was handled as a possible crisis to be safe."}
+	case err != nil:
 		s.logger.WarnContext(ctx, "chat safety check failed; flagging for review", "member_id", kid.ID, "chat_id", c.ID, "err", err)
 		verdict = aikit.Verdict{Flag: true, Category: aikit.CategoryCouldntCheck, Severity: "low",
 			Reason: "The safety check couldn't run on this message, so it's here for you to look at."}

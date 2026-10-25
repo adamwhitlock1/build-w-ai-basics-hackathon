@@ -72,6 +72,7 @@ export const categoryNames: Record<string, string> = {
   hate: 'Hate',
   other: 'Other concern',
   couldnt_check: 'Couldn’t check',
+  blocked: 'Refused by the AI’s filter',
 }
 
 export const modeNames: Record<ChatMode, string> = { homework: 'Homework help', explore: 'Explore' }

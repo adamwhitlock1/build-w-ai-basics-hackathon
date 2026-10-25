@@ -41,7 +41,9 @@ See proposal.md for why. What exists now, on `main`:
 `PORCHLIGHT_KIDS_ALLOW_RETENTION=1` is for development only. It builds `kidsKit` from the kids' key, or the main key if that's missing, with `NoRetention` false, and logs a startup warning in the same style as the fixtures warning. The README says never to set it once the kids use the app.
 
 ### 2. Models
-`KIDS_CHAT_MODEL` defaults to `openai/gpt-4.1-mini` and `KIDS_SAFETY_MODEL` to `openai/gpt-4.1-nano`, both through the kids' Kit. Their Genkit names are `openrouter/` plus the id.
+`KIDS_CHAT_MODEL` and `KIDS_SAFETY_MODEL` both default to `anthropic/claude-haiku-5.5`, through the kids' Kit. Their Genkit names are `openrouter/` plus the id.
+
+*Revised during implementation (task 6.2).* The plan started with `openai/gpt-4.1-mini` and `gpt-4.1-nano`. Under zero-retention routing, the OpenAI models' endpoints answered both crisis messages and the prompt-injection attempt with `finish_reason=blocked`, from both the check and the reply. Gemini has no zero-retention endpoint at all. Claude Haiku 5.5 passed every evaluation case under zero-retention routing.
 
 A model with no zero-retention endpoint fails at call time with an OpenRouter 404 ("no endpoints found"). `upstream` maps that to an `UpstreamError` whose hint names the variable to change. Task 6.1 checks the defaults with `make ai-smoke` and replaces them if needed.
 - *Alternative:* a startup check against `/models/{id}/endpoints`. That check could go stale, and the smoke test settles the question for real.
@@ -87,6 +89,13 @@ Classification runs before the reply, not alongside it, because the crisis instr
 
 ### 5. Crisis resources are server text
 The constant `chat.CrisisResources` ("If you're thinking about hurting yourself or you feel unsafe, you can call or text 988 any time, or text HOME to 741741. If you're in danger right now, call 911.") is appended by the server, separated by a blank line, when the verdict marks a possible crisis. A test checks that it is present even when the model's text already mentions 988.
+
+### 5b. A provider's refusal fails safe
+*Added during implementation.* A provider's content filter can refuse a request, which shows up as `finish_reason=blocked` and `aikit.ErrBlocked`. In the crisis path, an error would leave a kid with no answer and no resources, so the chat service doesn't pass it on:
+- **A refused safety check** becomes a high-severity `blocked` flag, handled as a possible crisis: the resources and the parents' alert. A false alarm for, say, a sexual-content question costs a parent a look. A missed crisis costs far more.
+- **A failed or refused reply to a possible crisis** becomes `CrisisFallbackReply` plus the resources.
+- **Any other refused reply** becomes `BlockedReply`.
+- **Other failures** stay errors the kid can retry.
 
 ### 6. Streaming over a POST: server-sent events
 `POST /api/me/chats/{id}/messages` answers `text/event-stream`, with these events:

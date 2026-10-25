@@ -340,6 +340,55 @@ func TestKidChat(t *testing.T) {
 		}
 	})
 
+	t.Run("a check the provider blocks is handled as a possible crisis", func(t *testing.T) {
+		f := newFamily(t)
+		agent := &fakeAgent{checkErr: &llm.UpstreamError{Reason: "declined", Err: aikit.ErrBlocked}, reply: "I'm here for you."}
+		svc := newService(f, agent)
+		c, _ := svc.Start(ctx, f.kid, aikit.ModeExplore)
+		_, _, reply, err := send(t, svc, f.kid, c.ID, "something the filter won't read")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !agent.replies[0].Crisis || !strings.HasSuffix(reply.Text, chat.CrisisResources) {
+			t.Errorf("reply %q (crisis %v), want crisis handling with the resources", reply.Text, agent.replies[0].Crisis)
+		}
+		crises, _ := f.st.UnreviewedCrises(ctx, f.kid.FamilyID)
+		if len(crises) != 1 || crises[0].Category != aikit.CategoryBlocked || crises[0].Severity != "high" {
+			t.Errorf("crises = %+v, want one high blocked crisis flag", crises)
+		}
+	})
+
+	t.Run("a crisis gets an answer even when the reply fails", func(t *testing.T) {
+		for _, replyErr := range []error{
+			&llm.UpstreamError{Reason: "trouble", Status: 500, Err: errors.New("500")},
+			&llm.UpstreamError{Reason: "declined", Err: aikit.ErrBlocked},
+		} {
+			f := newFamily(t)
+			agent := &fakeAgent{verdict: aikit.Verdict{Flag: true, Category: aikit.CategorySelfHarm, Severity: "high", Crisis: true}, replyErr: replyErr}
+			svc := newService(f, agent)
+			c, _ := svc.Start(ctx, f.kid, aikit.ModeExplore)
+			_, streamed, reply, err := send(t, svc, f.kid, c.ID, "i want to disappear")
+			if err != nil {
+				t.Fatalf("%v: err = %v, want an answer", replyErr, err)
+			}
+			want := chat.CrisisFallbackReply + "\n\n" + chat.CrisisResources
+			if reply.Text != want || streamed != want {
+				t.Errorf("%v: reply %q, streamed %q; want the fallback and the resources", replyErr, reply.Text, streamed)
+			}
+		}
+	})
+
+	t.Run("a blocked reply gets kind words, not an error", func(t *testing.T) {
+		f := newFamily(t)
+		agent := &fakeAgent{replyErr: &llm.UpstreamError{Reason: "declined", Err: aikit.ErrBlocked}}
+		svc := newService(f, agent)
+		c, _ := svc.Start(ctx, f.kid, aikit.ModeExplore)
+		_, _, reply, err := send(t, svc, f.kid, c.ID, "hmm")
+		if err != nil || reply.Text != chat.BlockedReply {
+			t.Errorf("reply %q, err %v; want the blocked reply", reply.Text, err)
+		}
+	})
+
 	t.Run("a long first message gets a cut title", func(t *testing.T) {
 		f := newFamily(t)
 		svc := newService(f, &fakeAgent{reply: "ok"})

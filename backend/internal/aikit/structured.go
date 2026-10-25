@@ -16,6 +16,12 @@ import (
 	"porchlight/internal/llm"
 )
 
+// ErrBlocked means the model's provider refused the request with its own
+// content filter (finish reason "blocked"), as some providers do for
+// self-harm, sexual content or violence. It arrives wrapped in an
+// *llm.UpstreamError; match it with errors.Is.
+var ErrBlocked = errors.New("the AI provider's content filter blocked the request (finish_reason=blocked)")
+
 // callTimeout bounds a single model call, as in internal/llm.
 const callTimeout = 40 * time.Second
 
@@ -76,7 +82,7 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 		case ai.FinishReasonLength:
 			return zero, &llm.UpstreamError{Reason: "the AI model's answer was cut off", Hint: "Try again in a moment.", Err: errors.New("finish_reason=length")}
 		case ai.FinishReasonBlocked:
-			return zero, &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.", Err: errors.New("finish_reason=blocked")}
+			return zero, &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.", Err: ErrBlocked}
 		}
 
 		content := resp.Text()

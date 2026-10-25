@@ -174,7 +174,7 @@ func TestLiveKids(t *testing.T) {
 		key = os.Getenv("OPENROUTER_API_KEY")
 		t.Log("kids: no OPENROUTER_KIDS_API_KEY; checking the kids' models on the main key, with no-retention routing")
 	}
-	chatModel, safetyModel := envOrDefault("KIDS_CHAT_MODEL", "openai/gpt-4.1-mini"), envOrDefault("KIDS_SAFETY_MODEL", "openai/gpt-4.1-nano")
+	chatModel, safetyModel := envOrDefault("KIDS_CHAT_MODEL", "anthropic/claude-haiku-5.5"), envOrDefault("KIDS_SAFETY_MODEL", "anthropic/claude-haiku-5.5")
 	kit, err := aikit.New(context.Background(), aikit.Config{OpenRouterKey: key, OpenRouterModel: chatModel, NoRetention: true})
 	if err != nil {
 		t.Fatalf("New: %v", err)

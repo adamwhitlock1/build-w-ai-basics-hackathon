@@ -134,10 +134,12 @@ func loadConfig() (config, error) {
 
 // The OpenRouter models kid chat uses unless KIDS_CHAT_MODEL and
 // KIDS_SAFETY_MODEL say otherwise. Each must have a zero-data-retention
-// endpoint on OpenRouter (make ai-smoke checks).
+// endpoint on OpenRouter (make ai-smoke checks) that doesn't filter out
+// what kids in trouble write (make ai-eval-kids checks): the OpenAI models'
+// zero-retention endpoints block self-harm messages, so they don't qualify.
 const (
-	defaultKidsChatModel   = "openai/gpt-4.1-mini"
-	defaultKidsSafetyModel = "openai/gpt-4.1-nano"
+	defaultKidsChatModel   = "anthropic/claude-haiku-5.5"
+	defaultKidsSafetyModel = "anthropic/claude-haiku-5.5"
 )
 
 // defaultMiniMaxBaseURL is MiniMax's Anthropic-compatible API root.
