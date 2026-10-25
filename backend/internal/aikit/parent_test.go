@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -148,4 +149,38 @@ func TestParentAgent(t *testing.T) {
 			t.Errorf("got %d model calls, want 2", n)
 		}
 	})
+}
+
+// Genkit runs the tools of one model turn at the same time, but the callers'
+// OnTool appends notes and writes to an HTTP response, so it must be called
+// one note at a time.
+func TestToolNotesOneAtATime(t *testing.T) {
+	agent, _, _ := newParentAgent(t,
+		aitest.ToolCalls(
+			aitest.Call{Name: aikit.ToolKidsChats, Input: map[string]any{"kid": "Lily"}},
+			aitest.Call{Name: aikit.ToolKidsChats, Input: map[string]any{"kid": "Jordan"}},
+			aitest.Call{Name: aikit.ToolFamilyDay, Input: map[string]any{"who": "everyone"}},
+		),
+		aitest.Text("All quiet."))
+	var inside, most atomic.Int32
+	var notes []aikit.ToolNote
+	tools := &aikit.ParentTools{
+		FamilyDay: func(context.Context, string) (string, error) { return "Nothing today.", nil },
+		KidsChats: func(context.Context, aikit.KidsChatsQuery) (string, error) { return "No flags.", nil },
+		OnTool: func(n aikit.ToolNote) {
+			now := inside.Add(1)
+			if now > most.Load() {
+				most.Store(now)
+			}
+			time.Sleep(20 * time.Millisecond)
+			notes = append(notes, n)
+			inside.Add(-1)
+		},
+	}
+	if _, err := agent.Reply(context.Background(), asks(aikit.KindKids, "anything flagged?", tools), func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if len(notes) != 3 || most.Load() != 1 {
+		t.Errorf("notes = %+v, at most %d in OnTool at once; want 3 notes, one at a time", notes, most.Load())
+	}
 }

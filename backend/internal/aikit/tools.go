@@ -62,6 +62,9 @@ type toolRun struct {
 	mu       sync.Mutex
 	used     bool
 	searches int
+	// notify serializes onTool: the callers append notes and write to an
+	// HTTP response, and neither may happen from two tools at once.
+	notify sync.Mutex
 }
 
 func (r *toolRun) ran() bool {
@@ -77,11 +80,14 @@ type toolBuilder struct {
 }
 
 // note records that a tool was used, for the notes and the retry rule.
+// onTool is called one note at a time, even for tools running together.
 func (b toolBuilder) note(n ToolNote) {
 	b.run.mu.Lock()
 	b.run.used = true
 	b.run.mu.Unlock()
 	if b.onTool != nil {
+		b.run.notify.Lock()
+		defer b.run.notify.Unlock()
 		b.onTool(n)
 	}
 }

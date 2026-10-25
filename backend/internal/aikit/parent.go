@@ -63,7 +63,8 @@ type ParentTools struct {
 	// KidsChats reads the kids' chats (see KidsChatsQuery). Only set in an
 	// "About the kids" conversation, which runs on the kids' Kit.
 	KidsChats func(ctx context.Context, q KidsChatsQuery) (string, error)
-	// OnTool is told each time a tool is used. It may be nil.
+	// OnTool is told each time a tool is used; it's never called by two
+	// tools at once. It may be nil.
 	OnTool func(ToolNote)
 }
 

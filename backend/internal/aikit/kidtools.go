@@ -31,7 +31,7 @@ type KidTools struct {
 	// Search runs a kid-safe web search. nil in Homework help.
 	Search func(ctx context.Context, query string) ([]SearchResult, error)
 	// OnTool is told each time a tool is used, for the notes kids and
-	// parents see. It may be nil.
+	// parents see; it's never called by two tools at once. It may be nil.
 	OnTool func(ToolNote)
 }
 
