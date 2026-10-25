@@ -48,7 +48,9 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
     - Avatars use four brand tints (haint, pine, lamplight, cedar) instead of six Tailwind hues.
     - Amber stays on light only: spinners, the fresh-card edge, the thinking state, and the arrange grip.
   - The contrast list grew to 35 pairings. It caught one: muted ink on Porch light's amber tint was 4.31:1, so that derived tint went from 14% to 12% over surface (`#3d2d1c`).
-- [ ] 2.4 Replace Fontshare with `@fontsource-variable/fraunces` (full axes) and `@fontsource-variable/figtree`, imported in `main.tsx`. Point `--font-display` and `--font-sans` at them, and give headings the soft axis. Verify in the browser's network panel that no request goes to another host for fonts, and that headings render in soft Fraunces.
+- [x] 2.4 Replace Fontshare with `@fontsource-variable/fraunces` (full axes) and `@fontsource-variable/figtree`, imported in `main.tsx`. Point `--font-display` and `--font-sans` at them, and give headings the soft axis. Verify in the browser's network panel that no request goes to another host for fonts, and that headings render in soft Fraunces.
+  - Done: the only font requests are the app's own Latin Figtree and Fraunces files (about 141 kB together). Headings compute to "Fraunces Variable" with `"SOFT" 100`, and body text to "Figtree Variable".
+  - `npm audit` reports a high-severity advisory in `happy-dom`, through `@puckeditor/core`. It was there before this change and has no fix yet; the font packages add none.
 
 ## 3. The mark and the name
 

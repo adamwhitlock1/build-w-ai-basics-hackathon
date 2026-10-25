@@ -50,8 +50,8 @@
   /* The lantern's glass core, brighter than the light around it. */
   --color-glass-core: #ffe3a6;
 
-  --font-display: "Gambarino", ui-serif, Georgia, Cambria, "Times New Roman", serif;
-  --font-sans: "Switzer", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  --font-display: "Fraunces Variable", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 
   --shadow-card: 0 1px 2px rgb(64 48 32 / 0.04), 0 12px 32px -12px rgb(64 48 32 / 0.14);
@@ -129,12 +129,16 @@
     @apply bg-bg font-sans text-ink antialiased;
   }
 
-  /* Gambarino ships a single 400 weight; never let the browser fake bold. */
+  /*
+   * Fraunces with its soft axis up: rounded, carved-wood serifs. Its weight
+   * axis covers bold, so the browser never fakes one.
+   */
   h1,
   h2,
   h3 {
     @apply font-display font-normal tracking-tight;
     font-synthesis: none;
+    font-variation-settings: "SOFT" 100;
   }
 }
 
