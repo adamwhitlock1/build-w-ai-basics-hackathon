@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 
@@ -29,8 +30,11 @@ type Reply struct {
 	text   string
 	tool   *ai.ToolRequest
 	status int // non-zero: the call fails with this HTTP status
-	finish ai.FinishReason
-	usage  *ai.GenerationUsage
+	// failAfter makes a streamed call fail with status after streaming
+	// text, the way a connection drops partway through a reply.
+	failAfter bool
+	finish    ai.FinishReason
+	usage     *ai.GenerationUsage
 }
 
 // Text answers with text.
@@ -55,6 +59,12 @@ func ToolCall(name string, input any) Reply {
 // OpenRouter answers with an HTTP error status: a Genkit status.Error
 // wrapping the SDK's *openai.Error.
 func Fail(httpStatus int) Reply { return Reply{status: httpStatus} }
+
+// StreamThenFail answers a streaming call with text, in chunks, and then
+// fails with httpStatus, as when a connection drops partway through.
+func StreamThenFail(text string, httpStatus int) Reply {
+	return Reply{text: text, status: httpStatus, failAfter: true}
+}
 
 // WithUsage makes the reply report token usage.
 func (r Reply) WithUsage(input, output int) Reply {
@@ -99,7 +109,11 @@ func New(t testing.TB, replies ...Reply) (*aikit.Kit, *Model) {
 	return aikit.FromGenkit(g, ModelName), m
 }
 
-func (m *Model) generate(ctx context.Context, req *ai.ModelRequest, _ map[string]any, _ ai.ModelStreamCallback) (*ai.ModelResponse, error) {
+// Chunks is how many pieces a streamed text reply arrives in (fewer if it
+// has fewer words).
+const Chunks = 3
+
+func (m *Model) generate(ctx context.Context, req *ai.ModelRequest, _ map[string]any, cb ai.ModelStreamCallback) (*ai.ModelResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.requests = append(m.requests, req)
@@ -110,7 +124,18 @@ func (m *Model) generate(ctx context.Context, req *ai.ModelRequest, _ map[string
 	r := m.replies[0]
 	m.replies = m.replies[1:]
 
-	if r.status != 0 {
+	if r.status != 0 && !r.failAfter {
+		return nil, apiError(r.status)
+	}
+	// A streaming call gets text replies in chunks, as a provider sends them.
+	if cb != nil && r.tool == nil {
+		for _, chunk := range chunks(r.text, Chunks) {
+			if err := cb(ctx, &ai.ModelResponseChunk{Role: ai.RoleModel, Content: []*ai.Part{ai.NewTextPart(chunk)}}); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if r.failAfter {
 		return nil, apiError(r.status)
 	}
 	msg := ai.NewModelTextMessage(r.text)
@@ -131,4 +156,19 @@ func apiError(code int) error {
 	req, _ := http.NewRequest(http.MethodPost, "https://openrouter.test/api/v1/chat/completions", nil)
 	apiErr := &openai.Error{StatusCode: code, Request: req, Response: &http.Response{StatusCode: code}}
 	return status.Errorf(status.Base(status.FromHTTPCode(code)), "%w", apiErr)
+}
+
+// chunks splits text into at most n pieces at word boundaries; joined,
+// they give text back exactly.
+func chunks(text string, n int) []string {
+	words := strings.SplitAfter(text, " ")
+	if len(words) < n {
+		n = len(words)
+	}
+	var out []string
+	per := (len(words) + n - 1) / n
+	for i := 0; i < len(words); i += per {
+		out = append(out, strings.Join(words[i:min(i+per, len(words))], ""))
+	}
+	return out
 }

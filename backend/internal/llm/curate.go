@@ -38,7 +38,7 @@ type searchQueries struct {
 // FallbackArticleQueries. For sources.Kids the model is told the member is
 // under 18.
 func (c *Client) CurateArticles(ctx context.Context, interests string, aud sources.Audience) ([]string, error) {
-	queries, err := c.searchQueries(ctx, "article_queries", forAudience(articlesSystemPrompt(time.Now()), aud),
+	queries, err := c.searchQueries(ctx, "article_queries", ForAudience(articlesSystemPrompt(time.Now()), aud),
 		"Interests: "+interests, MaxArticleQueries)
 	if err != nil {
 		return nil, fmt.Errorf("curate articles: %w", err)
@@ -52,7 +52,7 @@ func (c *Client) CurateArticles(ctx context.Context, interests string, aud sourc
 // CurateArticles; the fallback is FallbackEventQueries.
 func (c *Client) CurateEvents(ctx context.Context, interests, location string, now time.Time, aud sources.Audience) ([]string, error) {
 	user := "Location: " + location + "\nInterests: " + orNone(interests)
-	queries, err := c.searchQueries(ctx, "event_queries", forAudience(eventsSystemPrompt(now), aud), user, MaxEventQueries)
+	queries, err := c.searchQueries(ctx, "event_queries", ForAudience(eventsSystemPrompt(now), aud), user, MaxEventQueries)
 	if err != nil {
 		return nil, fmt.Errorf("curate events: %w", err)
 	}

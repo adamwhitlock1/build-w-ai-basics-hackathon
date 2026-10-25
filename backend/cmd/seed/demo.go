@@ -46,6 +46,25 @@ type demoMember struct {
 	// in them are near it.
 	articles func(now time.Time) []llm.Item
 	events   func(now time.Time) []llm.Item
+	// age sets a kid's birth year (this year minus age), which picks the
+	// chat persona. 0 leaves it unset.
+	age int
+	// chats are a kid's sample conversations with the family agent.
+	chats []demoChat
+}
+
+// demoChat is a sample conversation: turns alternate between the kid and
+// the agent, starting with the kid.
+type demoChat struct {
+	mode, title string
+	turns       []string
+	// flag, if set, flags one of the kid's turns for parents to review.
+	flag *demoFlag
+}
+
+type demoFlag struct {
+	turn                       int // index into turns: a kid's turn
+	category, severity, reason string
 }
 
 type demoWidget struct {
@@ -146,8 +165,29 @@ var demoFamilies = []demoFamily{
 				},
 			},
 			{
-				email:     "jordan@rivera.test",
-				role:      "kid (~15); kid-safe widget, deleted band practice on the calendar",
+				email: "jordan@rivera.test",
+				role:  "kid (15); kid-safe widget, deleted band practice on the calendar, two sample chats",
+				age:   15,
+				chats: []demoChat{
+					{
+						mode: "homework", title: "Solving 2x + 7 = 19",
+						turns: []string{
+							"can you just tell me the answer to 2x + 7 = 19",
+							"I'm here to help you work it out rather than hand it over, and you've got this. What do you think the first step is to get x by itself?",
+							"subtract 7?",
+							"Exactly. Subtract 7 from both sides. What does the equation look like now?",
+							"2x = 12 so x = 6",
+							"That's right: x = 6. You undid the + 7 first, then the × 2. Want to try one more on your own?",
+						},
+					},
+					{
+						mode: "explore", title: "What makes a game level fun",
+						turns: []string{
+							"how do game designers make levels fun?",
+							"Good question. A lot of it is pacing: a level teaches one new idea safely, then tests it, then twists it. Designers also leave little rewards off the main path for curious players. What kind of game are you thinking about making?",
+						},
+					},
+				},
 				interests: "soccer, video game design, robotics club",
 				location:  "Denver, CO",
 				calendar:  "jordan",
@@ -178,8 +218,22 @@ var demoFamilies = []demoFamily{
 				},
 			},
 			{
-				email:     "lily@rivera.test",
-				role:      "kid (~9); no calendar",
+				email: "lily@rivera.test",
+				role:  "kid (9); no calendar, one sample chat with a flag to review",
+				age:   9,
+				chats: []demoChat{
+					{
+						mode: "explore", title: "Drawing a horse",
+						turns: []string{
+							"can you help me draw a horse?",
+							"Yes! Start with two circles for the body, one big and one smaller, then a smaller circle for the head. Want to try that first?",
+							"a girl in my drawing game asked where i live so she can mail me a horse sticker",
+							"That's kind of her, but where you live is private, so it's best not to share it online, even with someone friendly. Could you tell a parent about it? They can help you decide what's safe. Want to keep working on your horse?",
+						},
+						flag: &demoFlag{turn: 2, category: "strangers", severity: "medium",
+							reason: "Someone in an online drawing game asked Lily where she lives."},
+					},
+				},
 				interests: "horses, drawing, dinosaurs",
 				location:  "Denver, CO",
 				articles: func(now time.Time) []llm.Item {

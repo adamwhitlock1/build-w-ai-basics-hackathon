@@ -70,7 +70,7 @@ func (c *Client) PickWidgetSpec(ctx context.Context, prompt string, catalog Cata
 		name:   "widget_spec",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: forAudience(specSystemPrompt(catalog.Describe(), location, time.Now()), aud)},
+			{Role: openai.ChatMessageRoleSystem, Content: ForAudience(specSystemPrompt(catalog.Describe(), location, time.Now()), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
 	}

@@ -15,6 +15,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AuthedChatIndexRouteImport } from './routes/_authed/chat.index'
+import { Route as AuthedChatChatIdRouteImport } from './routes/_authed/chat.$chatId'
+import { Route as AuthedReviewsIndexRouteImport } from './routes/_authed/reviews.index'
+import { Route as AuthedReviewsMemberIdIndexRouteImport } from './routes/_authed/reviews.$memberId.index'
+import { Route as AuthedReviewsMemberIdChatIdRouteImport } from './routes/_authed/reviews.$memberId.$chatId'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -45,6 +50,33 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedChatIndexRoute = AuthedChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedChatChatIdRoute = AuthedChatChatIdRouteImport.update({
+  id: '/chat/$chatId',
+  path: '/chat/$chatId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedReviewsIndexRoute = AuthedReviewsIndexRouteImport.update({
+  id: '/reviews/',
+  path: '/reviews/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedReviewsMemberIdIndexRoute =
+  AuthedReviewsMemberIdIndexRouteImport.update({
+    id: '/reviews/$memberId/',
+    path: '/reviews/$memberId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedReviewsMemberIdChatIdRoute =
+  AuthedReviewsMemberIdChatIdRouteImport.update({
+    id: '/reviews/$memberId/$chatId',
+    path: '/reviews/$memberId/$chatId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
@@ -52,6 +84,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/chat/$chatId': typeof AuthedChatChatIdRoute
+  '/chat/': typeof AuthedChatIndexRoute
+  '/reviews/': typeof AuthedReviewsIndexRoute
+  '/reviews/$memberId/$chatId': typeof AuthedReviewsMemberIdChatIdRoute
+  '/reviews/$memberId/': typeof AuthedReviewsMemberIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/create-family': typeof CreateFamilyRoute
@@ -59,6 +96,11 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
   '/': typeof AuthedIndexRoute
+  '/chat/$chatId': typeof AuthedChatChatIdRoute
+  '/chat': typeof AuthedChatIndexRoute
+  '/reviews': typeof AuthedReviewsIndexRoute
+  '/reviews/$memberId/$chatId': typeof AuthedReviewsMemberIdChatIdRoute
+  '/reviews/$memberId': typeof AuthedReviewsMemberIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +110,37 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/chat/$chatId': typeof AuthedChatChatIdRoute
+  '/_authed/chat/': typeof AuthedChatIndexRoute
+  '/_authed/reviews/': typeof AuthedReviewsIndexRoute
+  '/_authed/reviews/$memberId/$chatId': typeof AuthedReviewsMemberIdChatIdRoute
+  '/_authed/reviews/$memberId/': typeof AuthedReviewsMemberIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/create-family' | '/login' | '/signup' | '/invite/$token'
+  fullPaths:
+    | '/'
+    | '/create-family'
+    | '/login'
+    | '/signup'
+    | '/invite/$token'
+    | '/chat/$chatId'
+    | '/chat/'
+    | '/reviews/'
+    | '/reviews/$memberId/$chatId'
+    | '/reviews/$memberId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/create-family' | '/login' | '/signup' | '/invite/$token' | '/'
+  to:
+    | '/create-family'
+    | '/login'
+    | '/signup'
+    | '/invite/$token'
+    | '/'
+    | '/chat/$chatId'
+    | '/chat'
+    | '/reviews'
+    | '/reviews/$memberId/$chatId'
+    | '/reviews/$memberId'
   id:
     | '__root__'
     | '/_authed'
@@ -82,6 +149,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/invite/$token'
     | '/_authed/'
+    | '/_authed/chat/$chatId'
+    | '/_authed/chat/'
+    | '/_authed/reviews/'
+    | '/_authed/reviews/$memberId/$chatId'
+    | '/_authed/reviews/$memberId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -136,15 +208,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/chat/': {
+      id: '/_authed/chat/'
+      path: '/chat'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof AuthedChatIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/chat/$chatId': {
+      id: '/_authed/chat/$chatId'
+      path: '/chat/$chatId'
+      fullPath: '/chat/$chatId'
+      preLoaderRoute: typeof AuthedChatChatIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/reviews/': {
+      id: '/_authed/reviews/'
+      path: '/reviews'
+      fullPath: '/reviews/'
+      preLoaderRoute: typeof AuthedReviewsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/reviews/$memberId/': {
+      id: '/_authed/reviews/$memberId/'
+      path: '/reviews/$memberId'
+      fullPath: '/reviews/$memberId/'
+      preLoaderRoute: typeof AuthedReviewsMemberIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/reviews/$memberId/$chatId': {
+      id: '/_authed/reviews/$memberId/$chatId'
+      path: '/reviews/$memberId/$chatId'
+      fullPath: '/reviews/$memberId/$chatId'
+      preLoaderRoute: typeof AuthedReviewsMemberIdChatIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
   }
 }
 
 interface AuthedRouteChildren {
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedChatChatIdRoute: typeof AuthedChatChatIdRoute
+  AuthedChatIndexRoute: typeof AuthedChatIndexRoute
+  AuthedReviewsIndexRoute: typeof AuthedReviewsIndexRoute
+  AuthedReviewsMemberIdChatIdRoute: typeof AuthedReviewsMemberIdChatIdRoute
+  AuthedReviewsMemberIdIndexRoute: typeof AuthedReviewsMemberIdIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedChatChatIdRoute: AuthedChatChatIdRoute,
+  AuthedChatIndexRoute: AuthedChatIndexRoute,
+  AuthedReviewsIndexRoute: AuthedReviewsIndexRoute,
+  AuthedReviewsMemberIdChatIdRoute: AuthedReviewsMemberIdChatIdRoute,
+  AuthedReviewsMemberIdIndexRoute: AuthedReviewsMemberIdIndexRoute,
 }
 
 const AuthedRouteWithChildren =

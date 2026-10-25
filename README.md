@@ -95,8 +95,8 @@ Every account's password is `password1`.
 | --- | --- | --- |
 | `maya@rivera.test` | Parent, created the family | Interests, location, calendar, three described widgets (one weather), a custom page arrangement |
 | `sam@rivera.test` | Parent | Different interests, the default page, a calendar with a moved meeting |
-| `jordan@rivera.test` | Kid (~15) | Kid-safe cards and widget, a calendar with a deleted practice |
-| `lily@rivera.test` | Kid (~9) | Interests and location but no calendar: the "Add your calendar" path |
+| `jordan@rivera.test` | Kid (15) | Kid-safe cards and widget, a calendar with a deleted practice, two sample chats (a homework one showing the hint ladder, and an Explore one) |
+| `lily@rivera.test` | Kid (9) | Interests and location but no calendar: the "Add your calendar" path; one sample chat with a flag for parents to review |
 | `grandma@rivera.test` | Invited as a parent | The pending invites list, and joining: `make demo` prints the invite link |
 | `alex@chen.test`, `riley@chen.test` | Parent and kid in a second family | That one family can't see another's members, pages or widgets |
 
@@ -147,6 +147,51 @@ It never runs a search of its own. The page waits for those cards to load, then 
 
 The briefing is written once on the member's first visit of the day, and rewritten only when what it's built from changes. Rewrites are at least 10 minutes apart, and there are at most 4 AI calls per member per day. Kids' briefings use the same under-18 guidance as their other cards. The AI is never sent a name, an email address, a location or a calendar link.
 
+## Kid chat
+
+Kids get **Chat**: an "Ask Porchlight" card at the top of their page, and a Chat page with two kinds of conversation.
+- **Homework help:** a tutor that guides rather than answers. For anything that looks like an assignment, it works up a hint ladder, one step at a time: what have you tried, a hint, a worked example of a similar problem, then checking their answer. It doesn't hand over the answer or write the essay, even if asked twice, told it isn't homework, or told to ignore its rules.
+- **Explore:** a companion for questions, ideas, stories and projects. The homework rule still applies.
+
+It talks at the kid's age: a younger voice up to 12, a teen one from 13. A parent sets the birth year on the kid's page; without one, the younger voice is used. Replies stream in as they're written. Every chat screen says **"Your parents can review these chats"**. Parents don't get a chat of their own yet.
+
+**The safety check.** Before every reply, a fast model reads the kid's message (with the last few for context). It flags anything a parent should see:
+- self-harm;
+- abuse;
+- bullying;
+- sexual content;
+- violence;
+- drugs;
+- strangers or personal information;
+- hate.
+
+A flag never blocks the chat: the kid still gets an answer.
+- **A possible crisis:** the reply is told to respond with care and to encourage talking to a trusted adult. The server then adds, whatever the model wrote: *call or text 988, or text HOME to 741741; in an emergency, call 911.*
+- **The check fails:** the message is answered and flagged "couldn't check".
+- **The check's provider refuses to read it** (some content filters do, for self-harm): it's handled as a possible crisis.
+- **A crisis reply can't be written:** the kid gets fixed, caring words and the resources instead of an error.
+
+**For parents.**
+- **Reviews** in the family sidebar shows how many flags are waiting. The page lists them crisis first, each with the reason and the message, and links to the whole conversation. "Mark reviewed" records who reviewed it and when.
+- Each kid's conversations can be read in full, and deleted.
+- While a possible crisis is unreviewed, every parent page shows a red alert naming the kid. It checks every minute and when you come back to the tab.
+
+Phone push comes later. Conversations are kept until a parent deletes them, and usage records keep only token counts.
+
+**Turning it on: kids' conversations only go to providers that keep nothing.**
+1. Create a separate OpenRouter key for the kids, with credits.
+2. Set `OPENROUTER_KIDS_API_KEY` in `backend/.env`. Every kid call through it, the safety check and the replies, asks OpenRouter for zero-data-retention endpoints of providers that don't collect data.
+3. Run `make ai-smoke` and `make ai-eval-kids`.
+4. Restart.
+
+Without the key, kid chat is off: kids see "Chat isn't set up yet. Ask a parent.", and nothing is sent anywhere.
+
+The models are `KIDS_CHAT_MODEL` and `KIDS_SAFETY_MODEL`, both `anthropic/claude-haiku-5.5` by default. A model needs a zero-retention endpoint that doesn't filter out what a kid in trouble writes. The OpenAI models' zero-retention endpoints block self-harm messages, and Gemini has no zero-retention endpoint, so neither qualifies.
+
+**Prototyping.** `PORCHLIGHT_KIDS_ALLOW_RETENTION=1` lets kid chat run on any provider, with the main key if there's no kids' key. It's for trying things with the demo family. The server warns at startup when it's on. Never set it once your kids use the app.
+
+**Checking behavior.** `make ai-eval-kids` runs 12 scripted kid conversations through the real chat service and models: homework asked for straight, twice and in disguise, an essay, ordinary questions, risky messages, two crisis phrasings and a prompt injection. It prints pass or fail for each. It costs a few cents and never runs in CI.
+
 ## Tests
 
 ```sh
@@ -181,6 +226,8 @@ No prompts, replies, interests or calendar data are stored, only counts and labe
 - `Curation`: Articles and Local Events.
 - `Agenda`: the Today card.
 - `Briefings`: the morning briefing.
+
+Kid chat lives in `internal/chat`, a service in the same style. Its agent, the prompts and the safety check, is `aikit.KidAgent`.
 
 The HTTP handlers only decode the request, call a service, and turn its result or error into a response. The family agent will call the same services.
 

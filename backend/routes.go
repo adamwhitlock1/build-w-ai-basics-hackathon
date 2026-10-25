@@ -7,6 +7,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 
 	"porchlight/internal/auth"
+	"porchlight/internal/chat"
 	"porchlight/internal/family"
 	"porchlight/internal/layout"
 	"porchlight/internal/respond"
@@ -27,6 +28,9 @@ type deps struct {
 	Briefer   widgets.Briefer
 	Sources   widgets.SourceFinder
 	Calendars widgets.CalendarFetcher
+	// Chat is kid chat. nil means kid chat is off (as with no kids' key):
+	// routes builds a Service with no agent.
+	Chat *chat.Service
 }
 
 // routes builds the API's HTTP handler: every endpoint, wrapped in the
@@ -43,6 +47,11 @@ func routes(d deps) http.Handler {
 	curatedHandler := widgets.NewCuratedHandler(curator, srcs, st, st, logger)
 	todayHandler := widgets.NewTodayHandler(calendars, st, logger)
 	briefingHandler := widgets.NewBriefingHandler(briefer, srcs, st, st, logger)
+	chatService := d.Chat
+	if chatService == nil {
+		chatService = chat.NewService(nil, st, logger)
+	}
+	chatHandler := chat.NewHandler(chatService, logger)
 
 	// private wraps a handler that needs a logged-in user; adminOnly also
 	// needs that user to be a family admin. A method value such as
@@ -101,6 +110,12 @@ func routes(d deps) http.Handler {
 	mux.Handle("GET /api/widgets/custom/{id}", private(widgetHandler.GetCustom))
 	mux.Handle("POST /api/widgets/custom/{id}/refresh", private(widgetHandler.RefreshCustom))
 	mux.Handle("DELETE /api/widgets/custom/{id}", private(widgetHandler.DeleteCustom))
+	// Kid chat. The service refuses parents (the parents' assistant comes
+	// later) and keeps each kid to their own conversations.
+	mux.Handle("GET /api/me/chats", private(chatHandler.List))
+	mux.Handle("POST /api/me/chats", private(chatHandler.Start))
+	mux.Handle("GET /api/me/chats/{id}", private(chatHandler.Get))
+	mux.Handle("POST /api/me/chats/{id}/messages", private(chatHandler.Send))
 
 	// A parent looking at someone in their family, and setting their
 	// interests and location. These reuse the handlers above, which act on
@@ -115,11 +130,22 @@ func routes(d deps) http.Handler {
 	mux.Handle("GET /api/members/{id}/widgets/briefing", asParent(briefingHandler.Briefing))
 	mux.Handle("PUT /api/members/{id}/calendar", asParent(todayHandler.SetCalendar))
 	mux.Handle("DELETE /api/members/{id}/calendar", asParent(todayHandler.RemoveCalendar))
+	// A parent reading and deleting a kid's chats, and setting a kid's
+	// birth year (which picks the agent's persona; kids can't set it).
+	mux.Handle("GET /api/members/{id}/chats", asParent(chatHandler.ListFor))
+	mux.Handle("GET /api/members/{id}/chats/{chatId}", asParent(chatHandler.Transcript))
+	mux.Handle("DELETE /api/members/{id}/chats/{chatId}", asParent(chatHandler.Delete))
+	mux.Handle("GET /api/members/{id}/birth-year", asParent(chatHandler.BirthYear))
+	mux.Handle("PUT /api/members/{id}/birth-year", asParent(chatHandler.SetBirthYear))
 
 	// Family admins.
 	mux.Handle("POST /api/families", adminOnly(familyHandler.CreateFamily))
 	mux.Handle("POST /api/families/{id}/invites", parentsOnly("Only parents can invite family members.", familyHandler.CreateInvite))
 	mux.Handle("DELETE /api/families/{id}/invites/{inviteId}", parentsOnly("Only parents can manage invites.", familyHandler.RevokeInvite))
+	// The family's review queue and alerts for kid chat.
+	mux.Handle("GET /api/family/reviews", parentsOnly("Only parents can review kids' chats.", chatHandler.Reviews))
+	mux.Handle("POST /api/family/reviews/{flagId}/reviewed", parentsOnly("Only parents can review kids' chats.", chatHandler.MarkReviewed))
+	mux.Handle("GET /api/family/alerts", parentsOnly("Only parents can review kids' chats.", chatHandler.Alerts))
 
 	// The first wrapper listed runs first: log, recover from panics, turn
 	// away forged cross-site requests, then load the session (and save it as

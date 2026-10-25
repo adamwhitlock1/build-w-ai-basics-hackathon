@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useRef, useState, type RefObject } from 'react'
 import { InterestsEditor, type InterestsEditorProps } from '../account/InterestsEditor'
+import { BirthYearField } from '../chat/BirthYearField'
 import { InterestsEditorContext } from '../account/interestsEditorContext'
 import { useInterestsEditorPanel } from '../account/useInterestsEditorPanel'
 import type { ApiError } from '../api/client'
@@ -99,6 +100,8 @@ export function MemberPage({ memberId, headingRef }: MemberPageProps) {
             Their articles and events are picked from their interests and location, which you can set here. Arranging
             the page and adding widgets is up to them.
           </p>
+          {/* Kids only: their age picks how Porchlight chat talks with them. */}
+          {member && !member.isAdmin && <BirthYearField memberId={memberId} name={name ?? 'Their'} />}
         </header>
 
         {/* Always mounted, so changes to its text are announced reliably. */}

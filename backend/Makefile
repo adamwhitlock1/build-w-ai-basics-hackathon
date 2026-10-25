@@ -11,7 +11,7 @@
 export CGO_ENABLED := 0
 export GOTOOLCHAIN := local
 
-.PHONY: run build vet test vuln check seed demo demo-serve ai-smoke dev-ui
+.PHONY: run build vet test vuln check seed demo demo-serve ai-smoke ai-eval-kids dev-ui
 
 run:
 	go run .
@@ -40,6 +40,12 @@ check: vet test vuln build
 # spends a fraction of a cent, so it's opt-in and never runs in CI.
 ai-smoke:
 	PORCHLIGHT_LIVE_AI=1 go test -count=1 -v -run Live ./internal/aikit/
+
+# Checks kid chat's behavior on the real models: hints not answers,
+# flags, crisis resources, prompt injection (see cmd/evalkids). It spends a
+# few cents, so it's opt-in and never runs in CI.
+ai-eval-kids:
+	go run ./cmd/evalkids
 
 # The API under the Genkit Dev UI (http://localhost:4000), which shows every
 # model call's prompt, reply, tokens and timing. GENKIT_ENV=dev starts

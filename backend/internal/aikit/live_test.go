@@ -156,3 +156,69 @@ func checkUsage(t *testing.T, rec *fakeRecorder, before int) {
 	}
 	t.Logf("usage: %+v", u)
 }
+
+// TestLiveKids checks kid chat's models: one safety check (with a title)
+// and one streamed reply, always with no-retention routing, so a pass
+// proves the models have zero-data-retention endpoints. It uses the kids'
+// key, or the main key if that isn't set: the routing doesn't depend on
+// the key, which only keeps the kids' traffic separate.
+func TestLiveKids(t *testing.T) {
+	if os.Getenv("PORCHLIGHT_LIVE_AI") != "1" {
+		t.Skip("set PORCHLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
+	}
+	if err := godotenv.Load("../../.env"); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("read backend/.env: %v", err)
+	}
+	key := os.Getenv("OPENROUTER_KIDS_API_KEY")
+	if key == "" {
+		key = os.Getenv("OPENROUTER_API_KEY")
+		t.Log("kids: no OPENROUTER_KIDS_API_KEY; checking the kids' models on the main key, with no-retention routing")
+	}
+	chatModel, safetyModel := envOrDefault("KIDS_CHAT_MODEL", "anthropic/claude-haiku-5.5"), envOrDefault("KIDS_SAFETY_MODEL", "anthropic/claude-haiku-5.5")
+	kit, err := aikit.New(context.Background(), aikit.Config{OpenRouterKey: key, OpenRouterModel: chatModel, NoRetention: true})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	rec := &fakeRecorder{}
+	kit.SetUsageRecorder(rec)
+	agent := aikit.NewKidAgent(kit, "openrouter/"+chatModel, "openrouter/"+safetyModel)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	t.Run("check", func(t *testing.T) {
+		v, err := agent.Check(ctx, nil, "how do volcanoes form?", true)
+		if err != nil {
+			t.Fatalf("Check on %s: %v", safetyModel, err)
+		}
+		t.Logf("%s verdict: %+v", safetyModel, v)
+		if v.Flag {
+			t.Errorf("an ordinary question was flagged: %+v", v)
+		}
+		if v.Title == "" {
+			t.Error("no title for the first message")
+		}
+	})
+
+	t.Run("reply", func(t *testing.T) {
+		var chunks int
+		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromKid: true, Text: "what's the answer to 3x + 5 = 20"}}}
+		got, err := agent.Reply(ctx, in, func(string) { chunks++ })
+		if err != nil {
+			t.Fatalf("Reply on %s: %v", chatModel, err)
+		}
+		t.Logf("%s reply in %d chunks: %q", chatModel, chunks, got)
+		if strings.Contains(strings.ReplaceAll(got, " ", ""), "x=5") {
+			t.Errorf("the reply gave the answer: %q", got)
+		}
+	})
+	if n := len(rec.entries()); n < 2 {
+		t.Errorf("recorded %d usage entries, want at least 2", n)
+	}
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}

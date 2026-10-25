@@ -16,18 +16,45 @@ import (
 	"porchlight/internal/llm"
 )
 
+// ErrBlocked means the model's provider refused the request with its own
+// content filter (finish reason "blocked"), as some providers do for
+// self-harm, sexual content or violence. It arrives wrapped in an
+// *llm.UpstreamError; match it with errors.Is.
+var ErrBlocked = errors.New("the AI provider's content filter blocked the request (finish_reason=blocked)")
+
 // callTimeout bounds a single model call, as in internal/llm.
 const callTimeout = 40 * time.Second
 
-// temperature is the sampling temperature for structured calls, as in
-// internal/llm. A map is the one config shape every model plugin accepts.
-var temperature = map[string]any{"temperature": 0.2}
+// structuredTemperature is the sampling temperature for structured calls,
+// as in internal/llm.
+const structuredTemperature = 0.2
+
+// callConfig is the model config for one call: temperature, plus, on a
+// no-retention Kit, OpenRouter routing that allows only zero-data-retention
+// endpoints of providers that don't collect data. A map is the one config
+// shape every model plugin accepts. Every Kit call builds its config here,
+// so none can leave the routing out.
+func (k *Kit) callConfig(temperature float64) map[string]any {
+	cfg := map[string]any{"temperature": temperature}
+	if k.noRetention {
+		cfg["provider"] = map[string]any{"zdr": true, "dataCollection": "deny"}
+	}
+	return cfg
+}
 
 // structuredCall is one request for JSON matching T's schema.
 type structuredCall struct {
 	step     string // usage step and log label, e.g. "morning_briefing"
+	model    string // Genkit model name; "" means the Kit's default
 	system   string
 	messages []*ai.Message
+}
+
+func (c structuredCall) modelName(k *Kit) string {
+	if c.model != "" {
+		return c.model
+	}
+	return k.defaultModel
 }
 
 // generateJSON asks for a T, decodes the reply and runs check on it. If the
@@ -42,12 +69,11 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 	var zero T
 	var lastErr error
 	for attempt := 1; attempt <= 2; attempt++ {
-		resp, err := k.generate(ctx, call.step,
-			ai.WithModelName(k.defaultModel),
+		resp, err := k.generate(ctx, call.step, structuredTemperature,
+			ai.WithModelName(call.modelName(k)),
 			ai.WithSystem(call.system),
 			ai.WithMessages(call.messages...),
 			ai.WithOutputType(zero),
-			ai.WithConfig(temperature),
 		)
 		if err != nil {
 			return zero, err
@@ -56,7 +82,7 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 		case ai.FinishReasonLength:
 			return zero, &llm.UpstreamError{Reason: "the AI model's answer was cut off", Hint: "Try again in a moment.", Err: errors.New("finish_reason=length")}
 		case ai.FinishReasonBlocked:
-			return zero, &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.", Err: errors.New("finish_reason=blocked")}
+			return zero, &llm.UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.", Err: ErrBlocked}
 		}
 
 		content := resp.Text()
@@ -81,9 +107,11 @@ func generateJSON[T any](ctx context.Context, k *Kit, call structuredCall, check
 	return zero, lastErr
 }
 
-// generate runs one Generate call with usage tracked under step. A rate
-// limit (HTTP 429) is retried once after a short pause.
-func (k *Kit) generate(ctx context.Context, step string, opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
+// generate runs one Generate call with usage tracked under step and the
+// Kit's call config at temperature. A rate limit (HTTP 429) is retried once
+// after a short pause.
+func (k *Kit) generate(ctx context.Context, step string, temperature float64, opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
+	opts = append(opts, ai.WithConfig(k.callConfig(temperature)))
 	resp, err := k.generateOnce(ctx, step, opts...)
 	var ue *llm.UpstreamError
 	if !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {
@@ -114,4 +142,34 @@ func (k *Kit) generateOnce(ctx context.Context, step string, opts ...ai.Generate
 		return nil, upstream(err)
 	}
 	return resp, nil
+}
+
+// stream runs one streaming Generate call with usage tracked under step and
+// the Kit's call config at temperature, passing each chunk's text to
+// onChunk. A rate limit is retried once, but only before any text has
+// arrived: once the caller has shown part of a reply, starting over would
+// show it twice.
+func (k *Kit) stream(ctx context.Context, step string, temperature float64, onChunk func(string), opts ...ai.GenerateOption) (*ai.ModelResponse, error) {
+	streamed := false
+	opts = append(opts,
+		ai.WithConfig(k.callConfig(temperature)),
+		ai.WithStreaming(func(_ context.Context, c *ai.ModelResponseChunk) error {
+			if text := c.Text(); text != "" {
+				streamed = true
+				onChunk(text)
+			}
+			return nil
+		}))
+	resp, err := k.generateOnce(ctx, step, opts...)
+	var ue *llm.UpstreamError
+	if streamed || !errors.As(err, &ue) || ue.Status != http.StatusTooManyRequests {
+		return resp, err
+	}
+	slog.WarnContext(ctx, "openrouter rate limited; retrying once", "schema", step)
+	select {
+	case <-time.After(k.retryDelay):
+	case <-ctx.Done():
+		return nil, err
+	}
+	return k.generateOnce(ctx, step, opts...)
 }

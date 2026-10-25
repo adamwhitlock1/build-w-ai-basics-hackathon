@@ -3,6 +3,7 @@ import { useId, useRef, useState } from 'react'
 import type { FamilyMember } from '../api/client'
 import { useFamily, useMe } from '../api/hooks'
 import { BrandMark } from '../components/BrandMark'
+import { useAlerts } from '../api/chat'
 import { LogoutButton } from '../components/LogoutButton'
 import { PlusIcon } from '../widgets/icons'
 import { InviteForm } from './InviteForm'
@@ -65,6 +66,8 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
   const familyName = family.data?.family.name ?? me?.family.name ?? ''
   const familyId = family.data?.family.id ?? me?.family.id
   const isAdmin = me?.user.isAdmin ?? false
+  // How many flags from the kids' chats are waiting for a parent.
+  const unreviewed = useAlerts(isAdmin).data?.unreviewed ?? 0
   // Parents can switch pages, except while arranging or building a widget
   // (see `arranging` and `building`).
   const canSwitch = isAdmin && !arranging && !building
@@ -174,6 +177,21 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
             </p>
           )}
         </section>
+
+        {isAdmin && !arranging && (
+          <Link
+            to="/reviews"
+            className="mt-6 flex h-11 items-center justify-between rounded-2xl px-3 text-sm font-medium text-ink transition-colors hover:bg-primary-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Reviews
+            {unreviewed > 0 && (
+              <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-white">
+                {unreviewed}
+                <span className="sr-only"> to review</span>
+              </span>
+            )}
+          </Link>
+        )}
 
         {isAdmin && familyId !== undefined && (
           <>

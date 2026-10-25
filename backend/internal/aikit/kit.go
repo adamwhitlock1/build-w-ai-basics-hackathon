@@ -44,6 +44,11 @@ type Config struct {
 	MiniMaxKey     string
 	MiniMaxBaseURL string // e.g. "https://api.minimax.io/anthropic"
 	MiniMaxModel   string // empty means DefaultMiniMaxModel
+
+	// NoRetention restricts every call the Kit makes to OpenRouter's
+	// zero-data-retention endpoints of providers that don't collect data.
+	// Kid chat runs only on a Kit with it set.
+	NoRetention bool
 }
 
 // Kit wraps a Genkit instance with Porchlight's choices: the default model,
@@ -55,6 +60,7 @@ type Kit struct {
 	miniMaxModel string            // "anthropic/<id>", or "" without a MiniMax key
 	usage        llm.UsageRecorder // nil: usage isn't recorded
 	retryDelay   time.Duration     // pause before retrying a 429
+	noRetention  bool              // see Config.NoRetention
 }
 
 // New builds a Kit from cfg. Missing or broken configuration is returned as
@@ -110,6 +116,7 @@ func New(ctx context.Context, cfg Config) (kit *Kit, err error) {
 
 	k := FromGenkit(g, defaultModel)
 	k.miniMaxModel = miniMaxModel
+	k.noRetention = cfg.NoRetention
 	return k, nil
 }
 
@@ -131,6 +138,10 @@ func (k *Kit) DefaultModel() string { return k.defaultModel }
 // MiniMaxModel returns the Genkit name of the MiniMax model, or "" when no
 // MiniMax key was configured.
 func (k *Kit) MiniMaxModel() string { return k.miniMaxModel }
+
+// NoRetention reports whether k restricts its calls to no-retention
+// providers (see Config.NoRetention).
+func (k *Kit) NoRetention() bool { return k.noRetention }
 
 // SetUsageRecorder makes k report every model answer's usage to r. Call it
 // before k is used; a nil r (the default) records nothing.

@@ -70,7 +70,7 @@ func (c *Client) ShapeItems(ctx context.Context, prompt string, spec WidgetSpec,
 		name:   "widget_items",
 		schema: schema,
 		messages: []openai.ChatCompletionMessage{
-			{Role: openai.ChatMessageRoleSystem, Content: forAudience(shapeSystemPrompt(now), aud)},
+			{Role: openai.ChatMessageRoleSystem, Content: ForAudience(shapeSystemPrompt(now), aud)},
 			{Role: openai.ChatMessageRoleUser, Content: user},
 		},
 	}

@@ -51,6 +51,7 @@ type fakeOpenRouter struct {
 	mu      sync.Mutex
 	replies []reply
 	sent    [][]sentMessage
+	bodies  []map[string]any // each request body, decoded
 }
 
 func newFakeOpenRouter(t *testing.T, replies ...reply) (*fakeOpenRouter, string) {
@@ -76,6 +77,9 @@ func (f *fakeOpenRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.t.Errorf("decode request: %v", err)
 	}
 	f.sent = append(f.sent, req.Messages)
+	var whole map[string]any
+	_ = json.Unmarshal(body, &whole)
+	f.bodies = append(f.bodies, whole)
 
 	if len(f.replies) == 0 {
 		f.t.Error("more requests than canned replies")
@@ -94,4 +98,11 @@ func (f *fakeOpenRouter) requests() [][]sentMessage {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([][]sentMessage(nil), f.sent...)
+}
+
+// requestBodies returns every request body received, decoded, in order.
+func (f *fakeOpenRouter) requestBodies() []map[string]any {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]map[string]any(nil), f.bodies...)
 }
