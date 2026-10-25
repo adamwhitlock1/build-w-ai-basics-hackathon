@@ -57,11 +57,20 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
     - Describing a card (held by a patched `fetch`) moved the glow to the breathing light, and the briefing's edge went to 0.
     - When the request ended, the briefing took the light back.
   - **Changed from the design:** the claims live in a module-level store read with `useSyncExternalStore`, not in a `LightProvider` component. It's the same single source of truth, with nothing to wrap the app in. Every breathing light claims `thinking`. One that doesn't hold the glow shows its light at half strength, without the glow.
-- [ ] 4.2 Add the arrival (design decision 6): the card's catch, the claim and the header lantern's swing. Remove `widget-in` and the amber ring. Verify:
+- [x] 4.2 Add the arrival (design decision 6): the card's catch, the claim and the header lantern's swing. Remove `widget-in` and the amber ring. Verify:
   - describing a card catches it, swings the lantern, and the card keeps focus;
   - refreshing one card catches only that card;
   - opening a page catches nothing;
   - reduced motion gives a fade and no swing.
+  - Done (2026-10-25), on Maya's page, with a recorder noting each catch and swing:
+    - Opening the page (7 cards): no catch, no swing.
+    - A real refresh of Articles: only "Articles for you" caught, the lantern swung, and the label read "Updated just now".
+    - A real described card ("Next US Total Solar Eclipse"): it caught, the lantern swung, and it had focus.
+    - **Reduced motion:** not emulatable here. The catch moves only opacity, and the swing is `none` under that query.
+  - **Fixed during apply:**
+    - A described card mounts before it's marked fresh, so checking `fresh` only at mount missed it. Turning fresh on at any point now counts.
+    - To keep lint clean, arrivals are worked out during render, by comparing with the last update time kept in state, and counted rather than timed. The effect only runs the timer and the swing.
+  - Two cards were described on the demo while checking. Rebuilding the demo removes them.
 - [ ] 4.3 Add the freshness edge (design decision 7) to every card with an update time. Verify:
   - a just-refreshed card has a warm edge;
   - a card from hours ago is dimmer, and one older than 6 h has none;
