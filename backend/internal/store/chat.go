@@ -381,3 +381,64 @@ func (s *Store) SetBirthYear(ctx context.Context, userID int64, year int) error 
 	}
 	return nil
 }
+
+// ChatToolCall is one tool the kid agent used while replying.
+type ChatToolCall struct {
+	ID             int64
+	ConversationID int64
+	MessageID      int64 // the reply it informed; 0 if that reply failed
+	Tool           string
+	Detail         string // a search's query, or ""
+	CreatedAt      time.Time
+}
+
+// AddChatToolCalls saves calls for conversation conversationID, attached
+// to reply messageID (0: the reply failed). It saves all or none.
+func (s *Store) AddChatToolCalls(ctx context.Context, conversationID, messageID int64, calls []ChatToolCall) error {
+	if len(calls) == 0 {
+		return nil
+	}
+	var msg any // NULL
+	if messageID != 0 {
+		msg = messageID
+	}
+	err := withTx(ctx, s.db, func(tx *sql.Tx) error {
+		for _, c := range calls {
+			if _, err := tx.ExecContext(ctx,
+				`INSERT INTO chat_tool_calls (conversation_id, message_id, tool, detail) VALUES (?, ?, ?, ?)`,
+				conversationID, msg, c.Tool, c.Detail); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("add tool calls to conversation %d: %w", conversationID, err)
+	}
+	return nil
+}
+
+// ListChatToolCalls returns conversation conversationID's tool calls, in
+// the order they were made.
+func (s *Store) ListChatToolCalls(ctx context.Context, conversationID int64) ([]ChatToolCall, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, conversation_id, message_id, tool, detail, created_at
+		   FROM chat_tool_calls WHERE conversation_id = ? ORDER BY id`, conversationID)
+	if err != nil {
+		return nil, fmt.Errorf("list tool calls of conversation %d: %w", conversationID, err)
+	}
+	defer rows.Close()
+	var out []ChatToolCall
+	for rows.Next() {
+		var (
+			c   ChatToolCall
+			msg sql.NullInt64
+		)
+		if err := rows.Scan(&c.ID, &c.ConversationID, &msg, &c.Tool, &c.Detail, &c.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan tool call: %w", err)
+		}
+		c.MessageID = msg.Int64
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
