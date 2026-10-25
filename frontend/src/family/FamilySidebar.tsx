@@ -11,6 +11,7 @@ import { InviteForm } from './InviteForm'
 import { PendingInvites } from './PendingInvites'
 import { RoleTag } from './RoleTag'
 import { avatarTint, initialsFor } from './people'
+import { Breathing } from '../components/Breathing'
 
 interface FamilySidebarProps {
   /**
@@ -349,16 +350,19 @@ function MemberRow({ member }: { member: FamilyMember }) {
   )
 }
 
-/** Soft placeholder rows while the member list loads. */
+/** The breathing light over still placeholder rows, while the member list loads. */
 function MembersLoading() {
   return (
-    <div role="status" className="mt-2">
-      <span className="sr-only">Loading your family…</span>
+    <div className="mt-2">
+      <p role="status" className="flex items-center gap-2 px-2 py-1 text-xs text-ink-muted">
+        <Breathing className="size-4" />
+        Loading your family…
+      </p>
       <ul aria-hidden="true" className="space-y-0.5">
         {['w-32', 'w-24'].map((width) => (
           <li key={width} className="flex items-center gap-3 px-2 py-2">
-            <span className="size-9 shrink-0 rounded-full bg-line motion-safe:animate-pulse" />
-            <span className={`h-3.5 rounded-full bg-line motion-safe:animate-pulse ${width}`} />
+            <span className="size-9 shrink-0 rounded-full bg-line" />
+            <span className={`h-3.5 rounded-full bg-line ${width}`} />
           </li>
         ))}
       </ul>

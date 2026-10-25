@@ -92,8 +92,10 @@ function AssistantPage() {
   const messages = [
     ...(conversation.data?.messages ?? []),
     ...(pending ? [pending] : []),
-    ...(streaming !== null && (streaming || liveTools.length > 0)
-      ? [{ id: STREAMING_ID, role: 'agent' as const, text: streaming || '…', createdAt: '' }]
+    // Until its first words arrive it's empty, and MessageList shows the
+    // breathing light and "Thinking…" in its place.
+    ...(streaming !== null && (pending || streaming || liveTools.length > 0)
+      ? [{ id: STREAMING_ID, role: 'agent' as const, text: streaming, createdAt: '' }]
       : []),
   ]
   const kind = conversation.data?.conversation.kind
@@ -132,11 +134,6 @@ function AssistantPage() {
             toolCalls={[...(conversation.data?.toolCalls ?? []), ...liveTools]}
             linkify
           />
-        )}
-        {sending && streaming === '' && liveTools.length === 0 && (
-          <p role="status" className="mt-3 text-sm text-ink-muted">
-            Thinking…
-          </p>
         )}
         <div ref={endRef} />
       </div>

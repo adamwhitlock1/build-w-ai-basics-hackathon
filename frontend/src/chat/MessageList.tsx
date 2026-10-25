@@ -1,5 +1,6 @@
 import type { ChatFlag, ChatMessage, ToolCall } from '../api/chat'
 import { categoryNames, toolNoteText } from '../api/chat'
+import { Breathing } from '../components/Breathing'
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -63,7 +64,17 @@ export function MessageList({ messages, kidName, flags, highlightId, toolCalls, 
                 fromKid ? 'rounded-br-lg bg-primary text-on-primary' : 'rounded-bl-lg bg-surface text-ink shadow-card'
               } ${highlighted ? 'ring-4 ring-accent' : ''}`}
             >
-              {linkify && !fromKid ? <Linked text={m.text} /> : m.text}
+              {!fromKid && m.text === '' ? (
+                // A reply that hasn't started yet.
+                <span className="flex items-center gap-2 text-ink-muted">
+                  <Breathing className="size-5" />
+                  Thinking…
+                </span>
+              ) : linkify && !fromKid ? (
+                <Linked text={m.text} />
+              ) : (
+                m.text
+              )}
             </div>
             {flag && (
               <span

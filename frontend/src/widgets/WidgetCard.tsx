@@ -3,6 +3,7 @@ import type { Freshness, SourceName, Widget } from '../api/client'
 import { ShieldIcon } from './icons'
 import { WidgetItems } from './renderers/WidgetItems'
 import { formatUpdatedAgo, useNow } from './updatedAgo'
+import { Breathing } from '../components/Breathing'
 
 interface WidgetCardProps {
   /**
@@ -207,13 +208,17 @@ const PLACEHOLDER_WIDTHS = [
 /** Soft, gently pulsing placeholder rows while a widget's first load runs. */
 function LoadingRows({ message }: { message: string }) {
   return (
-    <div role="status">
-      <p className="text-sm text-ink-muted">{message}</p>
+    <div>
+      <p role="status" className="flex items-center gap-2.5 text-sm text-ink-muted">
+        <Breathing className="size-5" />
+        {message}
+      </p>
+      {/* Still placeholders, so the card keeps its size while it waits. */}
       <ul aria-hidden="true" className="mt-4 space-y-3">
         {PLACEHOLDER_WIDTHS.map(([first, second], i) => (
           <li key={i} className="rounded-2xl border border-line bg-bg/60 p-3.5">
-            <div className={`h-3.5 rounded-full bg-line motion-safe:animate-pulse ${first}`} />
-            <div className={`mt-2.5 h-3 rounded-full bg-line/60 motion-safe:animate-pulse ${second}`} />
+            <div className={`h-3.5 rounded-full bg-line ${first}`} />
+            <div className={`mt-2.5 h-3 rounded-full bg-line/60 ${second}`} />
           </li>
         ))}
       </ul>

@@ -11,6 +11,7 @@ import { layoutOf } from '../puck/layout'
 import { LayoutView } from '../puck/LayoutView'
 import { EyeIcon } from '../widgets/icons'
 import { nameFor } from './people'
+import { Breathing } from '../components/Breathing'
 
 interface MemberPageProps {
   /** Whose page: a family member's user id (never your own). */
@@ -209,31 +210,29 @@ function Unavailable({ error, headingRef, onRetry }: UnavailableProps) {
   )
 }
 
-/** While the page loads for someone the sidebar doesn't list: just a quiet spinner. */
+/** While the page loads for someone the sidebar doesn't list: just the breathing light. */
 function PageLoading() {
   return (
     <div role="status" className="flex items-center gap-3 py-10 text-ink-muted">
-      <span
-        aria-hidden="true"
-        className="size-5 shrink-0 rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin-calm"
-      />
+      <Breathing className="size-6" />
       Just a moment…
     </div>
   )
 }
 
-/** Soft placeholder cards while their page loads. */
+/** The breathing light over still placeholder cards, while their page loads. */
 function CardsLoading() {
   return (
-    <div role="status" className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-      <span className="sr-only">Loading their page…</span>
-      {['lg:col-span-2', 'lg:col-span-2'].map((span, i) => (
-        <div
-          key={i}
-          aria-hidden="true"
-          className={`h-72 rounded-3xl border border-line bg-surface shadow-card motion-safe:animate-pulse ${span}`}
-        />
-      ))}
+    <div>
+      <p role="status" className="mb-4 flex items-center gap-3 text-ink-muted">
+        <Breathing className="size-6" />
+        Loading their page…
+      </p>
+      <div aria-hidden="true" className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {['lg:col-span-2', 'lg:col-span-2'].map((span, i) => (
+          <div key={i} className={`h-72 rounded-3xl border border-line bg-surface shadow-card ${span}`} />
+        ))}
+      </div>
     </div>
   )
 }

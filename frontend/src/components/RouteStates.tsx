@@ -2,6 +2,7 @@ import { Link, useRouter, type ErrorComponentProps } from '@tanstack/react-route
 import { ApiError } from '../api/client'
 import { FormError } from './FormError'
 import { WelcomeLayout } from './WelcomeLayout'
+import { Breathing } from './Breathing'
 
 const linkButton =
   'inline-flex h-11 items-center rounded-2xl border border-primary/30 bg-surface px-4 font-medium text-primary transition-colors hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
@@ -29,10 +30,7 @@ export function RouteError({ error }: ErrorComponentProps) {
 export function RoutePending() {
   return (
     <div role="status" className="flex min-h-dvh items-center justify-center gap-3 px-4 text-ink-muted">
-      <span
-        aria-hidden="true"
-        className="size-5 shrink-0 rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin-calm"
-      />
+      <Breathing className="size-6" />
       Just a moment…
     </div>
   )

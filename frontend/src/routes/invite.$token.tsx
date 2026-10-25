@@ -8,6 +8,7 @@ import { FormError } from '../components/FormError'
 import { SubmitButton } from '../components/SubmitButton'
 import { WelcomeLayout } from '../components/WelcomeLayout'
 import { familyPhrase } from '../family/people'
+import { Breathing } from '../components/Breathing'
 
 /**
  * /invite/<token>: where an invite link lands. It's public (outside the
@@ -50,10 +51,7 @@ function InvitePage() {
     return (
       <WelcomeLayout title="Welcome home">
         <p role="status" className="flex items-center gap-3 text-ink-soft">
-          <span
-            aria-hidden="true"
-            className="size-5 shrink-0 rounded-full border-2 border-accent/25 border-t-accent motion-safe:animate-spin-calm"
-          />
+          <Breathing className="size-6" />
           Opening your page…
         </p>
       </WelcomeLayout>
@@ -76,10 +74,7 @@ function InvitePage() {
     return (
       <WelcomeLayout title="Your invite">
         <p role="status" className="flex items-center gap-3 text-ink-soft">
-          <span
-            aria-hidden="true"
-            className="size-5 shrink-0 rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin-calm"
-          />
+          <Breathing className="size-6" />
           Checking your invite…
         </p>
       </WelcomeLayout>

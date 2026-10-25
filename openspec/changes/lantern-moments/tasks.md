@@ -31,11 +31,18 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 ## 3. Thinking
 
-- [ ] 3.1 Add `Breathing` (design decision 4), and replace every spinner, every `animate-pulse` and both "Thinking…" lines with it. Remove `spin-calm`. Verify:
+- [x] 3.1 Add `Breathing` (design decision 4), and replace every spinner, every `animate-pulse` and both "Thinking…" lines with it. Remove `spin-calm`. Verify:
   - a grep finds no `animate-spin`, `spin-calm` or `animate-pulse` in `src`;
   - in the browser: a chat reply, an Assistant reply, a briefing being written, a described card, the sign-in button, a page loading and a refresh each show a breathing light with words;
   - a screen reader's status text is the words only;
   - lint and build pass.
+  - Done (2026-10-25), in the browser, with slow requests held by a patched `fetch` where needed:
+    - **Each wait showed the breathing light with its words:** an Assistant reply ("Thinking…"), Lily's briefing being written ("Writing their briefing…", over still placeholder rows), a card refreshing (the light replaces the refresh icon, and the button is busy), describing a card ("Building your widget…"), and the sign-in button ("Logging in…", in the button's own text color).
+    - **Statuses:** each holds only words, since the lantern is `aria-hidden`.
+    - **Grep:** finds no `animate-spin`, `spin-calm` or `animate-pulse`.
+    - **Not seen live:** the router's "Just a moment…" page, which only appears after a one-second wait. It uses the same component.
+  - **Changed from the plan:** kid chat and the Assistant don't keep a separate "Thinking…" line. The reply's own empty bubble shows the breathing light and "Thinking…" from the moment the message is sent, with tool notes above it. Before, a tool note replaced the line with a bare "…" bubble.
+  - Skeleton rows now sit still under a visible status. The sidebar and member-page loading text was screen-reader-only before; now everyone sees it.
 
 ## 4. Light on cards
 

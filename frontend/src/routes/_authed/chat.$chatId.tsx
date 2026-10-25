@@ -97,8 +97,10 @@ function ChatPage() {
     ...(pendingKid ? [pendingKid] : []),
     // The reply being written; its tool notes show above it, even before
     // any text has arrived.
-    ...(streaming !== null && (streaming || liveTools.length > 0)
-      ? [{ id: STREAMING_ID, role: 'agent' as const, text: streaming || '…', createdAt: '' }]
+    // Until its first words arrive it's empty, and MessageList shows the
+    // breathing light and "Thinking…" in its place.
+    ...(streaming !== null && (pendingKid || streaming || liveTools.length > 0)
+      ? [{ id: STREAMING_ID, role: 'agent' as const, text: streaming, createdAt: '' }]
       : []),
   ]
 
@@ -132,11 +134,6 @@ function ChatPage() {
           </p>
         ) : (
           <MessageList messages={messages} toolCalls={[...(chat.data?.toolCalls ?? []), ...liveTools]} />
-        )}
-        {sending && streaming === '' && liveTools.length === 0 && (
-          <p role="status" className="mt-3 text-sm text-ink-muted">
-            Thinking…
-          </p>
         )}
         <div ref={endRef} />
       </div>
