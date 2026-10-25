@@ -35,7 +35,22 @@ Verify visual work in the browser on the demo (`make demo`, then `KINLIGHT_KIDS_
 
 ## 3. Voice
 
-- [ ] 3.1 Add `scripts/copy-check.mjs` and `npm run check:copy` (design decision 5), with small tests in `tests/copy-check.test.ts` (a JSX case, a string-literal case, a Go `respond.Error` case, and a query key that passes), and run it in CI. Run it now and list what it finds here: that's the to-do list for 3.2 and 3.3.
+- [x] 3.1 Add `scripts/copy-check.mjs` and `npm run check:copy` (design decision 5), with small tests in `tests/copy-check.test.ts` (a JSX case, a string-literal case, a Go `respond.Error` case, and a query key that passes), and run it in CI. Run it now and list what it finds here: that's the to-do list for 3.2 and 3.3.
+  - Done. There are 7 tests, including two false positives the first run found: an interpolation like `${widget.title}`, and code between two tags taken for JSX text. Both are now ignored and tested. It runs in CI's frontend job.
+  - **Found, frontend (17):**
+    - `FamilySidebar` 177;
+    - `MemberPage` 100;
+    - `BlockActionBar` 122, 134, 135, 140;
+    - `LayoutView` 65;
+    - `Custom` 39;
+    - `puck/config` 80;
+    - `routes/_authed/index` 254, 286, 341 (×2);
+    - `invite.$token` 103;
+    - `DescribeWidgetPrompt` 78, 109, 167.
+  - **Found, backend (8):**
+    - `aikit/structured.go` 85 and `llm/client.go` 220 ("Try describing the widget differently.");
+    - `widgets/errors.go` 94, 96, 98, 156, 215;
+    - `widgets/handler.go` 338.
 - [ ] 3.2 Rename "widget" to "card" in every frontend string it found, write the empty-state and error copy, and change the kid-safe marker to "Picked with <name>'s age in mind" (design decision 5). Verify:
   - `npm run check:copy` passes;
   - in the browser: "Add a card", "Building your card…", an empty spot, a card's load error, and the marker on Jordan's page as Maya (and no marker as Jordan).

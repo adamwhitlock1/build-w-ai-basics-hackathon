@@ -64,5 +64,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run check:contrast
+      - run: npm run check:copy
       - run: npm test
       - run: npm run build
