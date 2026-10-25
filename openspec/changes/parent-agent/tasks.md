@@ -57,7 +57,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 4. Frontend
 
-- [ ] 4.1 Generalize the streaming helper. Add the `/assistant` and `/assistant/$id` pages: the two kinds, explained, with "About the kids" disabled and the reason given when unavailable; tool notes; clickable links through `MessageList`'s `linkify`; delete with confirmation. Add an "Assistant" link in the parent's sidebar. Verify with lint and build, and in the browser on the demo as Maya:
+- [x] 4.1 Generalize the streaming helper. Add the `/assistant` and `/assistant/$id` pages: the two kinds, explained, with "About the kids" disabled and the reason given when unavailable; tool notes; clickable links through `MessageList`'s `linkify`; delete with confirmation. Add an "Assistant" link in the parent's sidebar. Verify with lint and build, and in the browser on the demo as Maya:
   - "what does everyone have tomorrow?" in "Ask anything" shows "Looked at the family's day" and answers per person;
   - a research question shows "Searched:" notes and clickable source links;
   - with the override on, "About the kids" for Lily mentions her seeded flag;
@@ -66,7 +66,12 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
     - Maya has an "Assistant" link. The page shows both kinds, with "About the kids" enabled under the override.
     - An "Ask anything" conversation starts. Its messages stream, and a failed reply shows an error and keeps her message.
     - Jordan has no Assistant or Reviews link, and gets a 403 ("The Assistant is for parents."). Maya gets kid chat's new 403 ("Kid chat is for kids. Try your Assistant.").
-    - **Not yet checked: real replies.** From 19:53 every TLS connection from a Go program on this machine stalls ("TLS handshake timeout" or "socket is not connected", to example.com too), while curl connects fine, so it isn't Porchlight code. The reply checks wait until Go programs can reach the network again.
+    - **Real replies:** at first they waited on a machine-wide network problem: every TLS connection from a Go program stalled, while curl connected fine. They were checked once Go programs could reach the network again.
+  - Result (2026-10-25), real replies on Claude Haiku 5.5 in the browser, as Maya:
+    - **The family's day:** "what does everyone have tomorrow?" showed "Looked at the family's day" and answered per person.
+    - **Research:** a robotics kit question showed two "Searched:" notes, and its source links (makeblock, amazon, ebay) open in a new tab.
+    - **About the kids:** "how are the kids doing with their chats? anything flagged?" read the kids' chats twice and led with Lily's unreviewed strangers flag ("asked where she lives"). It suggested a calm talk, and pointed to the Reviews page to read the chat and mark it reviewed. Jordan: no flags, two routine chats.
+    - **Bug found and fixed:** a question that made the model read the kids' chats twice in one turn stalled on "…". Genkit runs one turn's tool calls at the same time, so both tool notes were written to the response at once. The corrupted stream made the dev proxy drop the request, and the browser kept waiting. `toolBuilder` now reports tool notes one at a time, for kid chat too, with a test that fails without the fix.
 
 ## 5. Evaluation, smoke test and docs
 
@@ -95,7 +100,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 6. End to end
 
-- [ ] 6.1 On the demo with real keys (the override unless a kids' key exists), in the browser:
+- [x] 6.1 On the demo with real keys (the override unless a kids' key exists), in the browser:
   - Maya: "Ask anything", for the family's day and a research question;
   - Maya: "About the kids", for Lily;
   - Sam can't see Maya's conversations;
@@ -103,7 +108,14 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
   - `llm_usage` has `parent_chat` rows for Maya.
 
   Record the results here.
+  - Result (2026-10-25), on the demo with the override and real keys:
+    - **Maya, "Ask anything":** the family's day and a research question, as in 4.1.
+    - **Maya, "About the kids":** Lily's seeded flag, as in 4.1.
+    - **Sam:** his Assistant list is empty. Every read, send and delete of Maya's four conversations got a 404.
+    - **Delete:** Maya deleted a conversation from its page, after confirming. It left her list, and its messages and tool calls are gone from the database.
+    - **Usage:** `llm_usage` has 11 `parent_chat` rows for Maya, step `parent_chat_reply` on `anthropic/claude-haiku-5.5`, 22,791 tokens in all.
 - [ ] 6.2 Run `openspec validate parent-agent --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Parent assistant" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
   - Progress (2026-10-24):
     - The Post-PoC line is in both files.
-    - At the owner's choice, the branch is pushed and the PR opened before the live checks (4.1 replies, 5.1, 5.2, 6.1), which wait for Go programs on this machine to reach the network again. CI runs on GitHub.
+    - At the owner's choice, the branch was pushed and the PR opened before the live checks (4.1 replies, 5.1, 5.2, 6.1), which waited for Go programs on this machine to reach the network again. CI runs on GitHub.
+    - The live checks are done (2026-10-25), and the tool-note fix is pushed to the PR.
