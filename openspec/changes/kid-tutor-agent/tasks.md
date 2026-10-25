@@ -164,7 +164,7 @@ For any work in `internal/aikit`, load the `developing-genkit-go` skill first; t
 
   Update the demo table in the README. Verify with the seed tests (`go test ./cmd/seed/`), and in the browser: as Maya the queue shows Lily's flag and no alert; as Jordan both chats open, with no AI call recorded in `llm_usage`.
   - Result (2026-10-24): `TestSeedDemo` checks the ages, the chat counts (Jordan 2, Lily 1, Riley 0), Lily's one unreviewed medium strangers flag, and that there are no crises. In the browser, Jordan's two sample chats opened as seeded, Maya's queue showed Lily's flag, there was no alert before the crisis test, and no `kid_chat` usage rows appeared until a real message was sent.
-- [ ] 6.4 Add a "Kid chat" section to the README:
+- [x] 6.4 Add a "Kid chat" section to the README:
   - what kids get, and the notice;
   - how the safety check, flags and crisis resources work;
   - the parents' Reviews page and the alert;
