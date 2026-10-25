@@ -51,6 +51,7 @@ type Store interface {
 	RevokeInvite(ctx context.Context, familyID, inviteID int64) error
 	GetInviteByToken(ctx context.Context, token string) (store.Invite, error)
 	AcceptInvite(ctx context.Context, token string, passwordHash []byte) (store.User, error)
+	SetTheme(ctx context.Context, userID int64, theme string) (store.User, error)
 }
 
 // Sessions logs users in and out. *auth.Authenticator satisfies it.
@@ -87,6 +88,9 @@ type MeUser struct {
 	ID      int64  `json:"id"`
 	Email   string `json:"email"`
 	IsAdmin bool   `json:"isAdmin"`
+	// Theme is "auto" (follow the device), "light" (Daybreak) or "dark"
+	// (Porch light).
+	Theme string `json:"theme"`
 }
 
 // MeFamily is the user's family.
@@ -362,6 +366,39 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusOK, ProfileResponse{Profile: profile})
 }
 
+// ThemeExample is the error for a theme request that isn't one of the three.
+const ThemeExample = `Send {"theme": "auto"}, {"theme": "light"} or {"theme": "dark"}.`
+
+// SetTheme handles PUT /api/me/theme: the logged-in member chooses their own
+// theme, and gets Me back. There's no route for anyone else's: parents set
+// kids' profiles, but a theme is the member's own.
+func (h *Handler) SetTheme(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := auth.UserFrom(ctx)
+	if !ok {
+		respond.Error(w, http.StatusUnauthorized, "Please log in.", "")
+		return
+	}
+	var req struct {
+		Theme string `json:"theme"`
+	}
+	if !decodeJSON(w, r, &req, ThemeExample) {
+		return
+	}
+	switch req.Theme {
+	case store.ThemeAuto, store.ThemeLight, store.ThemeDark:
+	default:
+		respond.Error(w, http.StatusBadRequest, ThemeExample, "")
+		return
+	}
+	updated, err := h.store.SetTheme(ctx, user.ID, req.Theme)
+	if err != nil {
+		h.serverError(w, r, "save theme", err)
+		return
+	}
+	h.writeMe(w, r, http.StatusOK, updated)
+}
+
 // writeMe loads user's family and profile and writes them as Me.
 func (h *Handler) writeMe(w http.ResponseWriter, r *http.Request, status int, user store.User) {
 	ctx := r.Context()
@@ -383,7 +420,7 @@ func (h *Handler) writeMe(w http.ResponseWriter, r *http.Request, status int, us
 	}
 
 	respond.JSON(w, status, Me{
-		User:             MeUser{ID: user.ID, Email: user.Email, IsAdmin: user.IsAdmin},
+		User:             MeUser{ID: user.ID, Email: user.Email, IsAdmin: user.IsAdmin, Theme: user.Theme},
 		Family:           MeFamily{ID: family.ID, Name: family.Name},
 		NeedsFamilySetup: family.Name == "",
 		Profile:          MeProfile{Interests: profile.Interests, Location: profile.Location, Calendar: calendar.Summarize(link)},

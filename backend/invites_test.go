@@ -362,7 +362,7 @@ func TestAcceptInvite(t *testing.T) {
 
 	me := kid.accept(token)
 	want := family.Me{
-		User:    family.MeUser{ID: me.User.ID, Email: "kid@example.com", IsAdmin: false},
+		User:    family.MeUser{ID: me.User.ID, Email: "kid@example.com", IsAdmin: false, Theme: "auto"},
 		Family:  family.MeFamily{ID: aliceMe.Family.ID, Name: "The Robinsons"},
 		Profile: family.MeProfile{},
 	}

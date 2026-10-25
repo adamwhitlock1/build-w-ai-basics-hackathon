@@ -654,6 +654,7 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 		{"GET", "/api/widgets/custom/1"},
 		{"DELETE", "/api/widgets/custom/1"},
 		{"PUT", "/api/me/profile"},
+		{"PUT", "/api/me/theme"},
 		{"GET", "/api/widgets/articles"},
 		{"GET", "/api/widgets/events"},
 		{"GET", "/api/members/1/homepage"},

@@ -68,7 +68,7 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
 
 ## 4. The theme choice
 
-- [ ] 4.1 Add `migrations/009_theme.sql`, the store method that sets the session user's theme, `theme` in `MeUser`, and `PUT /api/me/theme`. Route tests:
+- [x] 4.1 Add `migrations/009_theme.sql`, the store method that sets the session user's theme, `theme` in `MeUser`, and `PUT /api/me/theme`. Route tests:
   - the default is `auto`;
   - setting `dark` is returned by `/api/me`;
   - an unknown value gets a 400 and changes nothing;
@@ -77,6 +77,7 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
   - another member's theme is untouched.
 
   Verify with `make check`.
+  - Done: `store.User.Theme` comes with every user load, so the session's user carries it. A store test covers the default, saving, another member, a refused value and a missing user. `TestTheme` covers the routes, and `/api/me/theme` is in the login-required list. `TestAcceptInvite` compares the whole `Me`, so it now expects `auto`.
 - [ ] 4.2 Add the frontend theme module (apply `data-theme`, theme-color and the `localStorage` cache on every `me.theme`, and clear the cache on logout), the pre-paint script in `index.html`, and the Theme switch in the sidebar footer (design decision 6). Verify in the browser:
   - choosing Porch light persists across a reload with no flash;
   - Automatic follows an emulated dark/light color scheme without a reload;

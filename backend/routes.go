@@ -107,6 +107,7 @@ func routes(d deps) http.Handler {
 	mux.Handle("GET /api/me/homepage", private(layoutHandler.Homepage))
 	mux.Handle("PUT /api/me/homepage", private(layoutHandler.SaveLayout))
 	mux.Handle("PUT /api/me/profile", private(familyHandler.UpdateProfile))
+	mux.Handle("PUT /api/me/theme", private(familyHandler.SetTheme))
 	mux.Handle("GET /api/widgets/articles", private(curatedHandler.Articles))
 	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
 	mux.Handle("GET /api/widgets/today", private(todayHandler.Today))

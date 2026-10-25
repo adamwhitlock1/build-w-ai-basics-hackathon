@@ -15,8 +15,17 @@ type User struct {
 	PasswordHash []byte // bcrypt; never sent to clients or logged
 	FamilyID     int64
 	IsAdmin      bool
+	Theme        string // ThemeAuto, ThemeLight or ThemeDark
 	CreatedAt    time.Time
 }
+
+// The themes a member can choose: follow the device, or always Daybreak
+// (light) or Porch light (dark).
+const (
+	ThemeAuto  = "auto"
+	ThemeLight = "light"
+	ThemeDark  = "dark"
+)
 
 // Family is a family unit. A family with an empty Name hasn't finished the
 // create-family intro yet.
@@ -42,11 +51,11 @@ type FamilySetup struct {
 	Invites  []Invite      // co-admin invites; FamilyID is filled in for you
 }
 
-const userColumns = `id, email, password_hash, family_id, is_admin, created_at`
+const userColumns = `id, email, password_hash, family_id, is_admin, theme, created_at`
 
 func scanUser(row scanner) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FamilyID, &u.IsAdmin, &u.CreatedAt)
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FamilyID, &u.IsAdmin, &u.Theme, &u.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -243,4 +252,19 @@ func upsertMemberProfile(ctx context.Context, q dbtx, p MemberProfile) error {
 		return fmt.Errorf("upsert profile for user %d: %w", p.UserID, err)
 	}
 	return nil
+}
+
+// SetTheme saves userID's theme, one of the Theme constants, and returns the
+// updated user. The database refuses any other value. It returns
+// ErrNotFound if there's no such user.
+func (s *Store) SetTheme(ctx context.Context, userID int64, theme string) (User, error) {
+	u, err := scanUser(s.db.QueryRowContext(ctx,
+		`UPDATE users SET theme = ? WHERE id = ? RETURNING `+userColumns, theme, userID))
+	if errors.Is(err, ErrNotFound) {
+		return User{}, err
+	}
+	if err != nil {
+		return User{}, fmt.Errorf("set theme of user %d: %w", userID, err)
+	}
+	return u, nil
 }
