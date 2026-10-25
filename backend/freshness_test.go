@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/widgets"
+	"kinlight/internal/widgets"
 )
 
 func TestDescribedWidgetFreshness(t *testing.T) {

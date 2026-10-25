@@ -26,15 +26,15 @@ import (
 
 	"github.com/alexedwards/scs/sqlite3store"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/family"
-	"porchlight/internal/layout"
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/family"
+	"kinlight/internal/layout"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // fakePlanner always plans the same widget.
@@ -310,7 +310,7 @@ func TestSignupMeLogout(t *testing.T) {
 
 	token := c.sessionToken()
 	resp := c.do("POST", "/api/logout", nil, http.StatusNoContent, nil)
-	if !strings.Contains(resp.Header.Get("Set-Cookie"), "porchlight_session=;") {
+	if !strings.Contains(resp.Header.Get("Set-Cookie"), "kinlight_session=;") {
 		t.Errorf("logout Set-Cookie = %q, want the session cookie cleared", resp.Header.Get("Set-Cookie"))
 	}
 	c.wantError("GET", "/api/me", nil, http.StatusUnauthorized, "Please log in.")
@@ -339,7 +339,7 @@ func TestSessionCookie(t *testing.T) {
 		t.Fatalf("no %s cookie in %v", auth.CookieName, resp.Header["Set-Cookie"])
 	}
 	// Partitioned (scs v2.9.0+) would tie the cookie to a top-level site
-	// (CHIPS); Porchlight's cookie is first-party only, so it stays off.
+	// (CHIPS); Kinlight's cookie is first-party only, so it stays off.
 	if !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode || cookie.Secure || cookie.Path != "/" || cookie.Domain != "" || cookie.Partitioned {
 		t.Errorf("cookie = %+v, want HttpOnly, SameSite=Lax, not Secure, not Partitioned, Path=/, no Domain", cookie)
 	}
@@ -654,6 +654,7 @@ func TestPrivateRoutesNeedLogin(t *testing.T) {
 		{"GET", "/api/widgets/custom/1"},
 		{"DELETE", "/api/widgets/custom/1"},
 		{"PUT", "/api/me/profile"},
+		{"PUT", "/api/me/theme"},
 		{"GET", "/api/widgets/articles"},
 		{"GET", "/api/widgets/events"},
 		{"GET", "/api/members/1/homepage"},

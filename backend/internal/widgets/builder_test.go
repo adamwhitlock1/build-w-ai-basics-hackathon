@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // These tests call the WidgetBuilder directly, with no HTTP request, as the

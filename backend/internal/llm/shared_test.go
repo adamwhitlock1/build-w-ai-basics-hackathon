@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 func TestCleanBriefing(t *testing.T) {

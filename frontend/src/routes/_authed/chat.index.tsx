@@ -51,7 +51,7 @@ function ChatListPage() {
                   type="button"
                   disabled={start.isPending}
                   onClick={() => void startChat(mode).catch(() => {})}
-                  className="rounded-3xl border-2 border-accent/50 bg-surface p-5 text-left transition-colors hover:border-accent hover:bg-accent-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:cursor-wait disabled:opacity-60"
+                  className="rounded-3xl border-2 border-primary/40 bg-surface p-5 text-left transition-colors hover:border-primary hover:bg-primary-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
                 >
                   <span className="block font-display text-2xl text-ink">{modeNames[mode]}</span>
                   <span className="mt-1 block text-sm text-ink-soft">{blurb}</span>

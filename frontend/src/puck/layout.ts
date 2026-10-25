@@ -3,7 +3,7 @@
 // normal page never loads the editor's code.)
 
 import type { Homepage, Layout, LayoutBlock, SavedWidget, Span } from '../api/client'
-import type { PorchlightData } from './types'
+import type { KinlightData } from './types'
 
 /** The page grid's columns on a wide screen; spans count these. */
 export const COLUMNS = 4
@@ -74,7 +74,7 @@ export function withoutCustomBlock(layout: Layout, widgetId: number): Layout {
  * bookkeeping of its own to the data; only the fields the server stores are
  * kept, so comparing two layouts compares what matters.
  */
-export function fromPuckData(data: PorchlightData): Layout {
+export function fromPuckData(data: KinlightData): Layout {
   const blocks = data.root.props?.blocks ?? []
   return layoutWith(
     blocks.map((block): LayoutBlock => {

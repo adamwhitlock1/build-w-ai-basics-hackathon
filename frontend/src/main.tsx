@@ -7,6 +7,10 @@ import { endSession } from './api/hooks'
 import { NotFound, RouteError, RoutePending } from './components/RouteStates'
 // Generated from the files in src/routes by the TanStack Router Vite plugin.
 import { routeTree } from './routeTree.gen'
+// The typefaces ship with the app, so no font request leaves its server.
+// Fraunces' full set has every axis, including the soft one headings use.
+import '@fontsource-variable/fraunces/full.css'
+import '@fontsource-variable/figtree'
 import './styles/index.css'
 
 const queryClient = new QueryClient({
@@ -47,7 +51,7 @@ setUnauthorizedHandler(() => void endSession(queryClient, router))
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {
-  throw new Error('Porchlight: #root element is missing from index.html')
+  throw new Error('Kinlight: #root element is missing from index.html')
 }
 
 createRoot(rootElement).render(

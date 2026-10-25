@@ -14,11 +14,11 @@ import (
 	"net/http"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // maxBodyBytes caps a PUT /api/me/homepage body. A full 50-card layout is

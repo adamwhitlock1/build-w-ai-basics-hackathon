@@ -16,11 +16,11 @@ import (
 
 	"github.com/alexedwards/scs/sqlite3store"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/assistant"
-	"porchlight/internal/auth"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/assistant"
+	"kinlight/internal/auth"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // parentAgent replies after using the family's-day tool once.

@@ -35,17 +35,11 @@ export function initialsFor(email: string): string {
 }
 
 /**
- * Soft background tints for avatars. Dark ink reads well on each. Spelled out
- * in full so Tailwind can find every class.
+ * Avatar tints from the brand palette (haint, pine, lamplight, cedar), each
+ * readable under ink in both themes. Spelled out in full so Tailwind can find
+ * every class.
  */
-const AVATAR_TINTS = [
-  'bg-amber-100',
-  'bg-indigo-100',
-  'bg-rose-100',
-  'bg-emerald-100',
-  'bg-sky-100',
-  'bg-violet-100',
-]
+const AVATAR_TINTS = ['bg-avatar-1', 'bg-avatar-2', 'bg-avatar-3', 'bg-avatar-4']
 
 /** A tint for someone's avatar. The same email always gets the same one. */
 export function avatarTint(email: string): string {

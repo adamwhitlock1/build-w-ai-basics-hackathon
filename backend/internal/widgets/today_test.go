@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // The link's secret part: no response or log line may contain it.

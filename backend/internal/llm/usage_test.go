@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // recorded is one RecordUsage call: the usage and the attribution its

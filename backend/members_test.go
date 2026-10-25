@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"porchlight/internal/calendar"
-	"porchlight/internal/family"
-	"porchlight/internal/layout"
-	"porchlight/internal/widgets"
+	"kinlight/internal/calendar"
+	"kinlight/internal/family"
+	"kinlight/internal/layout"
+	"kinlight/internal/widgets"
 )
 
 func memberPath(id int64, rest string) string {

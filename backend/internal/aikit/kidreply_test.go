@@ -10,9 +10,9 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/aikit/aitest"
-	"porchlight/internal/llm"
+	"kinlight/internal/aikit"
+	"kinlight/internal/aikit/aitest"
+	"kinlight/internal/llm"
 )
 
 // newKidAgent returns a KidAgent on the scripted model, with a fast retry.

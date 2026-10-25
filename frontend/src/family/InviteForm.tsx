@@ -37,7 +37,7 @@ interface Created {
 }
 
 /**
- * The sidebar's inline "Invite member" form: an email and a role. Porchlight
+ * The sidebar's inline "Invite member" form: an email and a role. Kinlight
  * doesn't send email, so on success it shows the invite link, ready to copy
  * and send however you like. Errors from the server ("Already a member.")
  * show inline.
@@ -163,7 +163,7 @@ export function InviteForm({ id, familyId, pendingInvites, onClose, onAnnounce }
             <button
               type="button"
               onClick={onClose}
-              className="h-10 rounded-2xl bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="h-10 rounded-2xl bg-ink px-4 text-sm font-medium text-bg transition-colors hover:bg-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Done
             </button>
@@ -237,7 +237,7 @@ export function InviteForm({ id, familyId, pendingInvites, onClose, onAnnounce }
 
 /**
  * What to say about a ready invite: a new one, or the one that email
- * already had (perhaps now for a different role). Porchlight sends no
+ * already had (perhaps now for a different role). Kinlight sends no
  * email, so it says to pass the link on.
  */
 function describe(invite: PendingInvite, before: PendingInvite | undefined): string {

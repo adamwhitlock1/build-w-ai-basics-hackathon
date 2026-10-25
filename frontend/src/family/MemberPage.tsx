@@ -100,7 +100,7 @@ export function MemberPage({ memberId, headingRef }: MemberPageProps) {
             Their articles and events are picked from their interests and location, which you can set here. Arranging
             the page and adding widgets is up to them.
           </p>
-          {/* Kids only: their age picks how Porchlight chat talks with them. */}
+          {/* Kids only: their age picks how Kinlight chat talks with them. */}
           {member && !member.isAdmin && <BirthYearField memberId={memberId} name={name ?? 'Their'} />}
         </header>
 

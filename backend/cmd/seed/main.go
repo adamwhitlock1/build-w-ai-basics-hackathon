@@ -1,9 +1,9 @@
 // Command seed fills a local database with test families, so there's always
 // an account to log in with when trying things out:
 //
-//	make seed                                  # into porchlight.db (or $DB_PATH)
-//	go run ./cmd/seed -db porchlight.db.test   # into another file
-//	make demo                                  # the demo family, into porchlight.db.demo
+//	make seed                                  # into kinlight.db (or $DB_PATH)
+//	go run ./cmd/seed -db kinlight.db.test   # into another file
+//	make demo                                  # the demo family, into kinlight.db.demo
 //
 // Without -demo it creates a parent and a kid in one family, through the
 // same store calls the app uses. If the parent already exists it changes
@@ -27,8 +27,8 @@ import (
 	"os"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/store"
 )
 
 // The test accounts. The kid uses a "+kid" address, which Gmail delivers to
@@ -43,9 +43,9 @@ const (
 func main() {
 	defaultDB := os.Getenv("DB_PATH")
 	if defaultDB == "" {
-		defaultDB = "porchlight.db"
+		defaultDB = "kinlight.db"
 	}
-	dbPath := flag.String("db", "", "SQLite database file to seed (default $DB_PATH or porchlight.db; porchlight.db.demo with -demo)")
+	dbPath := flag.String("db", "", "SQLite database file to seed (default $DB_PATH or kinlight.db; kinlight.db.demo with -demo)")
 	demo := flag.Bool("demo", false, "rebuild the demo families instead of adding the test family")
 	flag.Parse()
 

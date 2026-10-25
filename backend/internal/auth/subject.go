@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 // subjectKey is the context key for the request's subject. Like userKey,

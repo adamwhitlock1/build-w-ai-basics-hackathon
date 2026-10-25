@@ -6,14 +6,14 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 
-	"porchlight/internal/assistant"
-	"porchlight/internal/auth"
-	"porchlight/internal/chat"
-	"porchlight/internal/family"
-	"porchlight/internal/layout"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/assistant"
+	"kinlight/internal/auth"
+	"kinlight/internal/chat"
+	"kinlight/internal/family"
+	"kinlight/internal/layout"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // deps is everything routes needs to build the API. main fills it once;
@@ -107,6 +107,7 @@ func routes(d deps) http.Handler {
 	mux.Handle("GET /api/me/homepage", private(layoutHandler.Homepage))
 	mux.Handle("PUT /api/me/homepage", private(layoutHandler.SaveLayout))
 	mux.Handle("PUT /api/me/profile", private(familyHandler.UpdateProfile))
+	mux.Handle("PUT /api/me/theme", private(familyHandler.SetTheme))
 	mux.Handle("GET /api/widgets/articles", private(curatedHandler.Articles))
 	mux.Handle("GET /api/widgets/events", private(curatedHandler.Events))
 	mux.Handle("GET /api/widgets/today", private(todayHandler.Today))

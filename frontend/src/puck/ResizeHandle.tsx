@@ -137,7 +137,7 @@ export function ResizeHandle({ id, span, onPreview }: ResizeHandleProps) {
         }`}
       />
       {dragSpan && (
-        <span className="absolute right-full mr-2 whitespace-nowrap rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-white shadow-card">
+        <span className="absolute right-full mr-2 whitespace-nowrap rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-bg shadow-card">
           {dragSpan}/4 wide
         </span>
       )}

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/store"
-	"porchlight/migrations"
+	"kinlight/internal/store"
+	"kinlight/migrations"
 )
 
 // TestMigrateFromBeforeFreshness opens a database built by migrations 001

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/calendar"
-	"porchlight/internal/layout"
-	"porchlight/internal/store"
+	"kinlight/internal/calendar"
+	"kinlight/internal/layout"
+	"kinlight/internal/store"
 )
 
 func TestSeedDemo(t *testing.T) {
@@ -175,7 +175,7 @@ func TestSeedDemo(t *testing.T) {
 
 func TestSeedDemoRefusesARealDatabase(t *testing.T) {
 	ctx := context.Background()
-	dbPath := filepath.Join(t.TempDir(), "porchlight.db")
+	dbPath := filepath.Join(t.TempDir(), "kinlight.db")
 	if err := seed(ctx, dbPath); err != nil {
 		t.Fatal(err)
 	}

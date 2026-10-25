@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
 )
 
 // The errors the widget services return when there's no widget to give
@@ -29,7 +29,7 @@ var (
 )
 
 // The steps a StepError can name. Each is a call to something outside
-// Porchlight: an AI model, a search, or a calendar.
+// Kinlight: an AI model, a search, or a calendar.
 const (
 	StepPlanning        = "planning" // describe-a-widget choosing a source and query
 	StepSearch          = "search"

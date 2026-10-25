@@ -12,8 +12,8 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/openai/openai-go"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/llm"
+	"kinlight/internal/aikit"
+	"kinlight/internal/llm"
 )
 
 func TestUpstream(t *testing.T) {

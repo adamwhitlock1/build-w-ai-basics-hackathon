@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // reply is one canned HTTP response from the fake OpenRouter.
@@ -299,7 +299,7 @@ func TestPickWidgetSpecRequest(t *testing.T) {
 	if got := hdr.Get("Authorization"); got != "Bearer test-key" {
 		t.Errorf("Authorization = %q", got)
 	}
-	if hdr.Get("X-Title") != "Porchlight" || hdr.Get("HTTP-Referer") != "http://localhost:5174" {
+	if hdr.Get("X-Title") != "Kinlight" || hdr.Get("HTTP-Referer") != "http://localhost:5174" {
 		t.Errorf("missing attribution headers: %v", hdr)
 	}
 	if len(req.Messages) != 2 || !strings.Contains(req.Messages[0].Content, "web_search") {

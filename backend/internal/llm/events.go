@@ -9,7 +9,7 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // MaxEvents caps how many events the Local Events card shows.
@@ -131,7 +131,7 @@ func upcomingEvents(extracted []extractedEvent, results []sources.Result, today 
 // extractEventsSystemPrompt explains how to find grounded, dated events in
 // search results.
 func extractEventsSystemPrompt(now time.Time) string {
-	return `You pick out upcoming local events for the Local Events card on Porchlight, a family homepage, using web search results.
+	return `You pick out upcoming local events for the Local Events card on Kinlight, a family homepage, using web search results.
 
 Today is ` + now.Format("Monday, January 2, 2006") + `.
 

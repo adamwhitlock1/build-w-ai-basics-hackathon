@@ -21,12 +21,12 @@ export function ArticlesWidget() {
       missing={{
         no_interests: isYou
           ? {
-              message: 'Tell Porchlight what you’re into and articles will show up here.',
+              message: 'Tell Kinlight what you’re into and articles will show up here.',
               action: 'Add your interests',
               field: 'interests',
             }
           : {
-              message: 'Tell Porchlight what they’re into and articles will show up here.',
+              message: 'Tell Kinlight what they’re into and articles will show up here.',
               action: 'Add their interests',
               field: 'interests',
             },

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 func TestAssistantConversations(t *testing.T) {

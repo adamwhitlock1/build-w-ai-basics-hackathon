@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 // FamilyResponse is the response body of GET /api/me/family.
@@ -360,5 +360,5 @@ func writeInviteIDNotFound(w http.ResponseWriter) {
 // writeEmailTaken answers an invite for an email that already has an
 // account somewhere else.
 func writeEmailTaken(w http.ResponseWriter) {
-	respond.Error(w, http.StatusConflict, "That email already has a Porchlight account.", "Each account belongs to one family for now.")
+	respond.Error(w, http.StatusConflict, "That email already has a Kinlight account.", "Each account belongs to one family for now.")
 }

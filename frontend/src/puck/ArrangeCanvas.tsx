@@ -10,7 +10,7 @@ import type { Layout } from '../api/client'
 import { BlockActionBar } from './BlockActionBar'
 import { config } from './config'
 import { fromPuckData } from './layout'
-import type { PorchlightData } from './types'
+import type { KinlightData } from './types'
 import type { SaveState } from './useLayoutAutosave'
 
 interface ArrangeCanvasProps {
@@ -35,7 +35,7 @@ interface ArrangeCanvasProps {
  * itself rather than an iframe, so our styles apply as usual.
  */
 export function ArrangeCanvas({ initial, onChange, save }: ArrangeCanvasProps) {
-  const handleChange = useCallback((data: PorchlightData) => onChange(fromPuckData(data)), [onChange])
+  const handleChange = useCallback((data: KinlightData) => onChange(fromPuckData(data)), [onChange])
 
   return (
     // .arrange-canvas (styles/index.css) gives Puck's outlines our colours.

@@ -1,7 +1,7 @@
 # morning-briefing Specification
 
 ## Purpose
-Gives each family member a short, warm summary of their day at the top of their page. The AI writes it from the weather, calendar, news and nearby events Porchlight already has, and it costs at most a few AI calls per member per day and no paid searches.
+Gives each family member a short, warm summary of their day at the top of their page. The AI writes it from the weather, calendar, news and nearby events Kinlight already has, and it costs at most a few AI calls per member per day and no paid searches.
 
 ## Requirements
 

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/aikit"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // Tools looks things up for one kid, for the agent's tools. Every method
@@ -24,7 +24,7 @@ type Tools interface {
 	Search(ctx context.Context, kid store.User, query string) ([]aikit.SearchResult, error)
 }
 
-// ToolSources is Tools on Porchlight's own data and sources: the kid's
+// ToolSources is Tools on Kinlight's own data and sources: the kid's
 // profile, the Today card's calendar, their page's remembered picks, the
 // forecast source, and kid-safe web search.
 type ToolSources struct {

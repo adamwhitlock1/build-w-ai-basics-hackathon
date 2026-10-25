@@ -87,7 +87,7 @@ function InvitePage() {
   }
 
   const details = invite.data
-  const title = `Join ${familyPhrase(details.familyName)} on Porchlight`
+  const title = `Join ${familyPhrase(details.familyName)} on Kinlight`
 
   // Someone is logged in on this device already (a parent testing the link,
   // say). Accepting would switch accounts, so make that a clear choice.
@@ -249,7 +249,7 @@ function LoggedInAlready({ me, details, onLogOut }: LoggedInAlreadyProps) {
               onLogOut()
               logout.mutate()
             }}
-            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 font-medium text-white transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-disabled:cursor-wait aria-disabled:bg-primary-strong"
+            className="flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 font-medium text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-disabled:cursor-wait aria-disabled:bg-primary-strong"
           >
             {logout.isPending ? 'Logging out…' : 'Log out and continue'}
           </button>

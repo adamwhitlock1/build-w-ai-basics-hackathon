@@ -1,37 +1,57 @@
 @import "tailwindcss";
 
 /*
- * Design tokens (spec > Look and Feel). Every --color-* / --font-* /
+ * Design tokens, from brand/brief.md section 7. Every --color-* / --font-* /
  * --shadow-* / --animate-* variable here becomes a Tailwind utility,
  * e.g. bg-surface, text-ink-muted, font-display, shadow-card, animate-widget-in.
+ *
+ * These are Daybreak, the light theme. Porch light, the dark theme, redefines
+ * the same variables under :root[data-theme="dark"] below, so every utility
+ * follows the theme without a dark: variant anywhere. (Never use @theme
+ * inline: it bakes values into the utilities and the overrides stop working.)
+ * scripts/contrast.mjs checks both themes against WCAG AA.
  */
 @theme {
-  /* Surfaces: soft warm neutrals. */
-  --color-bg: #fafaf7;
-  --color-surface: #ffffff;
-  --color-line: #ebe6de;
+  /* Ground, cards, and separators: limewash and warm paper. */
+  --color-bg: #f7f2ea;
+  --color-surface: #fffdf9;
+  --color-line: #e6dccd;
+  /* The edge of a field or composer: 3:1 against surface and ground. */
+  --color-control: #9a8670;
 
-  /* Ink: warm near-blacks and greys (muted still passes 4.5:1 on bg). */
-  --color-ink: #2a2520;
-  --color-ink-soft: #564e46;
-  --color-ink-muted: #756c63;
+  /* Ink: walnut, then softer and muted (muted still passes 4.5:1). */
+  --color-ink: #2b211b;
+  --color-ink-soft: #574638;
+  --color-ink-muted: #76644f;
 
-  /* Calm indigo for everyday UI: links, focus rings, secondary buttons. */
-  --color-primary: #4f46e5;
-  --color-primary-strong: #4338ca;
-  --color-primary-soft: #eef2ff;
+  /* Haint blue, the everyday UI color: links, focus rings, buttons. */
+  --color-primary: #2f6461;
+  --color-primary-strong: #244e4b;
+  --color-primary-soft: #cfe5e1;
+  --color-on-primary: #fffdf9;
 
-  /* Warm amber for kernel moments only: submit, thinking, fresh widget. */
-  --color-accent: #f59e0b;
-  --color-accent-strong: #d97706;
-  --color-accent-soft: #fef3c7;
+  /* Lamplight: the light itself (new, fresh, thinking), never a button
+     fill. accent-strong is the text-safe version. */
+  --color-accent: #f3a73b;
+  --color-accent-strong: #95550b;
+  --color-accent-soft: #fbe9cc;
 
   /* Errors: a warm terracotta rather than alarm red. */
   --color-danger: #a8402c;
-  --color-danger-soft: #fdf1ed;
+  --color-danger-soft: #f8e8e2;
+  --color-on-danger: #fffdf9;
 
-  --font-display: "Gambarino", ui-serif, Georgia, Cambria, "Times New Roman", serif;
-  --font-sans: "Switzer", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  /* Avatar tints: haint, pine, lamplight and cedar, each under ink. */
+  --color-avatar-1: #cfe5e1;
+  --color-avatar-2: #f0dec6;
+  --color-avatar-3: #f9e2bd;
+  --color-avatar-4: #ebd5c4;
+
+  /* The lantern's glass core, brighter than the light around it. */
+  --color-glass-core: #ffe3a6;
+
+  --font-display: "Fraunces Variable", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 
   --shadow-card: 0 1px 2px rgb(64 48 32 / 0.04), 0 12px 32px -12px rgb(64 48 32 / 0.14);
@@ -62,16 +82,63 @@
     color-scheme: light;
   }
 
+  /*
+   * Porch light: warm walnut, not blue-black. index.html's first script sets
+   * data-theme before the first paint, resolving "Automatic" from the
+   * device, and src/theme.ts keeps it current.
+   */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-bg: #18120e;
+    --color-surface: #231b16;
+    --color-line: #3d3027;
+    --color-control: #7a6857;
+
+    --color-ink: #f4e9db;
+    --color-ink-soft: #d6c7b4;
+    --color-ink-muted: #a8957f;
+
+    --color-primary: #9fd0c9;
+    --color-primary-strong: #b9e0da;
+    /* Each "soft" tint is its color at 14% over surface (amber at 12%,
+       so muted ink on it still passes 4.5:1). */
+    --color-primary-soft: #34342f;
+    --color-on-primary: #18120e;
+
+    --color-accent: #ffb547;
+    --color-accent-strong: #ffb547;
+    --color-accent-soft: #3d2d1c;
+
+    --color-danger: #e08a72;
+    --color-danger-soft: #3d2b23;
+    --color-on-danger: #18120e;
+
+    /* The same four hues at 24% over surface. */
+    --color-avatar-1: #414641;
+    --color-avatar-2: #504234;
+    --color-avatar-3: #584022;
+    --color-avatar-4: #453224;
+
+    --color-glass-core: #ffe8b8;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -12px rgb(0 0 0 / 0.55);
+  }
+
   body {
     @apply bg-bg font-sans text-ink antialiased;
   }
 
-  /* Gambarino ships a single 400 weight; never let the browser fake bold. */
+  /*
+   * Fraunces with its soft axis up: rounded, carved-wood serifs. Its weight
+   * axis covers bold, so the browser never fakes one.
+   */
   h1,
   h2,
   h3 {
     @apply font-display font-normal tracking-tight;
     font-synthesis: none;
+    font-variation-settings: "SOFT" 100;
   }
 }
 

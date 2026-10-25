@@ -73,7 +73,7 @@ function TranscriptPage() {
                   type="button"
                   disabled={remove.isPending}
                   onClick={() => void deleteChat().catch(() => {})}
-                  className="h-10 rounded-2xl bg-danger px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+                  className="h-10 rounded-2xl bg-danger px-4 text-sm font-medium text-on-danger hover:opacity-90 disabled:opacity-60"
                 >
                   Delete permanently
                 </button>

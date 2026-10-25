@@ -1,5 +1,5 @@
-// Package aikit is Porchlight's one way into Genkit for Go. It builds the
-// Genkit instance with the model plugins Porchlight uses, knows which models
+// Package aikit is Kinlight's one way into Genkit for Go. It builds the
+// Genkit instance with the model plugins Kinlight uses, knows which models
 // exist, records every model answer's token usage, and turns Genkit's errors
 // into llm.UpstreamError, so the rest of the backend never imports a Genkit
 // plugin.
@@ -19,7 +19,7 @@ import (
 	"github.com/firebase/genkit/go/plugins/compat_oai/openrouter"
 	"github.com/openai/openai-go/option"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // DefaultMiniMaxModel is the MiniMax model registered when MINIMAX_MODEL
@@ -51,7 +51,7 @@ type Config struct {
 	NoRetention bool
 }
 
-// Kit wraps a Genkit instance with Porchlight's choices: the default model,
+// Kit wraps a Genkit instance with Kinlight's choices: the default model,
 // where usage goes, and how failed calls are retried. It is safe for
 // concurrent use once set up.
 type Kit struct {
@@ -86,7 +86,7 @@ func New(ctx context.Context, cfg Config) (kit *Kit, err error) {
 	plugins := []api.Plugin{&openrouter.OpenRouter{
 		APIKey:  cfg.OpenRouterKey,
 		SiteURL: "http://localhost:5174",
-		AppName: "Porchlight",
+		AppName: "Kinlight",
 		Opts:    []option.RequestOption{option.WithBaseURL(strings.TrimRight(baseURL, "/") + "/"), option.WithMaxRetries(0)},
 	}}
 	miniMaxModel := ""

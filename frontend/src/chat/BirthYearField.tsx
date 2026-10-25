@@ -6,7 +6,7 @@ const MIN_AGE = 5
 const MAX_AGE = 17
 
 /**
- * A parent setting a kid's birth year, which picks how Porchlight chat
+ * A parent setting a kid's birth year, which picks how Kinlight chat
  * talks to them: a younger voice up to 12, a teen one from 13. Kids can't
  * change it. It saves as soon as a year is picked.
  */
@@ -37,7 +37,7 @@ export function BirthYearField({ memberId, name }: { memberId: number; name: str
           </option>
         ))}
       </select>
-      <span className="text-xs text-ink-muted">Sets how Porchlight chat talks with them.</span>
+      <span className="text-xs text-ink-muted">Sets how Kinlight chat talks with them.</span>
       {save.isError && <span className="text-danger">{save.error.message}</span>}
       {save.isSuccess && !save.isPending && <span role="status">Saved.</span>}
     </div>

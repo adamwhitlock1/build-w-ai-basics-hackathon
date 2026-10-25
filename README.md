@@ -1,6 +1,11 @@
-# Porchlight
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="brand/logo/lockup-on-dark.svg">
+  <img src="brand/logo/lockup.svg" alt="Kinlight" height="64">
+</picture>
 
-Porchlight is a homepage for each member of a family where every widget is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new widget appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a widget, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into widget items, using only what the search returned. Your API keys never leave the server.
+# Kinlight
+
+Kinlight (formerly Porchlight) is a homepage for each member of a family where every widget is AI-driven. Type a sentence like "show me upcoming SpaceX launches" and a new widget appears, filled with live data. It has two halves that talk over HTTP. A **Go backend** is the only part that talks to the LLM (through OpenRouter) and to Brave Search. A **React frontend** runs in the browser and calls the Go API. When you describe a widget, the backend asks the LLM to choose a data source, a search query and a display shape. It then runs the search on Brave and asks the LLM to turn the results into widget items, using only what the search returned. Your API keys never leave the server.
 
 > Status: slice 6 (accounts, family setup, widgets that are saved to you, Articles and Local Events cards that pick themselves from your interests and location, a page you can arrange, a family sidebar where parents invite the rest of the family, each of whom gets their own page, and parents switching to any member's page to set their interests).
 
@@ -19,6 +24,13 @@ cp backend/.env.example backend/.env
 ```
 
 `backend/.env` is gitignored, so your keys stay on your machine.
+
+**Coming from Porchlight?** The app was renamed before it was ever deployed, and nothing kept the old names.
+- The settings are now `KINLIGHT_*` (for example `KINLIGHT_DEV_FIXTURES`).
+- The database file is `backend/kinlight.db`.
+- The session cookie is `kinlight_session`, so everyone signs in once more.
+
+The server won't start while `backend/.env` or your shell still sets a `PORCHLIGHT_*` variable, or a `DB_PATH` naming `porchlight.db`. It says what to rename. To keep your data, rename the file: `mv backend/porchlight.db backend/kinlight.db`.
 
 ## Run
 
@@ -39,7 +51,7 @@ On startup the backend checks that both keys are set, that your `OPENROUTER_MODE
 
 To arrange your page, press **Arrange** at the top (it shows on screens at least tablet-wide). Drag a card to move it, or drag its right edge to make it 1/4 to 4/4 of the page wide (the width buttons above a selected card do the same). Changes save as you go; press **Done** (or Escape) to use the page again. A widget you described can also be deleted there, with **Remove**.
 
-To invite your family, use **Invite member** in the sidebar (on a phone, open **Family** first): enter their email and choose **Parent** (can invite and manage) or **Kid**. Porchlight sends no email. Instead it shows a link to copy and send them however you like. The link uses the address you opened the app at (for example `http://localhost:5174/invite/...`), so they need to be able to reach that address. A link works for 14 days, and until someone uses it, it stays under **Pending invites**, where you can copy it again or revoke it. Co-parents you named while setting up your family are listed there too. Opening the link while logged out asks the new member to choose a password, and then they land on their own page.
+To invite your family, use **Invite member** in the sidebar (on a phone, open **Family** first): enter their email and choose **Parent** (can invite and manage) or **Kid**. Kinlight sends no email. Instead it shows a link to copy and send them however you like. The link uses the address you opened the app at (for example `http://localhost:5174/invite/...`), so they need to be able to reach that address. A link works for 14 days, and until someone uses it, it stays under **Pending invites**, where you can copy it again or revoke it. Co-parents you named while setting up your family are listed there too. Opening the link while logged out asks the new member to choose a password, and then they land on their own page.
 
 To look at a family member's page, a parent picks them in the sidebar's member list (on a phone, under **Family**). Their page opens at `/?as=<their id>`: their cards in their own order, read-only, since arranging it and adding widgets is up to them. **Their interests** sets the interests and location their Articles and Local Events are picked from. Pick yourself, or press **Back to your page**, to return. Kids see only their own page; the server refuses anyone else's.
 
@@ -47,13 +59,13 @@ Widgets remember their results, so a page you've opened before shows its cards s
 
 What that costs: picking Articles takes up to 5 Brave news searches, Local Events up to 3 web searches, each with a few small LLM calls, and refreshing a described widget takes 1 search and 1 LLM call. A visit while everything is fresh spends nothing. Pressing refresh twice within a minute spends only once. A family member's cards are shared with their parents' view of them, so whoever opens them first pays, and the other gets them for free.
 
-Accounts, families, saved widgets and page layouts live in a SQLite file, `backend/porchlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/porchlight.db*`. Set `DB_PATH` to use a different file.
+Accounts, families, saved widgets and page layouts live in a SQLite file, `backend/kinlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/kinlight.db*`. Set `DB_PATH` to use a different file.
 
 ### Why `make run` and not `go run .`?
 
 The Makefile sets two things for every Go command:
 
-- **`CGO_ENABLED=0`:** Porchlight is pure Go, and so is its SQLite driver (modernc.org/sqlite), so it builds without C. The result is one static binary that also cross-compiles to Linux for a home server (`GOOS=linux make build`). It was first turned off because Go 1.22.0 binaries built with cgo crashed on this Mac. Go 1.24+ fixed that, so it's a deliberate choice now.
+- **`CGO_ENABLED=0`:** Kinlight is pure Go, and so is its SQLite driver (modernc.org/sqlite), so it builds without C. The result is one static binary that also cross-compiles to Linux for a home server (`GOOS=linux make build`). It was first turned off because Go 1.22.0 binaries built with cgo crashed on this Mac. Go 1.24+ fixed that, so it's a deliberate choice now.
 - **`GOTOOLCHAIN=local`:** Go always uses the installed toolchain and never downloads one. If `go.mod` ever needs a newer Go than you have, the build stops and says so.
 
 To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...`.
@@ -61,7 +73,7 @@ To run Go commands by hand, prefix them: `CGO_ENABLED=0 GOTOOLCHAIN=local go tes
 ## Data sources
 
 - **[Brave Search](https://brave.com/search/api/)**: news, web and events searches. Needs `BRAVE_API_KEY`.
-- **[Open-Meteo](https://open-meteo.com/)**: weather widgets (the place lookup and the 7-day forecast). It needs no key. Its free API is for non-commercial use only and its data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), so every weather card says "Weather data by Open-Meteo.com". A commercial Porchlight would need Open-Meteo's paid plan.
+- **[Open-Meteo](https://open-meteo.com/)**: weather widgets (the place lookup and the 7-day forecast). It needs no key. Its free API is for non-commercial use only and its data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), so every weather card says "Weather data by Open-Meteo.com". A commercial Kinlight would need Open-Meteo's paid plan.
 
 ## Local test accounts
 
@@ -72,11 +84,11 @@ For trying things out locally, `make seed` (run in `backend/`) adds a test famil
 | Parent | `contact.codestuff@gmail.com` | `password1` |
 | Kid | `contact.codestuff+kid@gmail.com` | `password1` |
 
-It writes to `porchlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
+It writes to `kinlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
 
 ## Demo family
 
-For testing every member's path end to end, `make demo` builds a whole family, plus a second one, in its own database, `backend/porchlight.db.demo` (gitignored). It deletes that file first, so every run starts from the same place. It never touches `porchlight.db`, and it refuses to write into any other file that already has accounts.
+For testing every member's path end to end, `make demo` builds a whole family, plus a second one, in its own database, `backend/kinlight.db.demo` (gitignored). It deletes that file first, so every run starts from the same place. It never touches `kinlight.db`, and it refuses to write into any other file that already has accounts.
 
 ```sh
 # Terminal 1: rebuild the demo, then serve it with fixture calendars on
@@ -102,7 +114,7 @@ Every account's password is `password1`.
 
 `.test` addresses can never reach a real inbox. The data lives in `backend/cmd/seed/demo.go`, as a plain Go list you can add members to.
 
-**Fixture calendars.** The demo members' calendar links point at `https://fixtures.porchlight.test/calendars/<name>.ics`. With `PORCHLIGHT_DEV_FIXTURES=1` (which `make demo-serve` sets), the server answers those links itself, with a feed built fresh around the current time. Between them, the feeds always have:
+**Fixture calendars.** The demo members' calendar links point at `https://fixtures.kinlight.test/calendars/<name>.ics`. With `KINLIGHT_DEV_FIXTURES=1` (which `make demo-serve` sets), the server answers those links itself, with a feed built fresh around the current time. Between them, the feeds always have:
 
 - an event today that has already ended, and one still to come;
 - an all-day event;
@@ -110,11 +122,11 @@ Every account's password is `password1`.
 - a daily standup with today's moved from 9:00 to 11:00 (Sam);
 - a daily band practice with today's deleted (Jordan).
 
-You can paste a fixture link into anyone's "Your interests", for example `https://fixtures.porchlight.test/calendars/maya.ics` for Lily. Without the setting, `.test` never resolves, so those links just show as unavailable. Every other link is fetched exactly as usual either way. Never turn the setting on in a deployment.
+You can paste a fixture link into anyone's "Your interests", for example `https://fixtures.kinlight.test/calendars/maya.ics` for Lily. Without the setting, `.test` never resolves, so those links just show as unavailable. Every other link is fetched exactly as usual either way. Never turn the setting on in a deployment.
 
 Two limits come with building feeds around "now". Between about 11 pm and 1 am, the "already ended" or "still to come" event may not fit inside today and is left out. And "today" is the server's date, which only matters if the server and browser are in different time zones.
 
-**Real calendars instead.** To try a real feed, set `SEED_CALENDAR_MAYA`, `SEED_CALENDAR_SAM`, `SEED_CALENDAR_JORDAN` or `SEED_CALENDAR_ALEX` in `backend/.env` to a private iCal link and run `make demo` again. That member gets the real link instead of the fixture. The link goes only into `porchlight.db.demo`, and `make demo` never prints it.
+**Real calendars instead.** To try a real feed, set `SEED_CALENDAR_MAYA`, `SEED_CALENDAR_SAM`, `SEED_CALENDAR_JORDAN` or `SEED_CALENDAR_ALEX` in `backend/.env` to a private iCal link and run `make demo` again. That member gets the real link instead of the fixture. The link goes only into `kinlight.db.demo`, and `make demo` never prints it.
 
 **What browsing the demo costs.** `make demo` fills every member's Articles, "Happening near you" and described widgets with realistic results, marked as just updated. Their links go to real home pages; refreshing a card replaces them with real results. While they're fresh, opening any page as anyone runs no Brave search and no AI call. Two things still cost:
 
@@ -130,7 +142,7 @@ The Today card at the top of each page lists that day's events from a calendar l
 - **Google Calendar:** the calendar's settings → "Integrate calendar" → "Secret address in iCal format".
 - **iCloud:** share the calendar as a public calendar and copy its `webcal://` link.
 
-A calendar link is a secret: anyone who has it can read the calendar. Porchlight keeps it on the server, never sends it back to a browser or to the AI, and never logs it. The page only learns that a calendar is connected and which service it's from. The server fetches links over `https` only, and never from private or local network addresses.
+A calendar link is a secret: anyone who has it can read the calendar. Kinlight keeps it on the server, never sends it back to a browser or to the AI, and never logs it. The page only learns that a calendar is connected and which service it's from. The server fetches links over `https` only, and never from private or local network addresses.
 
 Google can take a few hours to publish changes to its iCal link, so a newly added event may not show up straight away.
 
@@ -149,7 +161,7 @@ The briefing is written once on the member's first visit of the day, and rewritt
 
 ## Kid chat
 
-Kids get **Chat**: an "Ask Porchlight" card at the top of their page, and a Chat page with two kinds of conversation.
+Kids get **Chat**: an "Ask Kinlight" card at the top of their page, and a Chat page with two kinds of conversation.
 - **Homework help:** a tutor that guides rather than answers. For anything that looks like an assignment, it works up a hint ladder, one step at a time: what have you tried, a hint, a worked example of a similar problem, then checking their answer. It doesn't hand over the answer or write the essay, even if asked twice, told it isn't homework, or told to ignore its rules.
 - **Explore:** a companion for questions, ideas, stories and projects. The homework rule still applies.
 
@@ -198,7 +210,7 @@ Without the key, kid chat is off: kids see "Chat isn't set up yet. Ask a parent.
 
 The models are `KIDS_CHAT_MODEL` and `KIDS_SAFETY_MODEL`, both `anthropic/claude-haiku-5.5` by default. A model needs a zero-retention endpoint that doesn't filter out what a kid in trouble writes. The OpenAI models' zero-retention endpoints block self-harm messages, and Gemini has no zero-retention endpoint, so neither qualifies.
 
-**Prototyping.** `PORCHLIGHT_KIDS_ALLOW_RETENTION=1` lets kid chat run on any provider, with the main key if there's no kids' key. It's for trying things with the demo family. The server warns at startup when it's on. Never set it once your kids use the app.
+**Prototyping.** `KINLIGHT_KIDS_ALLOW_RETENTION=1` lets kid chat run on any provider, with the main key if there's no kids' key. It's for trying things with the demo family. The server warns at startup when it's on. Never set it once your kids use the app.
 
 **Checking behavior.** `make ai-eval-kids` runs 17 scripted kid conversations through the real chat service and models:
 - homework asked for straight, twice and in disguise, and an essay;
@@ -239,9 +251,26 @@ Tool use shows as notes above each reply ("Searched: …", "Looked at the family
 - the family's day is used;
 - "Ask anything" can't read the kids' chats;
 - a kid summary flags what matters, even with an instruction planted in the kid's chat;
-- it stays read-only.
+- it stays read-only;
+- it calls the kids by name rather than guessing pronouns.
+
+Both agents' prompts ask for names instead of pronouns a model would guess from a name. That's a prompt rule, so the evaluation measures it: in testing it held in most runs, not every one.
 
 `make ai-smoke` also checks a parent tool call on each key.
+
+## Look and themes
+
+The identity comes from `brand/`: the name Kinlight, the lantern mark, and the colors and typefaces in `brand/brief.md`.
+
+- **Two themes.**
+  - **Daybreak** is limewash and walnut.
+  - **Porch light** is warm walnut, not blue-black.
+  - Haint blue is the color of links and buttons. Amber is kept for light: what's new, fresh or being written.
+- **Choosing a theme.** Each member picks **Automatic** (follow the device), **Daybreak** or **Porch light** under **Theme** at the bottom of the sidebar. The choice is saved with their account, so it follows them to every device, and the page never flashes the other theme while loading.
+- **How it's built.** All colors are tokens in `frontend/src/styles/index.css`. Porch light redefines the same tokens, so components never name a theme.
+- **Contrast.** `npm run check:contrast` checks every text and control pairing in both themes against WCAG AA, and CI runs it.
+- **Fonts.** Fraunces (headings, with its soft axis) and Figtree (everything else) are bundled with the app, so pages make no font requests to other sites.
+- **The lantern.** The header lockup is `brand/logo/themed/lockup.svg`, copied to `frontend/src/brand/`. The tab and home-screen icons are copied from `brand/logo/` to `frontend/public/`. Re-copy them after `brand/logo/build.py` changes the drawings.
 
 ## Tests
 
@@ -250,14 +279,14 @@ cd backend
 make check   # go vet + go test + govulncheck + go build
 ```
 
-`make check` also runs `govulncheck` (pinned in `go.mod` as a tool), which fails if Porchlight's code can reach a known vulnerability in Go or a dependency. It downloads the vulnerability list from vuln.go.dev, so it needs network; `make test` and `make vet` work offline. The race detector works too: `CGO_ENABLED=0 GOTOOLCHAIN=local go test -race ./...`.
+`make check` also runs `govulncheck` (pinned in `go.mod` as a tool), which fails if Kinlight's code can reach a known vulnerability in Go or a dependency. It downloads the vulnerability list from vuln.go.dev, so it needs network; `make test` and `make vet` work offline. The race detector works too: `CGO_ENABLED=0 GOTOOLCHAIN=local go test -race ./...`.
 
 The tests replace OpenRouter, Brave, Open-Meteo and calendar feeds with fakes (calendar tests read sample feeds in `backend/internal/calendar/testdata/`), so they need no keys, spend no credit and make no network calls.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs three checks on every pull request and every push to `main`:
 - **Backend:** `make check`, on Go 1.27.3.
 - **Backend race detector:** `go test -race ./...`. On Linux it needs cgo, so this job turns cgo on.
-- **Frontend:** `npm run lint` and `npm run build`.
+- **Frontend:** `npm run lint`, `npm run check:contrast` and `npm run build`.
 
 ## AI usage
 
@@ -292,13 +321,13 @@ AI calls go through one of two packages:
 
 **Models.** Both clients use `OPENROUTER_MODEL` (default `openai/gpt-4.1-mini`) through your OpenRouter account. In Genkit that model is called `openrouter/openai/gpt-4.1-mini`. To give Genkit a different one, set `GENKIT_MODEL` in `backend/.env` to `openrouter/` plus any OpenRouter model id. Every Genkit call's tokens go to `llm_usage` like everything else's.
 
-**Switching back.** `PORCHLIGHT_BRIEFER=legacy` in `backend/.env` makes the original client write the briefing again, after a restart. The default is `genkit`, and any other value stops the server at startup. The switch goes away once the agent has run on Genkit for a while.
+**Switching back.** `KINLIGHT_BRIEFER=legacy` in `backend/.env` makes the original client write the briefing again, after a restart. The default is `genkit`, and any other value stops the server at startup. The switch goes away once the agent has run on Genkit for a while.
 
 **MiniMax.** With `MINIMAX_API_KEY` set (and optionally `MINIMAX_BASE_URL` and `MINIMAX_MODEL`), MiniMax's Anthropic-compatible API is available to Genkit as `anthropic/<MINIMAX_MODEL>`. Nothing uses it yet. It's for the owner's own experiments and never for kids' conversations: those go only to providers that don't keep or train on what they're sent, and a subscription plan doesn't promise that. Without the key, MiniMax isn't registered at all.
 
 **Checking the real providers.** `make ai-smoke` (in `backend/`) calls the real models: structured output, one tool call, a required tool call, and usage reporting, for OpenRouter and, with a key, MiniMax. It costs a fraction of a cent, so it only runs when you ask; CI never does. The tests otherwise use `internal/aikit/aitest`, a real Genkit instance whose one model answers from a script, so they need no keys or network.
 
-**Watching AI calls.** `make dev-ui` runs the API under Genkit's Developer UI at <http://localhost:4000>. It shows each model call's prompt, reply, tokens and timing. Settings pass through, e.g. `DB_PATH=porchlight.db.demo PORCHLIGHT_DEV_FIXTURES=1 make dev-ui` for the demo family. The CLI is pinned (`genkit-cli@1.44.1`) and fetched by `npx`. On first run it asks you to acknowledge Google's analytics notice; `npx genkit-cli@1.44.1 config set analyticsOptOut true` opts out instead. Traces are kept in `backend/.genkit/`. They hold full prompts and replies, so the folder is gitignored; delete it to clear them.
+**Watching AI calls.** `make dev-ui` runs the API under Genkit's Developer UI at <http://localhost:4000>. It shows each model call's prompt, reply, tokens and timing. Settings pass through, e.g. `DB_PATH=kinlight.db.demo KINLIGHT_DEV_FIXTURES=1 make dev-ui` for the demo family. The CLI is pinned (`genkit-cli@1.44.1`) and fetched by `npx`. On first run it asks you to acknowledge Google's analytics notice; `npx genkit-cli@1.44.1 config set analyticsOptOut true` opts out instead. Traces are kept in `backend/.genkit/`. They hold full prompts and replies, so the folder is gitignored; delete it to clear them.
 
 The Dev UI talks to Genkit's reflection server on 127.0.0.1:3100, which **runs any AI flow without a login**. It starts only when `GENKIT_ENV=dev` or `GENKIT_REFLECTION_ENABLED` is set, and the backend logs a warning when it does. Use it on your own machine only, and never set either variable on the homelab.
 

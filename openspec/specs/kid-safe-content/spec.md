@@ -1,7 +1,7 @@
 # kid-safe-content Specification
 
 ## Purpose
-Makes sure the content Porchlight finds for a kid member is suitable for someone under 18, and lets parents see which cards were made that way.
+Makes sure the content Kinlight finds for a kid member is suitable for someone under 18, and lets parents see which cards were made that way.
 
 ## Requirements
 

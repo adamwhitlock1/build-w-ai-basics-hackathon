@@ -11,6 +11,7 @@ import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
 import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import { useNow } from '../widgets/updatedAgo'
+import { forgetTheme } from '../theme'
 import {
   ApiError,
   apiFetch,
@@ -28,6 +29,7 @@ import {
   type Layout,
   type LayoutResponse,
   type Me,
+  type Theme,
   type MemberProfile,
   type PendingInvite,
   type Profile,
@@ -84,7 +86,10 @@ function belongsToSession(query: Query) {
 /** Starts from a clean cache for the person who just logged in, signed up or accepted an invite. */
 function startSession(queryClient: QueryClient, me: Me) {
   // Nothing cached for someone else may show up on this person's pages.
-  queryClient.removeQueries({ predicate: belongsToSession })
+  // Me itself is overwritten rather than removed: components already
+  // watching it (the root, which applies the member's theme) keep watching
+  // the same query and see the new person.
+  queryClient.removeQueries({ predicate: (query) => belongsToSession(query) && query.queryKey[0] !== 'me' })
   queryClient.setQueryData(meQueryOptions.queryKey, me)
 }
 
@@ -95,6 +100,8 @@ function startSession(queryClient: QueryClient, me: Me) {
 export async function endSession(queryClient: QueryClient, router: RegisteredRouter) {
   // Record "nobody is logged in" first, so /login doesn't bounce back to /.
   queryClient.setQueryData(meQueryOptions.queryKey, null)
+  // The next person on this device starts from the device's own theme.
+  forgetTheme()
   await router.navigate({ to: '/login' })
   // Now that no page is showing them, drop everything cached for that person.
   queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'me' })
@@ -558,7 +565,7 @@ export function setCachedLayout(queryClient: QueryClient, layout: Layout) {
 // Widgets picked for you
 // ---------------------------------------------------------------------------
 
-/** The two widgets Porchlight curates from a member's interests and location. */
+/** The two widgets Kinlight curates from a member's interests and location. */
 export type CuratedKind = 'articles' | 'events'
 
 /**
@@ -901,6 +908,33 @@ interface ProfileSaveContext {
   userId: number | undefined
   /** The profile before saving, to tell which curated widgets the change affects. */
   before: Profile | undefined
+}
+
+/**
+ * Saves your theme. Call `mutate('dark')`. The page switches at once (the
+ * root route applies whatever the cached Me says); if saving fails, the
+ * cached Me, and so the page, goes back to the theme before.
+ */
+export function useSetTheme() {
+  const queryClient = useQueryClient()
+  const withTheme = (theme: Theme) => (me: Me | null | undefined) => (me ? { ...me, user: { ...me.user, theme } } : me)
+  return useMutation<Me, ApiError, Theme, { userId?: number; before?: Theme }>({
+    onMutate: (theme) => {
+      const me = queryClient.getQueryData(meQueryOptions.queryKey)
+      queryClient.setQueryData(meQueryOptions.queryKey, withTheme(theme))
+      return { userId: me?.user.id, before: me?.user.theme }
+    },
+    mutationFn: (theme) => apiFetch<Me>('/api/me/theme', { method: 'PUT', body: { theme } }),
+    onSuccess: (me, _theme, { userId }) => {
+      // Someone else logged in on this device while it saved: not their theme.
+      if (queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== userId) return
+      queryClient.setQueryData(meQueryOptions.queryKey, me)
+    },
+    onError: (_err, _theme, context) => {
+      if (!context?.before || queryClient.getQueryData(meQueryOptions.queryKey)?.user.id !== context.userId) return
+      queryClient.setQueryData(meQueryOptions.queryKey, withTheme(context.before))
+    },
+  })
 }
 
 /**

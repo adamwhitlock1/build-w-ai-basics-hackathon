@@ -5,8 +5,8 @@ import { defineConfig } from 'vite'
 
 // Both default to the normal local setup. The overrides exist so a test run
 // can point a second dev server at a fake API without touching your own.
-const apiTarget = process.env.PORCHLIGHT_API ?? 'http://127.0.0.1:8080'
-const webPort = Number(process.env.PORCHLIGHT_WEB_PORT ?? 5174)
+const apiTarget = process.env.KINLIGHT_API ?? 'http://127.0.0.1:8080'
+const webPort = Number(process.env.KINLIGHT_WEB_PORT ?? 5174)
 
 // https://vite.dev/config/
 export default defineConfig({

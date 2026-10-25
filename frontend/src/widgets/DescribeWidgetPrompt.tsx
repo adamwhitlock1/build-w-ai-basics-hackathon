@@ -109,12 +109,12 @@ export function DescribeWidgetPrompt({ id, onCreated, onClose }: DescribeWidgetP
             aria-describedby={createWidget.isError ? `${headingId}-error` : undefined}
             autoComplete="off"
             enterKeyHint="go"
-            className="h-14 min-w-0 flex-1 rounded-2xl border border-line bg-bg px-4 text-base text-ink placeholder:text-ink-muted focus:border-primary/50 focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/10"
+            className="h-14 min-w-0 flex-1 rounded-2xl border border-control bg-bg px-4 text-base text-ink placeholder:text-ink-muted focus:border-primary/50 focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/10"
           />
           <button
             type="submit"
             disabled={!prompt.trim()}
-            className="flex h-14 shrink-0 items-center gap-2 rounded-2xl bg-accent px-4 font-medium text-ink transition-colors hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-strong disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent sm:px-5"
+            className="flex h-14 shrink-0 items-center gap-2 rounded-2xl bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary sm:px-5"
           >
             <PlusIcon />
             <span className="sr-only sm:not-sr-only">Add</span>

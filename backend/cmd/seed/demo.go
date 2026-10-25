@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"porchlight/internal/layout"
-	"porchlight/internal/llm"
+	"kinlight/internal/layout"
+	"kinlight/internal/llm"
 )
 
 // The demo families, as data. To add a member, add a demoMember; to give
@@ -18,7 +18,7 @@ import (
 
 // defaultDemoDB is where make demo writes. Its name ends in ".demo", which is
 // what lets the seed delete and rebuild it (see resetDemoDB).
-const defaultDemoDB = "porchlight.db.demo"
+const defaultDemoDB = "kinlight.db.demo"
 
 // demoFamily is one family: its creator is members[0], who must be a parent.
 type demoFamily struct {

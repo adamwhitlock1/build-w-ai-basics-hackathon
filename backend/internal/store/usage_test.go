@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 func TestUsageSummary(t *testing.T) {

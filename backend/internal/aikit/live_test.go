@@ -13,17 +13,17 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/joho/godotenv"
 
-	"porchlight/internal/aikit"
+	"kinlight/internal/aikit"
 )
 
 // TestLive checks the real providers: structured output, one tool call, and
 // usage reporting, for OpenRouter and (with MINIMAX_API_KEY set) MiniMax.
-// It spends a fraction of a cent, so it runs only with PORCHLIGHT_LIVE_AI=1
+// It spends a fraction of a cent, so it runs only with KINLIGHT_LIVE_AI=1
 // (`make ai-smoke`), never in CI. Keys come from the environment or
 // backend/.env.
 func TestLive(t *testing.T) {
-	if os.Getenv("PORCHLIGHT_LIVE_AI") != "1" {
-		t.Skip("set PORCHLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
+	if os.Getenv("KINLIGHT_LIVE_AI") != "1" {
+		t.Skip("set KINLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
 	}
 	// Like main, values already in the environment win over the file.
 	if err := godotenv.Load("../../.env"); err != nil && !os.IsNotExist(err) {
@@ -164,8 +164,8 @@ func checkUsage(t *testing.T, rec *fakeRecorder, before int) {
 // key, or the main key if that isn't set: the routing doesn't depend on
 // the key, which only keeps the kids' traffic separate.
 func TestLiveKids(t *testing.T) {
-	if os.Getenv("PORCHLIGHT_LIVE_AI") != "1" {
-		t.Skip("set PORCHLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
+	if os.Getenv("KINLIGHT_LIVE_AI") != "1" {
+		t.Skip("set KINLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
 	}
 	if err := godotenv.Load("../../.env"); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("read backend/.env: %v", err)
@@ -246,8 +246,8 @@ func envOrDefault(key, fallback string) string {
 // on the main key, and one kids_chats call with no-retention routing (the
 // kids' key, or the main key when that isn't set).
 func TestLiveParent(t *testing.T) {
-	if os.Getenv("PORCHLIGHT_LIVE_AI") != "1" {
-		t.Skip("set PORCHLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
+	if os.Getenv("KINLIGHT_LIVE_AI") != "1" {
+		t.Skip("set KINLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
 	}
 	if err := godotenv.Load("../../.env"); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("read backend/.env: %v", err)

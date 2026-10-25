@@ -26,5 +26,6 @@ const (
 	HomeworkRule         = homeworkRule
 	CrisisPrompt         = crisisPrompt
 	InjectionRule        = injectionRule
+	NamesRule            = namesRule
 	SafetyTitleRequest   = safetyTitleRequest
 )

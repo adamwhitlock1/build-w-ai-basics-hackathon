@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // Like export_test.go, this file is compiled only by "go test".

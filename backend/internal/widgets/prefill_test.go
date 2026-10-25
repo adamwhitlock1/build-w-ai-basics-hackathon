@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/auth"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // paidCurator and paidSource fail the test if called: a pre-filled result

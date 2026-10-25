@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/aikit"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // TestNoRetentionRouting checks the request OpenRouter actually receives:

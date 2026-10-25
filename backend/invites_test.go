@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/family"
-	"porchlight/internal/store"
+	"kinlight/internal/family"
+	"kinlight/internal/store"
 )
 
 func invitesPath(familyID int64) string {
@@ -177,7 +177,7 @@ func TestCreateInviteRules(t *testing.T) {
 	}{
 		{"already a member", alice, me.Family.ID, map[string]string{"email": " KID@example.com ", "role": "kid"}, http.StatusConflict, "Already a member."},
 		{"inviting yourself", alice, me.Family.ID, map[string]string{"email": "alice@example.com", "role": "parent"}, http.StatusConflict, "Already a member."},
-		{"account in another family", alice, me.Family.ID, map[string]string{"email": "bob@example.com", "role": "parent"}, http.StatusConflict, "That email already has a Porchlight account."},
+		{"account in another family", alice, me.Family.ID, map[string]string{"email": "bob@example.com", "role": "parent"}, http.StatusConflict, "That email already has a Kinlight account."},
 		{"a kid inviting", kid, me.Family.ID, map[string]string{"email": "friend@example.com", "role": "kid"}, http.StatusForbidden, "Only parents can invite family members."},
 		{"another family's id", alice, bobsMe.Family.ID, map[string]string{"email": "new@example.com", "role": "kid"}, http.StatusNotFound, "That family doesn't exist."},
 		{"into alice's family as bob", bob, me.Family.ID, map[string]string{"email": "new@example.com", "role": "kid"}, http.StatusNotFound, "That family doesn't exist."},
@@ -228,7 +228,7 @@ func TestFamilySetupRefusesCoAdminWithAccount(t *testing.T) {
 	alice.signup("alice@example.com")
 
 	body := map[string]any{"name": "The Robinsons", "coAdminEmails": []string{"co@example.com", "Bob@example.com"}}
-	alice.wantError("POST", "/api/families", body, http.StatusBadRequest, "bob@example.com already has a Porchlight account.")
+	alice.wantError("POST", "/api/families", body, http.StatusBadRequest, "bob@example.com already has a Kinlight account.")
 
 	// Nothing was saved, so the intro is still to do...
 	var me family.Me
@@ -362,7 +362,7 @@ func TestAcceptInvite(t *testing.T) {
 
 	me := kid.accept(token)
 	want := family.Me{
-		User:    family.MeUser{ID: me.User.ID, Email: "kid@example.com", IsAdmin: false},
+		User:    family.MeUser{ID: me.User.ID, Email: "kid@example.com", IsAdmin: false, Theme: "auto"},
 		Family:  family.MeFamily{ID: aliceMe.Family.ID, Name: "The Robinsons"},
 		Profile: family.MeProfile{},
 	}
@@ -436,7 +436,7 @@ func TestAcceptInviteEmailTakenMeanwhile(t *testing.T) {
 	kid.signup("kid@example.com")
 
 	kid.wantError("POST", "/api/invites/"+tokenOf(inv)+"/accept", map[string]string{"password": "kid password"},
-		http.StatusConflict, "That email already has a Porchlight account.")
+		http.StatusConflict, "That email already has a Kinlight account.")
 	// Nothing changed: still logged in as their own account, and the
 	// invite is still pending for Alice to revoke.
 	var me family.Me

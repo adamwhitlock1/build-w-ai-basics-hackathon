@@ -11,7 +11,7 @@ import (
 // FixtureHost is the made-up host the demo family's calendar links use.
 // .test is reserved and never resolves, so outside development a fixture
 // link simply fails like any unreachable calendar.
-const FixtureHost = "fixtures.porchlight.test"
+const FixtureHost = "fixtures.kinlight.test"
 
 // FixtureLink returns the calendar link of the fixture feed called name.
 func FixtureLink(name string) string {
@@ -27,7 +27,7 @@ type feedFetcher interface {
 // FixtureFetcher answers links on FixtureHost itself, with feeds built in
 // code around the current time, and passes every other link to the real
 // fetcher unchanged. It's for local development only (main.go turns it on
-// with PORCHLIGHT_DEV_FIXTURES=1): it adds answers for one fake host, and
+// with KINLIGHT_DEV_FIXTURES=1): it adds answers for one fake host, and
 // never opens a connection of its own.
 type FixtureFetcher struct {
 	next feedFetcher
@@ -167,7 +167,7 @@ func writeFeed(events []fixtureEvent, now time.Time) []byte {
 	}
 	line("BEGIN:VCALENDAR")
 	line("VERSION:2.0")
-	line("PRODID:-//Porchlight//Dev fixtures//EN")
+	line("PRODID:-//Kinlight//Dev fixtures//EN")
 	line("CALSCALE:GREGORIAN")
 	for _, e := range events {
 		line("BEGIN:VEVENT")

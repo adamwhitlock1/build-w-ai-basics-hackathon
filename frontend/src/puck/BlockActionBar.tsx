@@ -4,7 +4,7 @@ import type { Span } from '../api/client'
 import { useDeleteWidget } from '../api/hooks'
 import { TrashIcon } from '../widgets/icons'
 import { SPANS } from './layout'
-import { usePorchlightPuck } from './usePorchlightPuck'
+import { useKinlightPuck } from './useKinlightPuck'
 
 interface BlockActionBarProps {
   /** The card type's label from the config, e.g. "Articles". */
@@ -22,9 +22,9 @@ interface BlockActionBarProps {
  * widgets you described.
  */
 export function BlockActionBar({ label }: BlockActionBarProps) {
-  const item = usePorchlightPuck((s) => s.selectedItem)
-  const selector = usePorchlightPuck((s) => s.appState.ui.itemSelector)
-  const dispatch = usePorchlightPuck((s) => s.dispatch)
+  const item = useKinlightPuck((s) => s.selectedItem)
+  const selector = useKinlightPuck((s) => s.appState.ui.itemSelector)
+  const dispatch = useKinlightPuck((s) => s.dispatch)
 
   if (!item || !selector?.zone) return <ActionBar label={label} />
   const zone = selector.zone

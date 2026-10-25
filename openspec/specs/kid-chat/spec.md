@@ -6,15 +6,15 @@ Gives each kid in the family an AI they can talk to: a tutor that helps them lea
 ## Requirements
 
 ### Requirement: Only kids chat with the family agent
-Kid chat SHALL be available only to family members who aren't parents. A parent's request to start a conversation or send a message as themselves SHALL be refused with a message saying that the parents' assistant isn't available yet. A kid SHALL only ever see and use their own conversations.
+Kid chat SHALL be available only to family members who aren't parents. A parent's request to start a conversation or send a message in kid chat SHALL be refused with a message pointing them to their own Assistant. A kid SHALL only ever see and use their own conversations.
 
 #### Scenario: A kid opens Chat
 - **WHEN** Jordan, a kid, opens the Chat page
 - **THEN** Jordan sees their own conversations, newest first, and can start a new one
 
 #### Scenario: A parent tries to chat
-- **WHEN** Maya, a parent, asks to start a conversation for herself
-- **THEN** the request is refused with a message that the parents' assistant isn't available yet, and nothing is stored or sent to any AI model
+- **WHEN** Maya, a parent, asks to start a kid chat conversation for herself
+- **THEN** the request is refused with a message pointing her to the Assistant, and nothing is stored or sent to any AI model
 
 #### Scenario: Another kid's conversation
 - **WHEN** Lily asks for one of Jordan's conversations by id
@@ -61,7 +61,7 @@ If a kid asks for the answer outright, the agent SHALL explain kindly that it's 
 - **THEN** the agent doesn't write it, and offers to help them plan, outline or improve their own draft
 
 ### Requirement: Age personas
-The agent SHALL speak at the kid's age, using a younger persona for kids aged 12 and under and a teen persona for ages 13 to 17. Age SHALL come from the kid's birth year, which a parent can set in the kid's profile and the kid can't change. A kid with no birth year SHALL get the younger persona. The kid-safe guidance used elsewhere in Porchlight SHALL apply to every reply.
+The agent SHALL speak at the kid's age, using a younger persona for kids aged 12 and under and a teen persona for ages 13 to 17. Age SHALL come from the kid's birth year, which a parent can set in the kid's profile and the kid can't change. A kid with no birth year SHALL get the younger persona. The kid-safe guidance used elsewhere in Kinlight SHALL apply to every reply.
 
 #### Scenario: A parent sets a birth year
 - **WHEN** Maya sets Jordan's birth year so that Jordan is 15

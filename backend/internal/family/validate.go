@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"porchlight/internal/auth"
+	"kinlight/internal/auth"
 )
 
 // minPasswordRunes is the shortest password we accept.

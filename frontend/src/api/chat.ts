@@ -183,7 +183,7 @@ export async function streamMessage(path: string, text: string, handlers: Stream
     })
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') throw err
-    throw new ApiError(0, "Couldn't reach the Porchlight server.", 'Check your connection, then try again.')
+    throw new ApiError(0, "Couldn't reach the Kinlight server.", 'Check your connection, then try again.')
   }
   if (!res.ok || !res.headers.get('Content-Type')?.startsWith('text/event-stream')) {
     const body = (await res.json().catch(() => null)) as { error?: string; hint?: string } | null

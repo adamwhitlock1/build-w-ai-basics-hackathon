@@ -6,7 +6,7 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // TrackUsage returns the option every Kit generate call passes: middleware
@@ -47,7 +47,7 @@ func (k *Kit) TrackUsage(step string) ai.GenerateOption {
 
 // usageModel names the model in usage records the way the legacy client
 // does. OpenRouter ids already name the vendor ("openai/gpt-4.1-mini"), so
-// the "openrouter/" prefix goes; in Porchlight the anthropic plugin serves
+// the "openrouter/" prefix goes; in Kinlight the anthropic plugin serves
 // only MiniMax, so its prefix becomes "minimax/".
 func usageModel(name, fallback string) string {
 	if name == "" {

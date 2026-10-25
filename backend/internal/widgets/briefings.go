@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // Briefings writes the morning briefing: a few sentences the AI writes
 // about a member's day from what their other cards already hold, plus the
 // day's forecast. BriefingHandler serves it over HTTP; anything else in
-// Porchlight can call it with a context and a member.
+// Kinlight can call it with a context and a member.
 //
 // It writes one on the member's first visit of the day, then gives it again
 // until the facts behind it change, writing at most maxBriefingWrites a

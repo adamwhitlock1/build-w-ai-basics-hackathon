@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // Curation works out the Articles and Local Events widgets, which pick
 // their own searches from a member's interests and location. CuratedHandler
-// serves it over HTTP; anything else in Porchlight can call it with a
+// serves it over HTTP; anything else in Kinlight can call it with a
 // context and a member.
 //
 // Each member's latest result is remembered and given again, without

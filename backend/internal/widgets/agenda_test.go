@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/calendar"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/calendar"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // These tests call the Agenda directly, with no HTTP request, as the agent

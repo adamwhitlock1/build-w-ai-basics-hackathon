@@ -15,11 +15,11 @@ import (
 
 	"github.com/alexedwards/scs/sqlite3store"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/usage"
+	"kinlight/internal/auth"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/usage"
 )
 
 // fakeTokens is what each fake AI call reports using.

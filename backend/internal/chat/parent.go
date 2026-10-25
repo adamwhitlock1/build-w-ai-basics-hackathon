@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 // reviewedShown is how many reviewed flags the review queue includes, after

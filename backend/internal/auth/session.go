@@ -10,17 +10,17 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 const (
 	// CookieName is the name of the session cookie.
-	CookieName = "porchlight_session"
+	CookieName = "kinlight_session"
 	// SessionLifetime is how long a login lasts.
 	SessionLifetime = 30 * 24 * time.Hour
 
-	// userIDKey is the only value Porchlight keeps in a session.
+	// userIDKey is the only value Kinlight keeps in a session.
 	userIDKey = "userID"
 )
 

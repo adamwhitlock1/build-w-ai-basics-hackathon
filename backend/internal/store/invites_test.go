@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 // invite is a store.Invite to familyID that expires in a week.

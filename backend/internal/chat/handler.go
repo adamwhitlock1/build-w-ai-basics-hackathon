@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/auth"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/auth"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 // maxBodyBytes caps a request body: a message of MaxMessageChars, in UTF-8,

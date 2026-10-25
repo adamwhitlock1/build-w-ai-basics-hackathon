@@ -9,7 +9,7 @@ import (
 	"github.com/firebase/genkit/go/core/status"
 	"github.com/openai/openai-go"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // upstream turns an error from a Genkit call into an *llm.UpstreamError, so

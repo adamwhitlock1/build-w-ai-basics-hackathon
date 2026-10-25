@@ -76,7 +76,7 @@ function Field({
           className: `w-full rounded-2xl border bg-bg px-4 text-base text-ink placeholder:text-ink-muted transition-colors focus:bg-surface focus:outline-none focus:ring-4 ${
             error
               ? 'border-danger/50 focus:border-danger/60 focus:ring-danger/10'
-              : 'border-line focus:border-primary/50 focus:ring-primary/10'
+              : 'border-control focus:border-primary focus:ring-primary/10'
           }`,
         })}
       </div>

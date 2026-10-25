@@ -1,6 +1,6 @@
 package llm
 
-import "porchlight/internal/sources"
+import "kinlight/internal/sources"
 
 // kidGuidance is added to every system prompt when the content is for a kid.
 // The search provider's strict safe-search is the first filter; this asks

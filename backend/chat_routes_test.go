@@ -21,12 +21,12 @@ import (
 
 	"github.com/alexedwards/scs/sqlite3store"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/auth"
-	"porchlight/internal/chat"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/auth"
+	"kinlight/internal/chat"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // scriptedAgent is a chat.Agent with a settable verdict and reply.

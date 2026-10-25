@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/assistant"
-	"porchlight/internal/chat"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/aikit"
+	"kinlight/internal/assistant"
+	"kinlight/internal/chat"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 type noFetcher struct{}

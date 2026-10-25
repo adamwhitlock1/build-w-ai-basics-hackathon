@@ -14,8 +14,8 @@ import (
 
 	"github.com/alexedwards/scs/v2/memstore"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/store"
 )
 
 func TestPasswords(t *testing.T) {

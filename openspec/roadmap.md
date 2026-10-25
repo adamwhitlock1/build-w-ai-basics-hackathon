@@ -1,4 +1,4 @@
-# Porchlight Post-PoC Roadmap
+# Kinlight Post-PoC Roadmap
 
 The proof of concept is done (tag `poc-complete`). This roadmap orders the features added after it. Each item becomes one OpenSpec change (`/opsx:propose` → `/opsx:apply` → `/opsx:archive`). When a change is archived, add a line to "Post-PoC Additions" at the end of `devpost/prd.md` and `devpost/spec.md`.
 
@@ -111,3 +111,46 @@ Each item is one OpenSpec change, each shippable and testable on its own. Change
 All six v2 changes are planned and built (see `openspec/changes/archive/`).
 
 Later, as they become useful: phone push for flags, streaming polish, cost ceilings, long-term agent memory, homework photos, and the unbuilt hackathon items above.
+
+## Series 2: Kinlight, then the homelab (from 2026-10-25)
+
+Apply the identity in `brand/` to the app, then run it for the family on the homelab.
+
+**Decided 2026-10-25:**
+- **Name:** the app is **Kinlight**, the working name from `brand/naming.md`, in the code as well as the UI. Because nothing is deployed yet, it's a clean break (revised 2026-10-25): the Go module, settings, cookie and database files are renamed too. Only history keeps "Porchlight", and the GitHub repo's name is unchanged. Clearance of the name is still open.
+- **Typefaces:** Fraunces (with its soft axis) and Figtree, self-hosted.
+- **Dark theme:** Porch light follows the device setting by default, with a Daybreak / Porch light / Automatic switch remembered per member.
+- **Order:** the rebrand first, so the family's first real use is the finished identity.
+
+**Planned changes, in order:**
+
+1. **`kinlight-identity`:**
+   - The name everywhere: the UI, the agents' prompts, and the code and settings.
+   - The lantern logo, favicon, app icon and header lockup.
+   - Fraunces and Figtree.
+   - The brief's color tokens for both themes, and the theme switch.
+   - Also: the agents' prompts refer to the kids by name instead of guessing pronouns.
+2. **`lantern-moments`:** the motion system in `brand/lantern-ux.md`:
+   - motion tokens;
+   - kindle on sign-in;
+   - a breathing glow instead of every spinner;
+   - a card catching the light when it arrives;
+   - card edges that fade as content ages;
+   - the dusk theme change;
+   - at most one lit thing per screen;
+   - plain fades under reduced motion.
+3. **`brand-surfaces`:**
+   - brass hairlines and lantern-glass sheets;
+   - wood on sign-in, empty states and the sidebar;
+   - the porch illustration;
+   - a voice pass over the app's copy (brief section 8).
+4. **`homelab-deployment`:**
+   - a release build and a service;
+   - backups of the SQLite file;
+   - the kids' zero-retention key;
+   - the family's real accounts.
+
+**Later, from the lantern doc:**
+- "Off you go" needs morning steps, which aren't built (the chore checklist was never built).
+- "Who's home" needs check-in presence.
+- Pull to refresh, sound and haptics wait for a phone app.

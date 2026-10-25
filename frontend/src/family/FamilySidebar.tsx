@@ -5,6 +5,7 @@ import { useFamily, useMe } from '../api/hooks'
 import { BrandMark } from '../components/BrandMark'
 import { useAlerts } from '../api/chat'
 import { LogoutButton } from '../components/LogoutButton'
+import { ThemeSwitch } from '../components/ThemeSwitch'
 import { PlusIcon } from '../widgets/icons'
 import { InviteForm } from './InviteForm'
 import { PendingInvites } from './PendingInvites'
@@ -194,7 +195,7 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
           >
             Reviews
             {unreviewed > 0 && (
-              <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-white">
+              <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-on-danger">
                 {unreviewed}
                 <span className="sr-only"> to review</span>
               </span>
@@ -241,9 +242,10 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
           </>
         )}
 
-        {/* On narrow screens "Log out" is up in the strip, so this part only
-            shows there while arranging, to say why the buttons are gone. */}
-        <div className={`mt-8 lg:mt-auto lg:pt-10 ${arranging ? '' : 'max-lg:hidden'}`}>
+        {/* The theme switch, and on wide screens "Log out" (narrow ones
+            have it up in the strip). While arranging, a note says why the
+            buttons are gone. */}
+        <div className="mt-8 lg:mt-auto lg:pt-10">
           <div className="border-t border-line pt-3">
             {arranging ? (
               <p className="px-2 py-1 text-xs leading-relaxed text-ink-muted">
@@ -251,7 +253,12 @@ export function FamilySidebar({ arranging, building, shownMemberId }: FamilySide
                 {isAdmin ? 'switch pages, invite someone or log out.' : 'log out.'}
               </p>
             ) : (
-              <LogoutButton align="start" />
+              <>
+                <ThemeSwitch />
+                <div className="mt-3 max-lg:hidden">
+                  <LogoutButton align="start" />
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -334,7 +341,7 @@ function MemberRow({ member }: { member: FamilyMember }) {
         <span className="mt-0.5 flex items-center gap-1.5">
           <RoleTag isAdmin={member.isAdmin} />
           {member.isYou && (
-            <span className="rounded-full bg-ink-soft px-2 py-0.5 text-xs font-medium text-white">you</span>
+            <span className="rounded-full bg-ink-soft px-2 py-0.5 text-xs font-medium text-bg">you</span>
           )}
         </span>
       </span>

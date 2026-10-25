@@ -1,4 +1,4 @@
-# Porchlight frontend
+# Kinlight frontend
 
 React 18 + TypeScript + Vite, styled with Tailwind CSS v4, with TanStack Router (file-based, SPA) and TanStack Query.
 
@@ -30,6 +30,6 @@ The guards only make the app feel right; the Go API checks the session on every 
 
 ## Test overrides
 
-`PORCHLIGHT_API` (default `http://127.0.0.1:8080`) and `PORCHLIGHT_WEB_PORT` (default `5174`)
+`KINLIGHT_API` (default `http://127.0.0.1:8080`) and `KINLIGHT_WEB_PORT` (default `5174`)
 point a second dev server at another API, e.g.
-`PORCHLIGHT_API=http://127.0.0.1:8091 PORCHLIGHT_WEB_PORT=5191 npm run dev`.
+`KINLIGHT_API=http://127.0.0.1:8091 KINLIGHT_WEB_PORT=5191 npm run dev`.

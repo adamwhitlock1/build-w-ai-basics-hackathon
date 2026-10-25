@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // RememberedPicks returns the Articles and "Happening near you" items

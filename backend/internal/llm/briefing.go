@@ -11,7 +11,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // Limits on a morning briefing's length, in characters. A reply up to
@@ -201,7 +201,7 @@ func briefingSystemPrompt(now time.Time) string {
 	if now.Hour() >= 18 {
 		evening = "\n- It's evening, so lead with tomorrow's plans if there are any."
 	}
-	return `You write the morning briefing for one member of a family on Porchlight, a family homepage. It sits at the top of their page and sums up their day at a glance.
+	return `You write the morning briefing for one member of a family on Kinlight, a family homepage. It sits at the top of their page and sums up their day at a glance.
 
 It is ` + now.Format("Monday, January 2, 3:04 PM") + ` where they are.
 

@@ -1,4 +1,4 @@
-// Package migrations holds the SQL files that build Porchlight's database
+// Package migrations holds the SQL files that build Kinlight's database
 // schema. They are embedded into the binary, so the server never needs the
 // .sql files next to it at run time.
 package migrations

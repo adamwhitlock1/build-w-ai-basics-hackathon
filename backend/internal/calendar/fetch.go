@@ -127,7 +127,7 @@ func (f *Fetcher) Fetch(ctx context.Context, link string) ([]byte, error) {
 		return nil, ErrInvalidLink
 	}
 	req.Header.Set("Accept", "text/calendar, */*;q=0.5")
-	req.Header.Set("User-Agent", "Porchlight/1.0 (family homepage calendar reader)")
+	req.Header.Set("User-Agent", "Kinlight/1.0 (family homepage calendar reader)")
 
 	resp, err := f.client.Do(req)
 	if err != nil {
