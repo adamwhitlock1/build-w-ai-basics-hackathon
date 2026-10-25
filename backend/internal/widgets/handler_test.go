@@ -437,7 +437,7 @@ func TestGetCustom(t *testing.T) {
 			if rec.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d; body: %s", rec.Code, tt.wantStatus, rec.Body)
 			}
-			if rec.Code == http.StatusNotFound && !strings.Contains(rec.Body.String(), "That widget doesn't exist.") {
+			if rec.Code == http.StatusNotFound && !strings.Contains(rec.Body.String(), "That card doesn't exist.") {
 				t.Errorf("404 body = %s", rec.Body)
 			}
 			if rec.Code != http.StatusOK {
@@ -494,7 +494,7 @@ func TestDeleteCustom(t *testing.T) {
 			if rec.Code != tt.wantStatus {
 				t.Fatalf("status = %d, want %d; body: %s", rec.Code, tt.wantStatus, rec.Body)
 			}
-			if rec.Code == http.StatusNotFound && !strings.Contains(rec.Body.String(), "That widget doesn't exist.") {
+			if rec.Code == http.StatusNotFound && !strings.Contains(rec.Body.String(), "That card doesn't exist.") {
 				t.Errorf("404 body = %s", rec.Body)
 			}
 			if !slices.Equal(tt.layouts.removed, tt.wantRemoved) {

@@ -91,11 +91,11 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, logger *slog.Logg
 	case errors.Is(err, ErrNoSuchWidget):
 		writeWidgetNotFound(w)
 	case errors.Is(err, ErrUnknownSource):
-		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a widget.", "Couldn't pick a source for that prompt — try rephrasing")
+		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a card.", "Couldn't pick a source for that prompt — try rephrasing")
 	case errors.Is(err, ErrSourceGone):
-		respond.Error(w, http.StatusUnprocessableEntity, "This widget's data source isn't available any more.", "Remove it and describe it again.")
+		respond.Error(w, http.StatusUnprocessableEntity, "This card's data source isn't available any more.", "Remove it and describe it again.")
 	case errors.Is(err, ErrNotSaved):
-		respond.Error(w, http.StatusInternalServerError, "Your widget was ready, but we couldn't save it.", "Try again in a moment.")
+		respond.Error(w, http.StatusInternalServerError, "Your card was ready, but we couldn't save it.", "Try again in a moment.")
 	default:
 		writeInternalError(w)
 	}
@@ -153,7 +153,7 @@ func writePlanningError(w http.ResponseWriter, r *http.Request, logger *slog.Log
 	switch {
 	case errors.Is(err, llm.ErrInvalidSpec):
 		logger.WarnContext(r.Context(), "no valid widget spec", "err", err)
-		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a widget.", "Couldn't pick a source for that prompt — try rephrasing")
+		respond.Error(w, http.StatusUnprocessableEntity, "Couldn't turn that into a card.", "Couldn't pick a source for that prompt — try rephrasing")
 	case errors.As(err, &upstream):
 		logger.ErrorContext(r.Context(), "llm call failed", "err", err)
 		respond.Error(w, http.StatusBadGateway, "The AI service had a problem: "+upstream.Reason+".", upstream.Hint)
@@ -212,7 +212,7 @@ func writeCuratedAIError(w http.ResponseWriter, r *http.Request, logger *slog.Lo
 }
 
 func writeWidgetNotFound(w http.ResponseWriter) {
-	respond.Error(w, http.StatusNotFound, "That widget doesn't exist.", "")
+	respond.Error(w, http.StatusNotFound, "That card doesn't exist.", "")
 }
 
 // writeInternalError writes the generic 500 for a failure on our side.

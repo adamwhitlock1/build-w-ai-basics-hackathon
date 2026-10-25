@@ -335,7 +335,7 @@ func decodePrompt(w http.ResponseWriter, r *http.Request) (prompt string, ok boo
 	prompt = strings.TrimSpace(req.Prompt)
 	switch n := utf8.RuneCountInString(prompt); {
 	case n == 0:
-		respond.Error(w, http.StatusBadRequest, "Describe the widget you'd like in a sentence.", `For example: "show me upcoming SpaceX launches".`)
+		respond.Error(w, http.StatusBadRequest, "Describe the card you'd like in a sentence.", `For example: "show me upcoming SpaceX launches".`)
 		return "", false
 	case n > maxPromptRunes:
 		respond.Error(w, http.StatusBadRequest, "That description is too long.", "Keep it under 500 characters.")

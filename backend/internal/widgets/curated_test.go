@@ -547,7 +547,7 @@ func TestEvents(t *testing.T) {
 				curator: &fakeCurator{
 					eventQueries: []string{"e1"},
 					extractErr: &llm.UpstreamError{
-						Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.",
+						Reason: "the AI model declined to answer", Hint: "Try describing the card differently.",
 						Err: errors.New("finish_reason=content_filter"),
 					},
 				},

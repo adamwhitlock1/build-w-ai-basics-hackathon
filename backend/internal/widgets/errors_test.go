@@ -27,7 +27,7 @@ func TestWriteServiceError(t *testing.T) {
 		again       = "Try again in a moment."
 	)
 	noCredits := &llm.UpstreamError{Reason: "OpenRouter is out of credits", Hint: "Add credits at openrouter.ai.", Status: http.StatusPaymentRequired, Err: errors.New("402")}
-	slowModel := &llm.UpstreamError{Reason: "the model took too long to answer", Hint: "Try describing the widget differently.", Err: context.DeadlineExceeded}
+	slowModel := &llm.UpstreamError{Reason: "the model took too long to answer", Hint: "Try describing the card differently.", Err: context.DeadlineExceeded}
 	weatherTimeout := fmt.Errorf("%w: %w", sources.ErrForecastUnavailable, context.DeadlineExceeded)
 
 	tests := []struct {
@@ -41,15 +41,15 @@ func TestWriteServiceError(t *testing.T) {
 	}{
 		// Errors the service logged itself.
 		{name: "no such widget", err: fmt.Errorf("refresh widget 3: %w", ErrNoSuchWidget),
-			wantStatus: 404, wantError: "That widget doesn't exist."},
+			wantStatus: 404, wantError: "That card doesn't exist."},
 		{name: "no such widget, request gone", err: ErrNoSuchWidget, cancelled: true,
-			wantStatus: 404, wantError: "That widget doesn't exist."},
+			wantStatus: 404, wantError: "That card doesn't exist."},
 		{name: "unknown source", err: fmt.Errorf("%w %q", ErrUnknownSource, "tv_listings"),
-			wantStatus: 422, wantError: "Couldn't turn that into a widget.", wantHint: "Couldn't pick a source for that prompt — try rephrasing"},
+			wantStatus: 422, wantError: "Couldn't turn that into a card.", wantHint: "Couldn't pick a source for that prompt — try rephrasing"},
 		{name: "source gone", err: ErrSourceGone,
-			wantStatus: 422, wantError: "This widget's data source isn't available any more.", wantHint: "Remove it and describe it again."},
+			wantStatus: 422, wantError: "This card's data source isn't available any more.", wantHint: "Remove it and describe it again."},
 		{name: "not saved", err: fmt.Errorf("%w: %w", ErrNotSaved, errors.New("disk full")),
-			wantStatus: 500, wantError: "Your widget was ready, but we couldn't save it.", wantHint: again},
+			wantStatus: 500, wantError: "Your card was ready, but we couldn't save it.", wantHint: again},
 		{name: "anything else", err: errors.New("load widget: database is locked"),
 			wantStatus: 500, wantError: generic, wantHint: genericHint},
 
@@ -69,10 +69,10 @@ func TestWriteServiceError(t *testing.T) {
 
 		// Describe-a-widget's plan.
 		{name: "no valid spec", err: &StepError{Step: StepPlanning, Err: fmt.Errorf("pick spec: %w", llm.ErrInvalidSpec)},
-			wantStatus: 422, wantError: "Couldn't turn that into a widget.", wantHint: "Couldn't pick a source for that prompt — try rephrasing",
+			wantStatus: 422, wantError: "Couldn't turn that into a card.", wantHint: "Couldn't pick a source for that prompt — try rephrasing",
 			wantLog: `level=WARN msg="no valid widget spec"`},
 		{name: "planning upstream", err: &StepError{Step: StepPlanning, Err: slowModel},
-			wantStatus: 502, wantError: "The AI service had a problem: the model took too long to answer.", wantHint: "Try describing the widget differently.",
+			wantStatus: 502, wantError: "The AI service had a problem: the model took too long to answer.", wantHint: "Try describing the card differently.",
 			wantLog: `level=ERROR msg="llm call failed"`},
 		{name: "planning other", err: &StepError{Step: StepPlanning, Err: errors.New("boom")},
 			wantStatus: 500, wantError: generic, wantHint: genericHint,

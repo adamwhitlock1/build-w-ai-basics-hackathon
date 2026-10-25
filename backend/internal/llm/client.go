@@ -217,7 +217,7 @@ func (c *Client) completeOnce(ctx context.Context, call structuredCall) (string,
 	case openai.FinishReasonLength:
 		return "", &UpstreamError{Reason: "the AI model's answer was cut off", Hint: "Try again in a moment.", Err: errors.New("finish_reason=length")}
 	case openai.FinishReasonContentFilter:
-		return "", &UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the widget differently.", Err: errors.New("finish_reason=content_filter")}
+		return "", &UpstreamError{Reason: "the AI model declined to answer", Hint: "Try describing the card differently.", Err: errors.New("finish_reason=content_filter")}
 	}
 	return choice.Message.Content, nil
 }
