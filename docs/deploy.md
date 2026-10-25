@@ -55,7 +55,7 @@ Don't use your account's master application key: a key limited to this bucket ca
    | `LITESTREAM_PATH` | Leave as `kinlight`. It's the folder inside the bucket. |
 
    Mark the keys as secrets in Coolify so they don't show in its logs.
-3. **Let Compose publish the local port; don't add a domain or another port mapping in Coolify.** `compose.yaml` maps `127.0.0.1:8080` on the host to port 8080 in the container. cloudflared runs directly on that host and reaches Kinlight through this loopback address (step 3). Keep port 8080 free on the host.
+3. **Let Compose publish the local port; don't add a domain or another port mapping in Coolify.** `compose.yaml` maps `127.0.0.1:1337` on the host to port 8080 in the container. cloudflared runs directly on that host and reaches Kinlight through this loopback address (step 3). Keep port 1337 free on the host.
 4. **Deploy.** The build takes a few minutes the first time. When it's up, Coolify shows the container as healthy: the image checks `/api/health` every 30 seconds.
 
 **What the log should show:** "kinlight API listening", Litestream starting replication, and, on a first run, "no database … restoring from the backup if there is one". If it says the database is NOT being backed up, `LITESTREAM_BUCKET` is empty.
@@ -75,10 +75,10 @@ The tunnel connects outward from the homelab to Cloudflare, so nothing on your r
 
 1. **Create the tunnel.** In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel (cloudflared) named for example `homelab`, and copy its token.
 2. **Run `cloudflared` directly on the Coolify server.** Install it as a host service using Cloudflare's instructions and the tunnel token. If it is already running on that server, use the existing tunnel.
-3. **Add a public hostname.** In the tunnel's settings: `kinlight.codestuff.io` → **HTTP** → `http://127.0.0.1:8080`. This reaches the port Compose publishes on the host. Leave the host header as it is: Kinlight checks that a request's `Origin` matches its `Host`.
+3. **Add a public hostname.** In the tunnel's settings: `kinlight.codestuff.io` → **HTTP** → `http://127.0.0.1:1337`. This reaches the port Compose publishes on the host. Leave the host header as it is: Kinlight checks that a request's `Origin` matches its `Host`.
 4. **Set `KINLIGHT_TRUST_CLOUDFLARE=1` and redeploy.** Login throttling then counts each visitor by their real address, from Cloudflare's `CF-Connecting-IP` header. Only set it while the tunnel is the only way in: anyone who can reach the port directly could fake that header.
 
-After deploying, run `curl --fail http://127.0.0.1:8080/api/health` on the server to check the local connection. Then open `https://kinlight.codestuff.io`: the sign-in page should load after Cloudflare Access authentication, if enabled.
+After deploying, run `curl --fail http://127.0.0.1:1337/api/health` on the server to check the local connection. Then open `https://kinlight.codestuff.io`: the sign-in page should load after Cloudflare Access authentication, if enabled.
 
 ## 4. Cloudflare Access, while it settles in
 
