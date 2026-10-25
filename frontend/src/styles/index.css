@@ -75,11 +75,158 @@
       transform: rotate(360deg);
     }
   }
+
+  /*
+   * The lantern's motion (brand/lantern-ux.md). Light warms up with a quick
+   * start and a long settle (ease-warm) and dims evenly (ease-cool). Every
+   * keyframe moves only opacity and transform. The --duration-* lengths are
+   * plain variables in the base layer below; prefers-reduced-motion
+   * redefines each --animate-* there as a plain fade of the same length.
+   */
+  --ease-warm: cubic-bezier(0.22, 0.8, 0.2, 1);
+  --ease-cool: cubic-bezier(0.4, 0, 0.6, 1);
+
+  /* Kindle: the glass warms with one small flicker, the flame rises, and
+     the glow spreads. */
+  --animate-kindle-glass: kindle-glass var(--duration-kindle) var(--ease-warm) both;
+  --animate-kindle-flame: kindle-flame var(--duration-kindle) var(--ease-warm) both;
+  --animate-kindle-glow: kindle-glow var(--duration-kindle) var(--ease-warm) both;
+  /* A card arrives: the lantern swings on its ring and settles, and the
+     card's edge catches the light, then cools. */
+  --animate-swing: swing 1400ms var(--ease-cool) both;
+  --animate-catch: catch var(--duration-catch) var(--ease-cool) both;
+  /* Thinking: the only loop in the app. */
+  --animate-breathe: breathe var(--duration-breathe) ease-in-out infinite;
+  --animate-breathe-glow: breathe-glow var(--duration-breathe) ease-in-out infinite;
+
+  @keyframes kindle-glass {
+    0% {
+      opacity: 0;
+    }
+    40% {
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes kindle-flame {
+    from {
+      opacity: 0;
+      transform: translateY(12%);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes kindle-glow {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes swing {
+    0% {
+      transform: rotate(0deg);
+    }
+    20% {
+      transform: rotate(7deg);
+    }
+    45% {
+      transform: rotate(-4.5deg);
+    }
+    65% {
+      transform: rotate(2.5deg);
+    }
+    85% {
+      transform: rotate(-1deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes catch {
+    0% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes breathe-glow {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.9);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+
+  /* Reduced motion: each moment fades instead of moving. */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 @layer base {
   :root {
     color-scheme: light;
+
+    /* How long each lantern moment takes. */
+    --duration-kindle: 900ms;
+    --duration-dim: 700ms;
+    --duration-catch: 1200ms;
+    --duration-dusk: 1100ms;
+    --duration-breathe: 2800ms;
+  }
+
+  /*
+   * Reduced motion: the same moments, as plain fades of the same length. No
+   * swing, flicker or spreading; the breathing light only brightens and
+   * dims, without growing.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --animate-kindle-glass: fade-in var(--duration-kindle) linear both;
+      --animate-kindle-flame: fade-in var(--duration-kindle) linear both;
+      --animate-kindle-glow: fade-in var(--duration-kindle) linear both;
+      --animate-swing: none;
+      --animate-breathe-glow: breathe var(--duration-breathe) ease-in-out infinite;
+    }
   }
 
   /*

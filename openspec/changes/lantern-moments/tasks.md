@@ -9,7 +9,8 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
   - `isMorning` switches at local noon.
 
   Verify `npm test` passes and fails on a broken case.
-- [ ] 1.2 Add the motion tokens, the keyframes and their reduced-motion fades to `index.css` (design decision 1). Remove nothing yet. Verify with `npm run build`, and that the CSS output has the reduced-motion block.
+- [x] 1.2 Add the motion tokens, the keyframes and their reduced-motion fades to `index.css` (design decision 1). Remove nothing yet. Verify with `npm run build`, and that the CSS output has the reduced-motion block.
+  - Done. The built CSS has the durations and the reduced-motion block. Tailwind v4 only emits keyframes that a used `animate-*` utility refers to, so the keyframes appear once the components use them (checked again in 2.2, 3.1 and 4.2).
 
 ## 2. The lantern
 
