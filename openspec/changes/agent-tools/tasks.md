@@ -29,7 +29,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 3. Chat service and HTTP
 
-- [ ] 3.1 Add `chat.Tools` (the interface) and `chat.ToolSources` (the implementation over `Agenda`, the weather source, `RememberedPicks` and Brave Web with `sources.Kids`). In `Send`:
+- [x] 3.1 Add `chat.Tools` (the interface) and `chat.ToolSources` (the implementation over `Agenda`, the weather source, `RememberedPicks` and Brave Web with `sources.Kids`). In `Send`:
   - build `aikit.KidTools` per message, capturing the kid and the time zone, with `Search` only in Explore;
   - stream each note through a new callback;
   - store the notes with the reply (or with no reply when it failed).

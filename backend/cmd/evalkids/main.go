@@ -150,7 +150,7 @@ func runCase(ctx context.Context, st *store.Store, svc *chat.Service, kid store.
 	}
 	var replies []string
 	for _, text := range c.turns {
-		reply, err := svc.Send(ctx, kid, conv.ID, text, func(store.ChatMessage) {}, func(string) {})
+		reply, err := svc.Send(ctx, kid, conv.ID, text, time.UTC, chat.SendEvents{OnKid: func(store.ChatMessage) {}, OnChunk: func(string) {}})
 		if err != nil {
 			return nil, strings.Join(replies, " | "), fmt.Errorf("turn %q: %w", text, err)
 		}

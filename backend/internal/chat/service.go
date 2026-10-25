@@ -102,6 +102,8 @@ type Store interface {
 	CountUnreviewedFlags(ctx context.Context, familyID int64) (int, error)
 	GetBirthYear(ctx context.Context, userID int64) (int, bool, error)
 	SetBirthYear(ctx context.Context, userID int64, year int) error
+	AddChatToolCalls(ctx context.Context, conversationID, messageID int64, calls []store.ChatToolCall) error
+	ListChatToolCalls(ctx context.Context, conversationID int64) ([]store.ChatToolCall, error)
 }
 
 // Service is kid chat. Kids use List, Start, Get and Send; parents use the
@@ -110,6 +112,7 @@ type Store interface {
 type Service struct {
 	agent  Agent // nil: kid chat is off (see ErrChatOff)
 	store  Store
+	tools  Tools // nil: the agent has no tools
 	logger *slog.Logger
 	now    func() time.Time
 }
@@ -120,15 +123,30 @@ func NewService(agent Agent, st Store, logger *slog.Logger) *Service {
 	return &Service{agent: agent, store: st, logger: logger, now: time.Now}
 }
 
+// SetTools gives the agent tools that look things up through t. Call it
+// before s is used; without it the agent has none.
+func (s *Service) SetTools(t Tools) { s.tools = t }
+
 // Available reports whether kid chat is on.
 func (s *Service) Available() bool { return s.agent != nil }
 
-// Transcript is a conversation with its messages and, for parents, its
-// flags.
+// Transcript is a conversation with its messages, the tools the agent used,
+// and, for parents, its flags.
 type Transcript struct {
 	Conversation store.Conversation
 	Messages     []store.ChatMessage
+	ToolCalls    []store.ChatToolCall
 	Flags        []store.ChatFlag // nil for kids
+}
+
+// SendEvents is what Send reports while it works.
+type SendEvents struct {
+	// OnKid gets the kid's message once it's stored.
+	OnKid func(store.ChatMessage)
+	// OnTool gets each tool the agent uses, as it's used.
+	OnTool func(aikit.ToolNote)
+	// OnChunk gets the reply's text as it's written.
+	OnChunk func(string)
 }
 
 // List returns kid's conversations, most recently active first.
@@ -180,6 +198,9 @@ func (s *Service) transcript(ctx context.Context, member store.User, id int64, w
 	if t.Messages, err = s.store.ListChatMessages(ctx, c.ID); err != nil {
 		return Transcript{}, err
 	}
+	if t.ToolCalls, err = s.store.ListChatToolCalls(ctx, c.ID); err != nil {
+		return Transcript{}, err
+	}
 	if withFlags {
 		if t.Flags, err = s.store.ConversationFlags(ctx, c.ID); err != nil {
 			return Transcript{}, err
@@ -190,16 +211,19 @@ func (s *Service) transcript(ctx context.Context, member store.User, id int64, w
 
 // Send adds kid's message text to conversation id and streams the agent's
 // reply:
-//  1. the kid's message is stored, and passed to onKid;
+//  1. the kid's message is stored, and passed to ev.OnKid;
 //  2. the safety check classifies it, and a flag is stored if needed (a
 //     failed check is flagged "couldn't check", and the reply goes ahead);
-//  3. the reply streams to onChunk; a crisis reply ends with
-//     CrisisResources, streamed as its last chunk;
-//  4. the complete reply is stored and returned.
+//  3. the reply streams to ev.OnChunk, with each tool the agent uses
+//     reported to ev.OnTool; a crisis reply ends with CrisisResources,
+//     streamed as its last chunk;
+//  4. the complete reply is stored and returned, with the tools it used.
 //
-// A failed reply stores nothing more and returns a *llm.UpstreamError,
-// possibly after some chunks were passed to onChunk.
-func (s *Service) Send(ctx context.Context, kid store.User, id int64, text string, onKid func(store.ChatMessage), onChunk func(string)) (store.ChatMessage, error) {
+// loc is the kid's time zone, for the my-day tool. A failed reply stores
+// only the tools it used (so parents see what was searched) and returns a
+// *llm.UpstreamError, possibly after some chunks were reported.
+func (s *Service) Send(ctx context.Context, kid store.User, id int64, text string, loc *time.Location, ev SendEvents) (store.ChatMessage, error) {
+	onKid, onChunk := ev.OnKid, ev.OnChunk
 	if kid.IsAdmin {
 		return store.ChatMessage{}, ErrNotAKid
 	}
@@ -255,7 +279,14 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 	if err != nil {
 		return store.ChatMessage{}, err
 	}
-	in := aikit.ReplyInput{Persona: s.persona(ctx, kid), Mode: c.Mode, Crisis: verdict.Crisis, History: turns(history)}
+	var notes []store.ChatToolCall
+	tools := s.kidTools(kid, c.Mode, loc, func(n aikit.ToolNote) {
+		notes = append(notes, store.ChatToolCall{Tool: n.Tool, Detail: n.Detail})
+		if ev.OnTool != nil {
+			ev.OnTool(n)
+		}
+	})
+	in := aikit.ReplyInput{Persona: s.persona(ctx, kid), Mode: c.Mode, Crisis: verdict.Crisis, History: turns(history), Tools: tools}
 	streamed := false
 	reply, err := s.agent.Reply(ctx, in, func(text string) {
 		streamed = true
@@ -273,6 +304,7 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 		case errors.Is(err, aikit.ErrBlocked):
 			fallback = BlockedReply
 		default:
+			s.saveToolCalls(ctx, kid, c.ID, 0, notes)
 			return store.ChatMessage{}, err
 		}
 		if streamed {
@@ -290,9 +322,63 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 	}
 	agentMsg, err := s.store.AddChatMessage(ctx, c.ID, store.RoleAgent, reply)
 	if err != nil {
+		s.saveToolCalls(ctx, kid, c.ID, 0, notes)
 		return store.ChatMessage{}, err
 	}
+	s.saveToolCalls(ctx, kid, c.ID, agentMsg.ID, notes)
 	return agentMsg, nil
+}
+
+// saveToolCalls stores the tools a reply used. A failure is logged, not
+// returned: the kid's answer matters more than the notes.
+func (s *Service) saveToolCalls(ctx context.Context, kid store.User, conversationID, messageID int64, notes []store.ChatToolCall) {
+	if err := s.store.AddChatToolCalls(context.WithoutCancel(ctx), conversationID, messageID, notes); err != nil {
+		s.logger.ErrorContext(ctx, "couldn't store chat tool calls", "member_id", kid.ID, "chat_id", conversationID, "err", err)
+	}
+}
+
+// kidTools builds the agent's tools for one message from kid: each one
+// reads only kid's data, and search is offered only in Explore. Tools
+// failures are logged here (without what the kid wrote) and reach the
+// agent as "not available".
+func (s *Service) kidTools(kid store.User, mode string, loc *time.Location, onTool func(aikit.ToolNote)) *aikit.KidTools {
+	if s.tools == nil {
+		return nil
+	}
+	if loc == nil {
+		loc = time.UTC
+	}
+	logged := func(ctx context.Context, tool string, err error) {
+		if err != nil {
+			s.logger.WarnContext(ctx, "chat tool failed", "member_id", kid.ID, "tool", tool, "err", err)
+		}
+	}
+	t := &aikit.KidTools{
+		Weather: func(ctx context.Context) (string, error) {
+			out, err := s.tools.Weather(ctx, kid)
+			logged(ctx, aikit.ToolWeather, err)
+			return out, err
+		},
+		MyDay: func(ctx context.Context) (string, error) {
+			out, err := s.tools.MyDay(ctx, kid, loc)
+			logged(ctx, aikit.ToolMyDay, err)
+			return out, err
+		},
+		MyPicks: func(ctx context.Context) (string, error) {
+			out, err := s.tools.MyPicks(ctx, kid)
+			logged(ctx, aikit.ToolMyPicks, err)
+			return out, err
+		},
+		OnTool: onTool,
+	}
+	if mode == aikit.ModeExplore {
+		t.Search = func(ctx context.Context, query string) ([]aikit.SearchResult, error) {
+			out, err := s.tools.Search(ctx, kid, query)
+			logged(ctx, aikit.ToolSearch, err)
+			return out, err
+		}
+	}
+	return t
 }
 
 // check runs the safety check on msg and stores a flag when needed. It
