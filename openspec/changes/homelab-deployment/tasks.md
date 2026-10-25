@@ -59,11 +59,16 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
 
 ## 4. The image and Compose
 
-- [ ] 4.1 Add the `Dockerfile`, `.dockerignore`, `deploy/start.sh` and `deploy/litestream.yml` (design decision 6), with Litestream v0.5.17 pinned by checksum for amd64 and arm64. Verify locally:
+- [x] 4.1 Add the `Dockerfile`, `.dockerignore`, `deploy/start.sh` and `deploy/litestream.yml` (design decision 6), with Litestream v0.5.17 pinned by checksum for amd64 and arm64. Verify locally:
   - `docker build` succeeds for the local architecture, and with `--platform linux/amd64`;
   - the container runs as uid 10001;
   - `/api/health` passes its health check;
   - without a bucket it warns and serves.
+  - Done (2026-10-25):
+    - **Builds:** the image builds natively (arm64) and with `--platform linux/amd64`. Each architecture's Litestream archive is checked against the hash from the release's `checksums.txt`, which I also checked against the downloaded files; the amd64 build reported "OK", and `litestream version` printed 0.5.17.
+    - **Running it:** the container runs as uid 10001 and Docker marks it healthy. Without `LITESTREAM_BUCKET` it logs "the database is NOT being backed up" and serves health, the app's page and a static file.
+    - **Found and fixed:** the server listened only on 127.0.0.1, which inside a container nothing outside can reach. A new `KINLIGHT_HOST` (default 127.0.0.1) lets the image set 0.0.0.0.
+    - **For local runs:** the server checks the OpenRouter key at startup, and a real key is never used here. The local run points `OPENROUTER_BASE_URL` at a closed port, which the preflight treats as unreachable (a warning), not as a bad key.
 - [ ] 4.2 Add `compose.yaml` and `compose.test.yaml` with MinIO, and `deploy/check.sh` (design decisions 7 and 8). Run the check and record it here:
   - the app and its assets are served with the headers, and no CSP violations show in the browser console on the main pages;
   - sign-up closes after the first family;

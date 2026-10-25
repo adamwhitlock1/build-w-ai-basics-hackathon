@@ -1,0 +1,18 @@
+# Only what the image builds from: frontend/, backend/ and deploy/.
+.git
+.github
+.agents
+.claude
+agent
+brand
+devpost
+docs
+openspec
+**/node_modules
+frontend/dist
+backend/bin
+backend/.env
+backend/*.db
+backend/*.db.*
+backend/*.db-*
+backend/.genkit

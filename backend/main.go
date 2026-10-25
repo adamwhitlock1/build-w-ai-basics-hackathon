@@ -54,6 +54,10 @@ func main() {
 
 // config is everything the server reads from the environment.
 type config struct {
+	// host is the address the server listens on: 127.0.0.1 (this machine
+	// only) unless KINLIGHT_HOST says otherwise, as the container image
+	// does (0.0.0.0) so the tunnel can reach it on its network.
+	host              string
 	port              string
 	dbPath            string
 	openRouterKey     string
@@ -123,6 +127,7 @@ func loadConfig() (config, error) {
 	}
 
 	cfg := config{
+		host:               envOr("KINLIGHT_HOST", "127.0.0.1"),
 		port:               envOr("PORT", "8080"),
 		dbPath:             envOr("DB_PATH", "kinlight.db"),
 		openRouterKey:      os.Getenv("OPENROUTER_API_KEY"),
@@ -420,7 +425,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	// Listening before serving surfaces "port already in use" right away.
-	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", cfg.port))
+	ln, err := net.Listen("tcp", net.JoinHostPort(cfg.host, cfg.port))
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}

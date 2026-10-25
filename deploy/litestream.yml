@@ -1,0 +1,12 @@
+# Litestream's settings for the Kinlight image (see docs/deploy.md). The
+# ${…} values come from the container's environment; the access keys are
+# read from LITESTREAM_ACCESS_KEY_ID and LITESTREAM_SECRET_ACCESS_KEY.
+dbs:
+  - path: ${DB_PATH}
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: ${LITESTREAM_PATH}
+      endpoint: ${LITESTREAM_ENDPOINT}
+      region: ${LITESTREAM_REGION}
+      force-path-style: ${LITESTREAM_FORCE_PATH_STYLE}
