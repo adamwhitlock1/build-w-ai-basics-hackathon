@@ -111,3 +111,46 @@ Each item is one OpenSpec change, each shippable and testable on its own. Change
 All six v2 changes are planned and built (see `openspec/changes/archive/`).
 
 Later, as they become useful: phone push for flags, streaming polish, cost ceilings, long-term agent memory, homework photos, and the unbuilt hackathon items above.
+
+## Series 2: Kinlight, then the homelab (from 2026-10-25)
+
+Apply the identity in `brand/` to the app, then run it for the family on the homelab.
+
+**Decided 2026-10-25:**
+- **Name:** the app shows **Kinlight**, the working name from `brand/naming.md`. Code, the repo, the Go module and the database keep their names, so a later rename is a copy change. Clearance of the name is still open.
+- **Typefaces:** Fraunces (with its soft axis) and Figtree, self-hosted.
+- **Dark theme:** Porch light follows the device setting by default, with a Daybreak / Porch light / Automatic switch remembered per member.
+- **Order:** the rebrand first, so the family's first real use is the finished identity.
+
+**Planned changes, in order:**
+
+1. **`kinlight-identity`:**
+   - The name in the UI and in the agents' prompts.
+   - The lantern logo, favicon, app icon and header lockup.
+   - Fraunces and Figtree.
+   - The brief's color tokens for both themes, and the theme switch.
+   - Also: the agents' prompts refer to the kids by name instead of guessing pronouns.
+2. **`lantern-moments`:** the motion system in `brand/lantern-ux.md`:
+   - motion tokens;
+   - kindle on sign-in;
+   - a breathing glow instead of every spinner;
+   - a card catching the light when it arrives;
+   - card edges that fade as content ages;
+   - the dusk theme change;
+   - at most one lit thing per screen;
+   - plain fades under reduced motion.
+3. **`brand-surfaces`:**
+   - brass hairlines and lantern-glass sheets;
+   - wood on sign-in, empty states and the sidebar;
+   - the porch illustration;
+   - a voice pass over the app's copy (brief section 8).
+4. **`homelab-deployment`:**
+   - a release build and a service;
+   - backups of the SQLite file;
+   - the kids' zero-retention key;
+   - the family's real accounts.
+
+**Later, from the lantern doc:**
+- "Off you go" needs morning steps, which aren't built (the chore checklist was never built).
+- "Who's home" needs check-in presence.
+- Pull to refresh, sound and haptics wait for a phone app.
