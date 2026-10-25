@@ -1,0 +1,37 @@
+# A local check of the image (deploy/check.sh), never used on the homelab:
+# a SeaweedFS S3 server stands in for the backup bucket, OpenRouter is
+# pointed at a closed port (its startup check only warns), and the app is
+# published on localhost:18080. Every key here is a test value.
+services:
+  s3:
+    image: chrislusf/seaweedfs:4.50
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/s3.json
+    volumes:
+      - ./deploy/s3-test.json:/etc/s3.json:ro
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8333"]
+      interval: 2s
+      retries: 30
+  bucket:
+    image: chrislusf/seaweedfs:4.50
+    depends_on:
+      s3:
+        condition: service_healthy
+    # Creating a bucket that exists fails; that's fine on a second run.
+    entrypoint: ["/bin/sh", "-c", "echo 's3.bucket.create -name kinlight-check' | weed shell -master=s3:9333; exit 0"]
+  kinlight:
+    depends_on:
+      bucket:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:18080:8080"
+    environment:
+      KINLIGHT_PUBLIC_URL: https://kinlight.check.test
+      OPENROUTER_API_KEY: test-placeholder
+      OPENROUTER_BASE_URL: http://127.0.0.1:9/api/v1
+      BRAVE_API_KEY: test-placeholder
+      LITESTREAM_BUCKET: kinlight-check
+      LITESTREAM_ENDPOINT: http://s3:8333
+      LITESTREAM_FORCE_PATH_STYLE: "true"
+      LITESTREAM_ACCESS_KEY_ID: check-access-key
+      LITESTREAM_SECRET_ACCESS_KEY: check-secret-key

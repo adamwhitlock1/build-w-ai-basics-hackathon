@@ -69,10 +69,24 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
     - **Running it:** the container runs as uid 10001 and Docker marks it healthy. Without `LITESTREAM_BUCKET` it logs "the database is NOT being backed up" and serves health, the app's page and a static file.
     - **Found and fixed:** the server listened only on 127.0.0.1, which inside a container nothing outside can reach. A new `KINLIGHT_HOST` (default 127.0.0.1) lets the image set 0.0.0.0.
     - **For local runs:** the server checks the OpenRouter key at startup, and a real key is never used here. The local run points `OPENROUTER_BASE_URL` at a closed port, which the preflight treats as unreachable (a warning), not as a bad key.
-- [ ] 4.2 Add `compose.yaml` and `compose.test.yaml` with MinIO, and `deploy/check.sh` (design decisions 7 and 8). Run the check and record it here:
+- [x] 4.2 Add `compose.yaml` and `compose.test.yaml` with MinIO, and `deploy/check.sh` (design decisions 7 and 8). Run the check and record it here:
   - the app and its assets are served with the headers, and no CSP violations show in the browser console on the main pages;
   - sign-up closes after the first family;
   - the database replicates to MinIO, and after the volume is removed the next start restores the account.
+  - Done (2026-10-25). `deploy/check.sh` passed all 9 checks:
+    - the page's CSP with the theme script's hash;
+    - HSTS;
+    - immutable assets;
+    - the API 404;
+    - the first sign-up, and a second refused;
+    - a restore on the next start after the volume was deleted;
+    - the restored account logging in;
+    - sign-up still closed.
+  - **In the browser:** on the same stack, signing up, setting up the family, then home, the Assistant, Reviews and not-found showed no CSP violations. The one console error is the expected 401 from asking who's logged in first.
+  - **Changes from the plan:**
+    - The MinIO images are no longer published on Docker Hub, so SeaweedFS 4.50 stands in as the S3 store (`compose.test.yaml`, test identity in `deploy/s3-test.json`).
+    - The bucket creator tolerates an existing bucket, and the restart in the check skips dependencies; re-running the creator had blocked the restart.
+    - SeaweedFS's health check is a port check: busybox `wget` exits 1 on an HTTP error.
 
 ## 5. Docs and wrap-up
 

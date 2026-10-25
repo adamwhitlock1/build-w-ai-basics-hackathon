@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "check",
+      "credentials": [{ "accessKey": "check-access-key", "secretKey": "check-secret-key" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}
