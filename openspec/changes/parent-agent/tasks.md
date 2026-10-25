@@ -2,7 +2,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 1. Data
 
-- [ ] 1.1 Add `migrations/008_assistant.sql` and `internal/store/assistant.go`: create, list, get and delete conversations, scoped by family and member; add and list messages; recent messages; set the title; add and list tool calls. Verify with `store/assistant_test.go`:
+- [x] 1.1 Add `migrations/008_assistant.sql` and `internal/store/assistant.go`: create, list, get and delete conversations, scoped by family and member; add and list messages; recent messages; set the title; add and list tool calls. Verify with `store/assistant_test.go`:
   - another member, the other parent included, finds nothing;
   - delete cascades to messages and tool calls;
   - the list is ordered by most recently active;

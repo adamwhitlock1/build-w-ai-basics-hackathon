@@ -34,7 +34,9 @@ func (s *recordingSource) Search(_ context.Context, q string, aud sources.Audien
 
 type noFetcher struct{}
 
-func (noFetcher) Fetch(context.Context, string) ([]byte, error) { panic("no calendar should be fetched") }
+func (noFetcher) Fetch(context.Context, string) ([]byte, error) {
+	panic("no calendar should be fetched")
+}
 
 func TestToolSources(t *testing.T) {
 	ctx := context.Background()
