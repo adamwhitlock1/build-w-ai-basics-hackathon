@@ -1,3 +1,5 @@
+> Archive note (2026-10-25): This records the original deployment plan and its implementation. The guide was subsequently changed to Backblaze B2 for backups, and merged PR #21 replaced the Docker-network tunnel approach with host-based cloudflared and `127.0.0.1:8080:8080`. See `docs/deploy.md` and `openspec/specs/production-hosting/spec.md` for the current setup. Local checks and PR #20 CI are recorded below; successful live tunnel access and production backup/restore have not been verified by this housekeeping review.
+
 ## Context
 
 See proposal.md for why. What exists today:

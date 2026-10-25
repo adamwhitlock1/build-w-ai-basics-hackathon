@@ -9,7 +9,7 @@ Lets Kinlight run safely for one family on a home server that's reachable from t
 The server SHALL run in production mode when its public address (`KINLIGHT_PUBLIC_URL`, an `https://` URL) is set. In production mode:
 - session cookies SHALL be sent only over HTTPS;
 - the AI provider SHALL be told the public address as the app's site;
-- every response SHALL carry security headers, including a Content-Security-Policy that allows the app's own scripts, styles, fonts and images, and nothing else.
+- every response SHALL carry security headers, including a Content-Security-Policy that allows same-origin resources, hash-approved inline scripts, inline styles, and images from HTTPS and data URLs.
 
 The server SHALL refuse to start in production mode while a development-only setting is on: dev calendar fixtures, the kids' retention override, or Genkit's reflection server. It SHALL also refuse to start if the public address isn't an `https://` URL. Without a public address, the server SHALL behave as it does in development today.
 
@@ -48,11 +48,22 @@ In production mode, anyone SHALL be able to create the first account, which crea
 - **THEN** her account and family are created, and she can invite the others
 
 ### Requirement: Login throttling
-After 5 failed logins within 15 minutes, for one email or from one client address, further login attempts for it SHALL be refused for 15 minutes with a message saying to wait. That holds whether the password is right or not, and the refusal SHALL NOT reveal whether the email has an account. A successful login SHALL clear the count for that email. When the server is configured to sit behind Cloudflare, the client address SHALL come from Cloudflare's connecting-IP header; otherwise, from the connection.
+After 5 failed logins within 15 minutes, for one email or from one client address, further login attempts for it SHALL be refused while either key still has at least 5 failures in the rolling 15-minute window, with a message saying to wait. The refusal SHALL apply whether the password is right or not and SHALL NOT reveal whether the email has an account. Attempts refused by the throttle SHALL NOT extend the window. The in-memory counts SHALL reset when the server restarts. A successful login SHALL clear the count for that email. When the server is configured to sit behind Cloudflare, the client address SHALL come from Cloudflare's connecting-IP header; otherwise, from the connection.
 
 #### Scenario: Guessing a password
 - **WHEN** someone fails to log in as maya@rivera.test six times in a few minutes
 - **THEN** the sixth attempt is refused with "Too many tries. Wait 15 minutes and try again.", even with the right password
+
+### Requirement: Host-based Cloudflare Tunnel
+The homelab Compose configuration SHALL publish container port 8080 only on the host's IPv4 loopback address, as `127.0.0.1:8080:8080`. cloudflared SHALL run directly on that server and forward the public hostname to this local endpoint while preserving the request Host header. The deployment guide SHALL document this setup. Cloudflare client-address headers SHALL be trusted only when the tunnel is the sole external entry point and local host processes are trusted.
+
+#### Scenario: The tunnel reaches Kinlight
+- **WHEN** Kinlight is deployed with the homelab Compose configuration and cloudflared connects to `http://127.0.0.1:8080`
+- **THEN** the request reaches the Kinlight container on port 8080
+
+#### Scenario: A direct LAN connection
+- **WHEN** a client on another machine connects to the server's LAN address on port 8080
+- **THEN** the Compose port mapping does not expose Kinlight on that address
 
 ### Requirement: Backups that restore
 The deployed database SHALL be replicated continuously to S3-compatible storage while the server runs. When the server's database file is missing at start and a backup exists, it SHALL be restored before the server starts. The deployment docs SHALL describe how to restore by hand, and how to test the restore.
