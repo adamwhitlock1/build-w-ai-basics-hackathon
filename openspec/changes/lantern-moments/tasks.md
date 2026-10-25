@@ -16,11 +16,18 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 - [x] 2.1 Add `LanternMark` (design decision 2) and rebuild `BrandMark` from it plus the inlined wordmark, with the header lantern marked `data-header-lantern`. Verify in the browser in both themes, beside the old lockup in a screenshot: same proportions, ink and light from the theme, accessible name "Kinlight".
   - Done: measured against `brand/logo/lockup.svg` at the header's 32 px. The lantern is 31 px (30.7 expected), the wordmark 81.1 × 31.4 px (81.2 × 31.4), and the gap 4.8 px (4.8). Ink and light follow both themes, and the accessible name is "Kinlight". The lantern's ink is `currentColor`.
-- [ ] 2.2 Kindle on first mount per tab and after sign-in (design decision 3). Verify:
+- [x] 2.2 Kindle on first mount per tab and after sign-in (design decision 3). Verify:
   - a new tab kindles once;
   - moving between pages doesn't;
   - signing in does;
   - under emulated reduced motion it's a fade.
+  - Done (2026-10-25):
+    - A new tab kindles: the glow, glass and flame animations run.
+    - A full page load in the same tab doesn't.
+    - Signing in kindles the lantern on the first page.
+    - Moving to Reviews and back, which remounts the sidebar, doesn't.
+    - **Not emulated:** the browser pane can emulate the color scheme but not `prefers-reduced-motion`. The built CSS maps all three kindle animations to the plain `fade-in` of the same length under that query.
+    - **Fixed during apply:** React's StrictMode runs the `useState` initializer twice in development, and the second call found the flag already set. `takeKindle` now returns the same answer to calls in the same task.
 
 ## 3. Thinking
 

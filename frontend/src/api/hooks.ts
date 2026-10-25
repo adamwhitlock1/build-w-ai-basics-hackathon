@@ -11,6 +11,7 @@ import { useRouter, type RegisteredRouter } from '@tanstack/react-router'
 import { useContext, useEffect } from 'react'
 import { layoutOf, withCustomBlock, withoutCustomBlock } from '../puck/layout'
 import { useNow } from '../widgets/updatedAgo'
+import { rekindle } from '../motion/kindle'
 import { forgetTheme } from '../theme'
 import {
   ApiError,
@@ -91,6 +92,8 @@ function startSession(queryClient: QueryClient, me: Me) {
   // the same query and see the new person.
   queryClient.removeQueries({ predicate: (query) => belongsToSession(query) && query.queryKey[0] !== 'me' })
   queryClient.setQueryData(meQueryOptions.queryKey, me)
+  // The lantern on the first signed-in page kindles.
+  rekindle()
 }
 
 /**
