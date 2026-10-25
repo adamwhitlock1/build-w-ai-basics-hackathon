@@ -14,7 +14,8 @@ Frontend only. Verify visual behavior in the browser on the demo (`make demo`, t
 
 ## 2. The lantern
 
-- [ ] 2.1 Add `LanternMark` (design decision 2) and rebuild `BrandMark` from it plus the inlined wordmark, with the header lantern marked `data-header-lantern`. Verify in the browser in both themes, beside the old lockup in a screenshot: same proportions, ink and light from the theme, accessible name "Kinlight".
+- [x] 2.1 Add `LanternMark` (design decision 2) and rebuild `BrandMark` from it plus the inlined wordmark, with the header lantern marked `data-header-lantern`. Verify in the browser in both themes, beside the old lockup in a screenshot: same proportions, ink and light from the theme, accessible name "Kinlight".
+  - Done: measured against `brand/logo/lockup.svg` at the header's 32 px. The lantern is 31 px (30.7 expected), the wordmark 81.1 × 31.4 px (81.2 × 31.4), and the gap 4.8 px (4.8). Ink and light follow both themes, and the accessible name is "Kinlight". The lantern's ink is `currentColor`.
 - [ ] 2.2 Kindle on first mount per tab and after sign-in (design decision 3). Verify:
   - a new tab kindles once;
   - moving between pages doesn't;
