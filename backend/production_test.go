@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -189,4 +190,50 @@ func TestSignupClosesAfterTheFirstFamilyInProduction(t *testing.T) {
 			t.Error("development reports sign-up closed")
 		}
 	})
+}
+
+func TestLoginThrottling(t *testing.T) {
+	srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), nil)
+	newClient(t, srv).signup("maya@example.com")
+	c := newClient(t, srv)
+	for range 5 {
+		c.wantError("POST", "/api/login", creds{"maya@example.com", "wrong guess"}, http.StatusUnauthorized, "That email and password don't match.")
+	}
+	c.wantError("POST", "/api/login", creds{"maya@example.com", "correct horse"}, http.StatusTooManyRequests, "Too many tries. Wait 15 minutes and try again.")
+	// The address is blocked too, so an unknown email gets the same answer.
+	c.wantError("POST", "/api/login", creds{"nobody@example.com", "anything"}, http.StatusTooManyRequests, "Too many tries. Wait 15 minutes and try again.")
+}
+
+func TestLoginThrottlingByAddress(t *testing.T) {
+	srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), func(d *deps) { d.TrustCloudflare = true })
+	newClient(t, srv).signup("maya@example.com")
+	login := func(ip, email, password string) int {
+		t.Helper()
+		body := strings.NewReader(`{"email":"` + email + `","password":"` + password + `"}`)
+		req, err := http.NewRequest("POST", srv.URL+"/api/login", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("CF-Connecting-IP", ip)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	// Five different emails from one address: the address is blocked.
+	for i := range 5 {
+		if got := login("203.0.113.9", fmt.Sprintf("guess%d@example.com", i), "nope"); got != http.StatusUnauthorized {
+			t.Fatalf("failure %d: %d", i, got)
+		}
+	}
+	if got := login("203.0.113.9", "maya@example.com", "correct horse"); got != http.StatusTooManyRequests {
+		t.Errorf("blocked address: %d, want 429", got)
+	}
+	// Maya from her own address still gets in: her email has no failures.
+	if got := login("198.51.100.4", "maya@example.com", "correct horse"); got != http.StatusOK {
+		t.Errorf("another address: %d, want 200", got)
+	}
 }

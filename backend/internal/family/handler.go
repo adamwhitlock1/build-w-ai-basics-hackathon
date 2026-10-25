@@ -69,7 +69,20 @@ type Handler struct {
 	// closedSignup closes sign-up once a family exists: in production, the
 	// public page can't create accounts, and members join by invite.
 	closedSignup bool
+	// throttle slows down password guessing at login (see auth.Throttle);
+	// clientIP says whose address a request is from.
+	throttle *auth.Throttle
+	clientIP func(*http.Request) string
 }
+
+// ThrottleLogins refuses logins for an email or a client address after
+// too many failures. clientIP names a request's address.
+func (h *Handler) ThrottleLogins(t *auth.Throttle, clientIP func(*http.Request) string) {
+	h.throttle, h.clientIP = t, clientIP
+}
+
+// tooManyTries is the refusal, whether or not the email has an account.
+const tooManyTries = "Too many tries. Wait 15 minutes and try again."
 
 // CloseSignupAfterFirstFamily lets only the first account sign up; after
 // that, people join through an invite. For production.
@@ -211,6 +224,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Checked before the password, so a right guess after too many wrong
+	// ones is refused too.
+	keys := []string{"email:" + email}
+	if h.clientIP != nil {
+		keys = append(keys, "ip:"+h.clientIP(r))
+	}
+	if h.throttle != nil && h.throttle.Blocked(keys...) {
+		respond.Error(w, http.StatusTooManyRequests, tooManyTries, "")
+		return
+	}
+
 	ctx := r.Context()
 	user, err := h.store.GetUserByEmail(ctx, email)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -220,8 +244,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	// For an unknown email, user is the zero User: its nil PasswordHash
 	// makes CheckPassword spend the same time and return false.
 	if !auth.CheckPassword(req.Password, user.PasswordHash) {
+		if h.throttle != nil {
+			h.throttle.Fail(keys...)
+		}
 		respond.Error(w, http.StatusUnauthorized, "That email and password don't match.", "")
 		return
+	}
+	if h.throttle != nil {
+		h.throttle.Clear(keys[0])
 	}
 
 	if err := h.sessions.LogIn(ctx, user.ID); err != nil {

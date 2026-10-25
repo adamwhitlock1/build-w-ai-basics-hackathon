@@ -42,7 +42,7 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
     - **The sign-up page** reads the state in its loader, and when it's closed shows "Joining Kinlight" with that sentence and a link to log in.
     - **Checked in the browser:** the built binary in production mode, serving `frontend/dist` on a copy of the demo database. The closed page, fonts and theme all worked, with no CSP violations in the console, so the hashed theme script ran.
     - `make check`, lint, build and `check:copy` pass.
-- [ ] 3.2 Add login throttling, with the client-address rule (design decision 5). Tests:
+- [x] 3.2 Add login throttling, with the client-address rule (design decision 5). Tests:
   - the sixth failure in 15 minutes is refused, even with the right password, and with the same message whether or not the email exists;
   - success clears the email's count;
   - the address limit works across emails;
@@ -50,6 +50,12 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
   - time is injected so the 15 minutes is tested.
 
   Verify with `make check`.
+  - Done. `auth.Throttle` is in memory with an injectable clock, and `auth.ClientIP` handles the Cloudflare rule. `routes` gives every server its own throttle, in development too (no test fails five logins). Login checks the throttle before the password, records a failure against the email and the address, and clears the email on success.
+  - **Tests:**
+    - unit: the limit, the window ending at 15 minutes, Clear, and the trusted, untrusted and malformed header;
+    - route: the sixth try is refused even with the right password; a blocked address gives an unknown email the same message; five emails from one Cloudflare address block it, while Maya from another address still logs in.
+  - `make check` passes.
+  - **Detail:** the block lasts until the oldest of the five failures is 15 minutes old, so at most 15 minutes. Attempts while blocked don't extend it.
 
 ## 4. The image and Compose
 

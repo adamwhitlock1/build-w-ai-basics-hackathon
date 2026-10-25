@@ -62,6 +62,9 @@ func routes(d deps) http.Handler {
 	if d.PublicURL != "" {
 		familyHandler.CloseSignupAfterFirstFamily()
 	}
+	familyHandler.ThrottleLogins(auth.NewThrottle(), func(r *http.Request) string {
+		return auth.ClientIP(r, d.TrustCloudflare)
+	})
 	layoutHandler := layout.NewHandler(st, logger)
 	// New widgets go onto the member's saved layout, and deleted ones come
 	// off it, through layoutHandler.
