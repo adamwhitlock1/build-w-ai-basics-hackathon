@@ -119,3 +119,4 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
     - **The guard:** starting with `PORCHLIGHT_DEV_FIXTURES=1`, or with `DB_PATH=porchlight.db`, stops with exit 1 and names the replacement. No `porchlight.db` was created.
     - **Fixes during the walk:** none were needed beyond 4.2's sign-in fix. The screenshots showing light cards in Porch light were taken mid-transition; the computed colors were right.
 - [ ] 6.3 Run `openspec validate kinlight-identity --strict`, `make check`, and the frontend lint, build and contrast check. Push, open the PR, and confirm CI passes on it. Add the "Kinlight identity" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+  - Progress (2026-10-24): the change and all 12 specs validate strictly, `make check` passes, and the frontend lint, contrast check (35 pairings) and build pass. The Post-PoC line is in both files. Pushing, the PR and CI are next.
