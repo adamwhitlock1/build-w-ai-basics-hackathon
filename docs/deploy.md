@@ -19,8 +19,8 @@ The backups go to Backblaze B2, through its S3-compatible API.
 1. **Create the bucket.** In the Backblaze web console, open **B2 Cloud Storage → Buckets → Create a Bucket**:
    - **Name:** for example `kinlight-backups`. B2 bucket names are global, so add something of your own if it's taken.
    - **Files in Bucket are:** **Private**.
-   - **Default Encryption:** **Enable** (server-side, B2-managed keys). It costs nothing and changes nothing for Litestream.
-   - **Object Lock:** leave it off.
+   - **Default Encryption:** nothing to choose. B2 encrypts new files at rest with its own keys (SSE-B2), which changes nothing for Litestream.
+   - **Object Lock:** **Disable**. Litestream deletes old backup files as it compacts them, which locked files would block.
 2. **Note the bucket's S3 endpoint.** It's shown under the bucket and looks like `s3.us-west-004.backblazeb2.com`. The part after `s3.` and before `.backblazeb2.com` is the bucket's region, here `us-west-004`. You need both.
 3. **Keep only the latest version of each file.** B2 keeps every version of every file by default, and "deleting" a file only hides it. Litestream deletes old backup files as it compacts them, so without this setting the bucket would grow forever. On the bucket, open **Lifecycle Settings** and choose **Keep only the last version of the file**.
 4. **Create an application key for this bucket only.** In **Application Keys → Add a New Application Key**:
