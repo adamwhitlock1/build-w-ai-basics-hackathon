@@ -57,33 +57,32 @@ New tokens fill the gaps:
 - `ink-soft` gets a value in each theme, between ink and muted.
 - `avatar-1` to `avatar-3` replace the hard-coded avatar tints.
 - `glass-core` is the lantern's core color.
+- `control` is the edge of a field or composer. The brief's `line` is about 1.3:1 against surface, too faint for WCAG's 3:1 rule for control boundaries, so `line` stays for decorative separators. Added during apply.
 
 *Alternative:* rename to `haint`, `lamplight` and so on. That's clearer to read, but touches nearly every component for no change in behavior, and the role names already say what each is for. Rejected.
 
 The four amber-filled buttons become `bg-primary text-on-primary`. Amber stays for the light: the tool-note chips, the arrange-mode overlay, the resize grip, and the lantern itself.
 
-### 2. Porch light is overrides under one selector rule
+### 2. Porch light is one block of overrides, and the page always says which theme
 
 Tailwind v4's `@theme` writes each token as a CSS variable on `:root`, and every utility reads `var(--color-*)`. So a dark theme is just the variables redefined:
 
 ```css
-@theme { --color-bg: #F7F2EA; … }                 /* Daybreak */
+@theme { --color-bg: #f7f2ea; … }                 /* Daybreak */
 @layer base {
-  :root[data-theme="dark"] { --color-bg: #18120E; … color-scheme: dark; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { /* the same overrides */ }
-  }
+  :root[data-theme="dark"] { --color-bg: #18120e; … color-scheme: dark; }
 }
 ```
 
-The overrides are written once and used in both places:
-- `data-theme="dark"` forces Porch light;
-- `data-theme="light"` forces Daybreak;
-- no attribute means Automatic, decided by the media query.
+`<html>` always carries `data-theme="light"` or `"dark"`. The pre-paint script (decision 6) sets it before first paint, resolving Automatic with `matchMedia('(prefers-color-scheme: dark)')`, and the theme module keeps it current as the device or the member's choice changes. So Porch light's values are written once.
 
 Tokens must not use `@theme inline`, which would bake values into the utilities and defeat the overrides. Puck's variables are already set from tokens, so the arrange editor follows the theme for free.
 
+*Revised during apply:* the first plan let a `prefers-color-scheme` media query handle Automatic in CSS. That needed the same overrides written twice, once under the attribute and once under the media query. Resolving Automatic in the script that must run anyway removes the copy.
+
 *Alternative:* Tailwind's `dark:` variant on each component. That doubles every color class and spreads the dark theme through a hundred files. Rejected, as the brief asks.
+
+*Alternative:* CSS `light-dark()` in each token. That's one value pair per token, but Tailwind's opacity modifiers wrap tokens in `color-mix()`, and nesting `light-dark()` there is newer and less proven than plain variables. Rejected.
 
 ### 3. Contrast is a checked list of pairings
 
@@ -125,9 +124,9 @@ Static icons are copied from `brand/logo/` into `frontend/public/`: `favicon.svg
   - `PUT /api/me/theme` takes `{"theme": "dark"}`. It answers 200 with the updated `Me`, and 400 for an unknown value. It's under the existing `private` middleware, with the same CSRF rules as other `/api/me` writes.
   - The store method takes the session's user id only, so there's no path to another member.
 - **Frontend.**
-  - A `useTheme` module applies a theme by setting or removing `data-theme` on `<html>`, setting the theme-color meta, and writing the choice to `localStorage` (`kinlight.theme`).
+  - A theme module applies a choice by setting `data-theme` on `<html>` (resolving Automatic, and listening for device changes while it's chosen), setting the theme-color meta, and writing the choice to `localStorage` (`kinlight.theme`).
   - It runs whenever `me.theme` changes. Logging out clears the stored choice.
-- **No flash.** A six-line inline script in `index.html`, before the stylesheet, reads `kinlight.theme` and sets `data-theme` before first paint. Automatic needs no script, because the media query handles it. On a new device, the first paint follows the device until `/api/me` answers, and is correct from then on.
+- **No flash.** A short inline script in `index.html`, before the stylesheet, reads `kinlight.theme` (default `auto`), resolves Automatic from `matchMedia`, and sets `data-theme` before first paint. On a new device, the first paint follows the device until `/api/me` answers, and is correct from then on.
 - **The switch.** A three-way segmented control (Automatic, Daybreak, Porch light) in the sidebar's footer, by Log out, on narrow and wide layouts. It's a radio group with a visible label, "Theme". It updates optimistically, and reverts with an error message if the save fails.
 
 *Alternative:* `localStorage` only. That's simpler, but the choice wouldn't follow the member to other devices, which was the decision. Rejected.
