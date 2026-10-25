@@ -25,8 +25,8 @@ const checkTimeout = 8 * time.Second
 
 // Turn is one message of a conversation.
 type Turn struct {
-	FromKid bool // false: the agent's reply
-	Text    string
+	FromUser bool // the kid or parent; false: the agent's reply
+	Text     string
 }
 
 // Verdict is the safety check's reading of a kid's message.
@@ -102,7 +102,7 @@ func checkMessage(recent []Turn, msg string) string {
 		b.WriteString("Recent conversation, for context:\n")
 		for _, t := range recent {
 			who := "Helper"
-			if t.FromKid {
+			if t.FromUser {
 				who = "Kid"
 			}
 			b.WriteString(who + ": " + t.Text + "\n")
@@ -167,39 +167,46 @@ const maxToolTurns = 4
 // Failures are returned as *llm.UpstreamError, possibly after some text
 // has already been passed to onChunk.
 func (a *KidAgent) Reply(ctx context.Context, in ReplyInput, onChunk func(string)) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, replyTimeout)
-	defer cancel()
-
-	history := in.History
-	if len(history) > maxReplyTurns {
-		history = history[len(history)-maxReplyTurns:]
-	}
-	msgs := make([]*ai.Message, 0, len(history))
-	for _, t := range history {
-		if t.FromKid {
-			msgs = append(msgs, ai.NewUserTextMessage(t.Text))
-		} else {
-			msgs = append(msgs, ai.NewModelTextMessage(t.Text))
-		}
-	}
 	model := a.chatModel
 	if model == "" {
 		model = a.kit.defaultModel
 	}
 	run := &toolRun{}
-	opts := []ai.GenerateOption{
-		ai.WithModelName(model),
-		ai.WithSystem(kidSystemPrompt(in.Persona, in.Mode, in.Crisis, in.Tools.offered())),
-		ai.WithMessages(msgs...),
-	}
-	if tools := in.Tools.build(run); len(tools) > 0 {
-		opts = append(opts, ai.WithTools(tools...), ai.WithMaxTurns(maxToolTurns))
-	}
-	// Once a tool has run (a search may have been paid for), the reply
-	// isn't started over.
-	resp, err := a.kit.stream(ctx, StepKidReply, replyTemperature, onChunk, func() bool { return !run.ran() }, opts...)
+	text, err := streamReply(ctx, a.kit, StepKidReply, model,
+		kidSystemPrompt(in.Persona, in.Mode, in.Crisis, in.Tools.offered()), in.History, in.Tools.build(run), maxToolTurns, run, onChunk)
 	if err != nil {
 		return "", fmt.Errorf("kid reply: %w", err)
+	}
+	return text, nil
+}
+
+// streamReply streams a reply on kit's model to the conversation history
+// (the last maxReplyTurns of it), with system and the given tools, recorded
+// under step, with at most maxTurns rounds of tools. Once a tool has run (a search may have been paid for), the
+// reply isn't started over. A refusal is ErrBlocked, and an empty answer
+// an error, both as *llm.UpstreamError.
+func streamReply(ctx context.Context, kit *Kit, step, model, system string, history []Turn, tools []toolRef, maxTurns int, run *toolRun, onChunk func(string)) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, replyTimeout)
+	defer cancel()
+
+	if len(history) > maxReplyTurns {
+		history = history[len(history)-maxReplyTurns:]
+	}
+	msgs := make([]*ai.Message, 0, len(history))
+	for _, t := range history {
+		if t.FromUser {
+			msgs = append(msgs, ai.NewUserTextMessage(t.Text))
+		} else {
+			msgs = append(msgs, ai.NewModelTextMessage(t.Text))
+		}
+	}
+	opts := []ai.GenerateOption{ai.WithModelName(model), ai.WithSystem(system), ai.WithMessages(msgs...)}
+	if len(tools) > 0 {
+		opts = append(opts, ai.WithTools(tools...), ai.WithMaxTurns(maxTurns))
+	}
+	resp, err := kit.stream(ctx, step, replyTemperature, onChunk, func() bool { return !run.ran() }, opts...)
+	if err != nil {
+		return "", err
 	}
 	text := strings.TrimSpace(resp.Text())
 	switch {

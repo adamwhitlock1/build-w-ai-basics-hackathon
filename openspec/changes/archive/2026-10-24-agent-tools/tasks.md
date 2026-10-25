@@ -93,8 +93,8 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
     - Maya: Jordan's transcript shows "Searched: NASA Artemis moon mission latest news" above the reply.
     - `llm_usage`: 4 `kid_chat_check` rows and 7 `kid_chat_reply` rows for Jordan's 4 messages, one per round of the tool loop (2 each for the three tool replies, 1 for homework).
     - Found and fixed: Haiku's replies used Markdown (`**bold**`), which the chat shows as raw asterisks. The prompt now asks for plain text, with "- " lists. A rerun of the Artemis question came back with no asterisks or headings.
-- [ ] 6.2 Run `openspec validate agent-tools --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Agent tools" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+- [x] 6.2 Run `openspec validate agent-tools --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Agent tools" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
   - Progress (2026-10-24):
     - Strict validation, `make check` (0 reachable vulnerabilities), `go test -race ./...`, and the frontend lint and build all pass. origin/main hasn't moved.
     - The Post-PoC line is in both files. It names `2026-10-24-agent-tools`, so fix the date if the change is archived later.
-    - Still to do: push, the PR, and CI.
+    - CI passed on PR #15 (run 40149789680, head `9568c83`: backend `make check`, the race detector, and the frontend lint and build), and the PR was merged 2026-10-25.

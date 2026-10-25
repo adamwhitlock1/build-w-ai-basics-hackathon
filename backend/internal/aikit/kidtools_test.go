@@ -70,7 +70,7 @@ func lastToolResponse(req *ai.ModelRequest) map[string]any {
 }
 
 func explore(text string, tools *aikit.KidTools) aikit.ReplyInput {
-	return aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromKid: true, Text: text}}, Tools: tools}
+	return aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromUser: true, Text: text}}, Tools: tools}
 }
 
 func TestKidTools(t *testing.T) {
@@ -152,7 +152,7 @@ func TestKidTools(t *testing.T) {
 		tools := testTools(log)
 		tools.Search = nil
 		agent, model, _ := newKidAgent(t, aitest.Text("What have you tried?"))
-		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromKid: true, Text: "help with 3x+5=20"}}, Tools: tools}
+		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromUser: true, Text: "help with 3x+5=20"}}, Tools: tools}
 		if _, err := agent.Reply(ctx, in, func(string) {}); err != nil {
 			t.Fatal(err)
 		}

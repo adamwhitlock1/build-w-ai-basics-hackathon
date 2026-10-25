@@ -478,7 +478,7 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 	case errors.Is(err, ErrChatOff):
 		respond.Error(w, http.StatusServiceUnavailable, "Chat isn't set up yet. Ask a parent.", "")
 	case errors.Is(err, ErrNotAKid):
-		respond.Error(w, http.StatusForbidden, "The parents' assistant isn't available yet.", "Chat is just for kids for now.")
+		respond.Error(w, http.StatusForbidden, "Kid chat is for kids. Try your Assistant.", "")
 	case errors.Is(err, ErrNotParent):
 		respond.Error(w, http.StatusForbidden, "Only parents can review kids' chats.", "Ask a parent in your family.")
 	case errors.Is(err, ErrNoSuchChat):

@@ -24,11 +24,11 @@ import (
 // ModelName is the scripted model's Genkit name, and the Kit's default model.
 const ModelName = "test/scripted"
 
-// Reply is one scripted model answer. Build one with Text, JSON, ToolCall or
-// Fail.
+// Reply is one scripted model answer. Build one with Text, JSON, ToolCall,
+// ToolCalls or Fail.
 type Reply struct {
 	text   string
-	tool   *ai.ToolRequest
+	tools  []*ai.ToolRequest
 	status int // non-zero: the call fails with this HTTP status
 	// failAfter makes a streamed call fail with status after streaming
 	// text, the way a connection drops partway through a reply.
@@ -52,7 +52,23 @@ func JSON(v any) Reply {
 
 // ToolCall answers with a request to call the tool name with input.
 func ToolCall(name string, input any) Reply {
-	return Reply{tool: &ai.ToolRequest{Name: name, Input: input}}
+	return ToolCalls(Call{Name: name, Input: input})
+}
+
+// Call is one tool request in ToolCalls.
+type Call struct {
+	Name  string
+	Input any
+}
+
+// ToolCalls answers with several tool requests in one turn, which Genkit
+// runs at the same time.
+func ToolCalls(calls ...Call) Reply {
+	var r Reply
+	for _, c := range calls {
+		r.tools = append(r.tools, &ai.ToolRequest{Name: c.Name, Input: c.Input})
+	}
+	return r
 }
 
 // Fail makes the call fail the way the OpenRouter plugin does when
@@ -128,7 +144,7 @@ func (m *Model) generate(ctx context.Context, req *ai.ModelRequest, _ map[string
 		return nil, apiError(r.status)
 	}
 	// A streaming call gets text replies in chunks, as a provider sends them.
-	if cb != nil && r.tool == nil {
+	if cb != nil && len(r.tools) == 0 {
 		for _, chunk := range chunks(r.text, Chunks) {
 			if err := cb(ctx, &ai.ModelResponseChunk{Role: ai.RoleModel, Content: []*ai.Part{ai.NewTextPart(chunk)}}); err != nil {
 				return nil, err
@@ -139,8 +155,12 @@ func (m *Model) generate(ctx context.Context, req *ai.ModelRequest, _ map[string
 		return nil, apiError(r.status)
 	}
 	msg := ai.NewModelTextMessage(r.text)
-	if r.tool != nil {
-		msg = ai.NewModelMessage(ai.NewToolRequestPart(r.tool))
+	if len(r.tools) > 0 {
+		parts := make([]*ai.Part, len(r.tools))
+		for i, tr := range r.tools {
+			parts[i] = ai.NewToolRequestPart(tr)
+		}
+		msg = ai.NewModelMessage(parts...)
 	}
 	finish := r.finish
 	if finish == "" {

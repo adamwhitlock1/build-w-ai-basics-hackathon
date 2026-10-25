@@ -3,6 +3,7 @@ package aikit_test
 import (
 	"context"
 	"os"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -201,7 +202,7 @@ func TestLiveKids(t *testing.T) {
 
 	t.Run("reply", func(t *testing.T) {
 		var chunks int
-		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromKid: true, Text: "what's the answer to 3x + 5 = 20"}}}
+		in := aikit.ReplyInput{Persona: aikit.PersonaTeen, Mode: aikit.ModeHomework, History: []aikit.Turn{{FromUser: true, Text: "what's the answer to 3x + 5 = 20"}}}
 		got, err := agent.Reply(ctx, in, func(string) { chunks++ })
 		if err != nil {
 			t.Fatalf("Reply on %s: %v", chatModel, err)
@@ -219,7 +220,7 @@ func TestLiveKids(t *testing.T) {
 			},
 			OnTool: func(n aikit.ToolNote) { used = append(used, n.Tool) },
 		}
-		in := aikit.ReplyInput{Persona: aikit.PersonaYounger, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromKid: true, Text: "do I need a jacket today?"}}, Tools: tools}
+		in := aikit.ReplyInput{Persona: aikit.PersonaYounger, Mode: aikit.ModeExplore, History: []aikit.Turn{{FromUser: true, Text: "do I need a jacket today?"}}, Tools: tools}
 		got, err := agent.Reply(ctx, in, func(string) {})
 		if err != nil {
 			t.Fatalf("Reply with a tool on %s: %v", chatModel, err)
@@ -239,4 +240,60 @@ func envOrDefault(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// TestLiveParent checks the parents' Assistant model: one search tool call
+// on the main key, and one kids_chats call with no-retention routing (the
+// kids' key, or the main key when that isn't set).
+func TestLiveParent(t *testing.T) {
+	if os.Getenv("PORCHLIGHT_LIVE_AI") != "1" {
+		t.Skip("set PORCHLIGHT_LIVE_AI=1 (make ai-smoke) to call the real providers")
+	}
+	if err := godotenv.Load("../../.env"); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("read backend/.env: %v", err)
+	}
+	model := envOrDefault("PARENT_CHAT_MODEL", "anthropic/claude-haiku-5.5")
+	kidsKey := envOrDefault("OPENROUTER_KIDS_API_KEY", os.Getenv("OPENROUTER_API_KEY"))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	for _, tt := range []struct {
+		name        string
+		key         string
+		noRetention bool
+		kind        string
+		ask         string
+		want        string
+	}{
+		{"search on the main key", os.Getenv("OPENROUTER_API_KEY"), false, aikit.KindAnything, "find a beginner robotics kit", aikit.ToolSearch},
+		{"kids_chats with no-retention routing", kidsKey, true, aikit.KindKids, "anything I should know about Lily's chats?", aikit.ToolKidsChats},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			kit, err := aikit.New(ctx, aikit.Config{OpenRouterKey: tt.key, OpenRouterModel: model, NoRetention: tt.noRetention})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var used []string
+			tools := &aikit.ParentTools{
+				Search: func(context.Context, string) ([]aikit.SearchResult, error) {
+					return []aikit.SearchResult{{Title: "Beginner robot kits", URL: "https://example.com/kits", Snippet: "Five kits for ages 10 and up."}}, nil
+				},
+				OnTool: func(n aikit.ToolNote) { used = append(used, n.Tool) },
+			}
+			if tt.kind == aikit.KindKids {
+				tools.KidsChats = func(context.Context, aikit.KidsChatsQuery) (string, error) {
+					return "Lily's flags:\n- strangers, medium, unreviewed: someone in a game asked where she lives.", nil
+				}
+			}
+			in := aikit.ParentReplyInput{Kind: tt.kind, History: []aikit.Turn{{FromUser: true, Text: tt.ask}}, Tools: tools}
+			got, err := aikit.NewParentAgent(kit, "openrouter/"+model).Reply(ctx, in, func(string) {})
+			if err != nil {
+				t.Fatalf("Reply on %s: %v", model, err)
+			}
+			t.Logf("%s used %v and replied %.200q", model, used, got)
+			if !slices.Contains(used, tt.want) {
+				t.Errorf("tools used = %v, want %s", used, tt.want)
+			}
+		})
+	}
 }

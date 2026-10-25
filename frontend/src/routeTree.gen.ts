@@ -15,6 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AuthedAssistantIndexRouteImport } from './routes/_authed/assistant.index'
+import { Route as AuthedAssistantConversationIdRouteImport } from './routes/_authed/assistant.$conversationId'
 import { Route as AuthedChatIndexRouteImport } from './routes/_authed/chat.index'
 import { Route as AuthedChatChatIdRouteImport } from './routes/_authed/chat.$chatId'
 import { Route as AuthedReviewsIndexRouteImport } from './routes/_authed/reviews.index'
@@ -50,6 +52,17 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedAssistantIndexRoute = AuthedAssistantIndexRouteImport.update({
+  id: '/assistant/',
+  path: '/assistant/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedAssistantConversationIdRoute =
+  AuthedAssistantConversationIdRouteImport.update({
+    id: '/assistant/$conversationId',
+    path: '/assistant/$conversationId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedChatIndexRoute = AuthedChatIndexRouteImport.update({
   id: '/chat/',
   path: '/chat/',
@@ -84,7 +97,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/assistant/$conversationId': typeof AuthedAssistantConversationIdRoute
   '/chat/$chatId': typeof AuthedChatChatIdRoute
+  '/assistant/': typeof AuthedAssistantIndexRoute
   '/chat/': typeof AuthedChatIndexRoute
   '/reviews/': typeof AuthedReviewsIndexRoute
   '/reviews/$memberId/$chatId': typeof AuthedReviewsMemberIdChatIdRoute
@@ -96,7 +111,9 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
   '/': typeof AuthedIndexRoute
+  '/assistant/$conversationId': typeof AuthedAssistantConversationIdRoute
   '/chat/$chatId': typeof AuthedChatChatIdRoute
+  '/assistant': typeof AuthedAssistantIndexRoute
   '/chat': typeof AuthedChatIndexRoute
   '/reviews': typeof AuthedReviewsIndexRoute
   '/reviews/$memberId/$chatId': typeof AuthedReviewsMemberIdChatIdRoute
@@ -110,7 +127,9 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/invite/$token': typeof InviteTokenRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/assistant/$conversationId': typeof AuthedAssistantConversationIdRoute
   '/_authed/chat/$chatId': typeof AuthedChatChatIdRoute
+  '/_authed/assistant/': typeof AuthedAssistantIndexRoute
   '/_authed/chat/': typeof AuthedChatIndexRoute
   '/_authed/reviews/': typeof AuthedReviewsIndexRoute
   '/_authed/reviews/$memberId/$chatId': typeof AuthedReviewsMemberIdChatIdRoute
@@ -124,7 +143,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/invite/$token'
+    | '/assistant/$conversationId'
     | '/chat/$chatId'
+    | '/assistant/'
     | '/chat/'
     | '/reviews/'
     | '/reviews/$memberId/$chatId'
@@ -136,7 +157,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/invite/$token'
     | '/'
+    | '/assistant/$conversationId'
     | '/chat/$chatId'
+    | '/assistant'
     | '/chat'
     | '/reviews'
     | '/reviews/$memberId/$chatId'
@@ -149,7 +172,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/invite/$token'
     | '/_authed/'
+    | '/_authed/assistant/$conversationId'
     | '/_authed/chat/$chatId'
+    | '/_authed/assistant/'
     | '/_authed/chat/'
     | '/_authed/reviews/'
     | '/_authed/reviews/$memberId/$chatId'
@@ -208,6 +233,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/assistant/': {
+      id: '/_authed/assistant/'
+      path: '/assistant'
+      fullPath: '/assistant/'
+      preLoaderRoute: typeof AuthedAssistantIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/assistant/$conversationId': {
+      id: '/_authed/assistant/$conversationId'
+      path: '/assistant/$conversationId'
+      fullPath: '/assistant/$conversationId'
+      preLoaderRoute: typeof AuthedAssistantConversationIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/chat/': {
       id: '/_authed/chat/'
       path: '/chat'
@@ -248,7 +287,9 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedAssistantConversationIdRoute: typeof AuthedAssistantConversationIdRoute
   AuthedChatChatIdRoute: typeof AuthedChatChatIdRoute
+  AuthedAssistantIndexRoute: typeof AuthedAssistantIndexRoute
   AuthedChatIndexRoute: typeof AuthedChatIndexRoute
   AuthedReviewsIndexRoute: typeof AuthedReviewsIndexRoute
   AuthedReviewsMemberIdChatIdRoute: typeof AuthedReviewsMemberIdChatIdRoute
@@ -257,7 +298,9 @@ interface AuthedRouteChildren {
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedAssistantConversationIdRoute: AuthedAssistantConversationIdRoute,
   AuthedChatChatIdRoute: AuthedChatChatIdRoute,
+  AuthedAssistantIndexRoute: AuthedAssistantIndexRoute,
   AuthedChatIndexRoute: AuthedChatIndexRoute,
   AuthedReviewsIndexRoute: AuthedReviewsIndexRoute,
   AuthedReviewsMemberIdChatIdRoute: AuthedReviewsMemberIdChatIdRoute,

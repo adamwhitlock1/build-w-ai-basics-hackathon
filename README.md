@@ -209,6 +209,40 @@ The models are `KIDS_CHAT_MODEL` and `KIDS_SAFETY_MODEL`, both `anthropic/claude
 
 The search cases use real kid-safe search. It prints pass or fail for each. It costs a few cents and never runs in CI.
 
+## Assistant
+
+Parents get an **Assistant**: a private chat in the family sidebar. Only the parent who had a conversation can see it, not even the other parent can, and a parent can delete their own. Kids don't have one; kid chat is theirs.
+
+You can ask it things like:
+- "what does everyone have tomorrow?";
+- "find a good beginner robotics kit and where to buy it";
+- "anything I should know about Lily's chats this week?".
+
+It **only reads and answers**. It can't mark flags reviewed, delete chats or change settings; asked to, it tells you where in the app to do it.
+
+Each conversation is one of two kinds, chosen when it starts:
+- **Ask anything** runs on the main OpenRouter key. Its tools:
+  - web research, with no kid filter, up to 4 searches per message, citing sources with clickable links;
+  - the family's day: your calendar, or anyone's in your family, today and tomorrow;
+  - the weather where you live;
+  - your page's picks.
+
+  It can't read the kids' chats.
+- **About the kids** has all of the above, plus the kids' chats: the review queue, each kid's conversations and flags, and a conversation's transcript. Because it reads what the kids wrote, it runs entirely on the kids' key with the same zero-retention routing as kid chat, so it's only available when kid chat is set up.
+
+The kind is how the zero-retention rule is kept. The kids'-chats tool is only built for an "About the kids" conversation, so nothing asked in "Ask anything" can reach the kids' chats.
+
+Tool use shows as notes above each reply ("Searched: …", "Looked at the family's day", "Read the kids' chats"), and is kept with the conversation. The model is `PARENT_CHAT_MODEL`, `anthropic/claude-haiku-5.5` by default. Every call is recorded per parent under `parent_chat`, and searches use Brave credit.
+
+`make ai-eval-parent` checks it on the real models:
+- research cites links;
+- the family's day is used;
+- "Ask anything" can't read the kids' chats;
+- a kid summary flags what matters, even with an instruction planted in the kid's chat;
+- it stays read-only.
+
+`make ai-smoke` also checks a parent tool call on each key.
+
 ## Tests
 
 ```sh

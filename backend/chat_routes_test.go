@@ -163,8 +163,20 @@ func sendMessage(t *testing.T, c *client, chatID int64, text string) (int, []sse
 // sendMessageIn is sendMessage with the kid's time zone.
 func sendMessageIn(t *testing.T, c *client, chatID int64, text, timeZone string) (int, []sseEvent, string) {
 	t.Helper()
+	return postStreamIn(t, c, fmt.Sprintf("/api/me/chats/%d/messages", chatID), text, timeZone)
+}
+
+// postStream posts {"text": text} to path and returns the status and, for a
+// stream, its server-sent events (else the body).
+func postStream(t *testing.T, c *client, path, text string) (int, []sseEvent, string) {
+	t.Helper()
+	return postStreamIn(t, c, path, text, "")
+}
+
+func postStreamIn(t *testing.T, c *client, path, text, timeZone string) (int, []sseEvent, string) {
+	t.Helper()
 	body, _ := json.Marshal(map[string]string{"text": text, "timeZone": timeZone})
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/me/chats/%d/messages", c.base, chatID), strings.NewReader(string(body)))
+	req, err := http.NewRequest("POST", c.base+path, strings.NewReader(string(body)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,8 +287,8 @@ func TestKidChatRoutes(t *testing.T) {
 	}
 
 	// A parent can't chat as themselves.
-	f.alice.wantError("POST", "/api/me/chats", map[string]string{"mode": "explore"}, http.StatusForbidden, "The parents' assistant isn't available yet.")
-	f.alice.wantError("GET", "/api/me/chats", nil, http.StatusForbidden, "The parents' assistant isn't available yet.")
+	f.alice.wantError("POST", "/api/me/chats", map[string]string{"mode": "explore"}, http.StatusForbidden, "Kid chat is for kids. Try your Assistant.")
+	f.alice.wantError("GET", "/api/me/chats", nil, http.StatusForbidden, "Kid chat is for kids. Try your Assistant.")
 
 	// A forged cross-site message is refused before it reaches the handler.
 	headers := map[string]string{"Sec-Fetch-Site": "cross-site", "Content-Type": "application/json"}
