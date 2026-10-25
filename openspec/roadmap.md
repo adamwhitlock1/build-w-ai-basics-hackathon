@@ -105,7 +105,7 @@ Each item is one OpenSpec change, each shippable and testable on its own. Change
    - Conversations stored in SQLite; personas for ages 12 and 15; the hint ladder.
    - Pre-flight flagging, crisis flags and resources, and the parent review queue with transcripts.
    - The kid notice and the no-retention gate.
-5. **`agent-tools`:** a kid-safe tool set (weather, my day, kid-safe search) and adult tools (web research, …).
-6. **`parent-agent`:** the parent assistant, including tools for reviewing the kids' chats.
+5. **`agent-tools`:** the kid agent's tools: weather, my day, my picks, and kid-safe search (Explore only, at most 2 per message). Kids and parents see each tool use in the chat.
+6. **`parent-agent`:** the parent assistant, its adult tools (web research, …), and tools for reviewing the kids' chats.
 
 Later, as they become useful: phone push for flags, streaming polish, cost ceilings, long-term agent memory, homework photos, and the unbuilt hackathon items above.
