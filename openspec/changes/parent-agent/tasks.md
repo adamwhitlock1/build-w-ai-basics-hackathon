@@ -114,8 +114,9 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
     - **Sam:** his Assistant list is empty. Every read, send and delete of Maya's four conversations got a 404.
     - **Delete:** Maya deleted a conversation from its page, after confirming. It left her list, and its messages and tool calls are gone from the database.
     - **Usage:** `llm_usage` has 11 `parent_chat` rows for Maya, step `parent_chat_reply` on `anthropic/claude-haiku-5.5`, 22,791 tokens in all.
-- [ ] 6.2 Run `openspec validate parent-agent --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Parent assistant" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
+- [x] 6.2 Run `openspec validate parent-agent --strict` and `make check`. Push, open the PR, and confirm CI passes on it. Add the "Parent assistant" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
   - Progress (2026-10-24):
     - The Post-PoC line is in both files.
     - At the owner's choice, the branch was pushed and the PR opened before the live checks (4.1 replies, 5.1, 5.2, 6.1), which waited for Go programs on this machine to reach the network again. CI runs on GitHub.
     - The live checks are done (2026-10-25), and the tool-note fix is pushed to the PR.
+    - CI passed on PR #16 after the last push, and the owner merged it (2026-10-25).
