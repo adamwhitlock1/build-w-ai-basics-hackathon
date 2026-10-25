@@ -9,7 +9,9 @@
 !.env.example
 
 # Local data and build output
-backend/kinlight.db*
+backend/*.db
+backend/*.db.*
+backend/*.db-*
 backend/bin/
 # Genkit Dev UI traces (make dev-ui): full prompts and replies, family data.
 backend/.genkit/
