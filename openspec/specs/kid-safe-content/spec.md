@@ -67,19 +67,19 @@ Every curated widget response and saved widget response SHALL include a boolean 
 - **THEN** its response has `kidSafe: false`
 
 ### Requirement: Parents see a kid-safe marker
-When the viewer is a parent, a card whose content is kid-safe SHALL show a visible "Kid-safe" marker. When the viewer is a kid, the marker SHALL NOT be shown. Cards that are not kid-safe SHALL NOT show the marker.
+When the viewer is a parent, a card whose content is kid-safe SHALL show a visible marker reading "Picked with <name>'s age in mind", where <name> is the kid whose page it is (as the app names members elsewhere). When the viewer is a kid, the marker SHALL NOT be shown. Cards that are not kid-safe SHALL NOT show the marker.
 
 #### Scenario: Parent sees the marker on a kid's page
-- **WHEN** a parent views their kid's page
-- **THEN** each kid-safe card shows a "Kid-safe" marker
+- **WHEN** a parent views Jordan's page
+- **THEN** each kid-safe card shows a marker reading "Picked with Jordan's age in mind"
 
 #### Scenario: Kid does not see the marker
 - **WHEN** a kid views their own page
-- **THEN** no "Kid-safe" marker is shown, even though the content is kid-safe
+- **THEN** no kid-safe marker is shown, even though the content is kid-safe
 
 #### Scenario: Old unfiltered widget has no marker
-- **WHEN** a parent views a kid's page that includes a widget saved before this change
-- **THEN** that widget shows no "Kid-safe" marker
+- **WHEN** a parent views a kid's page that includes a card saved before kid-safe mode existed
+- **THEN** that card shows no kid-safe marker
 
 ### Requirement: Remembered results respect kid-safety
 A remembered (cached) curated result SHALL be sent again only to a member it was produced for: in kid-safe mode for a kid, and not in kid-safe mode for a parent. Any other remembered result SHALL be treated as missing and picked again in the member's mode. This includes results remembered before this change, which were not produced in kid-safe mode.
