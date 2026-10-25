@@ -42,6 +42,7 @@ Out of scope, and planned next:
 
 ### Modified Capabilities
 - `parent-assistant`: the Assistant refers to the kids by name rather than guessing pronouns.
+- `demo-data`: the fixture calendar host becomes `fixtures.kinlight.test`.
 
 ## Impact
 

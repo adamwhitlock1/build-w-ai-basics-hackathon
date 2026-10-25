@@ -47,7 +47,7 @@ Widgets remember their results, so a page you've opened before shows its cards s
 
 What that costs: picking Articles takes up to 5 Brave news searches, Local Events up to 3 web searches, each with a few small LLM calls, and refreshing a described widget takes 1 search and 1 LLM call. A visit while everything is fresh spends nothing. Pressing refresh twice within a minute spends only once. A family member's cards are shared with their parents' view of them, so whoever opens them first pays, and the other gets them for free.
 
-Accounts, families, saved widgets and page layouts live in a SQLite file, `backend/porchlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/porchlight.db*`. Set `DB_PATH` to use a different file.
+Accounts, families, saved widgets and page layouts live in a SQLite file, `backend/kinlight.db` (gitignored), which the backend creates and sets up on first run. To start over, stop the backend and delete `backend/kinlight.db*`. Set `DB_PATH` to use a different file.
 
 ### Why `make run` and not `go run .`?
 
@@ -72,11 +72,11 @@ For trying things out locally, `make seed` (run in `backend/`) adds a test famil
 | Parent | `contact.codestuff@gmail.com` | `password1` |
 | Kid | `contact.codestuff+kid@gmail.com` | `password1` |
 
-It writes to `porchlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
+It writes to `kinlight.db`, or to `$DB_PATH`, or to another file with `go run ./cmd/seed -db <file>`. Running it again changes nothing. These credentials are public in this repository, so it's for local databases only: never run it against a deployed one.
 
 ## Demo family
 
-For testing every member's path end to end, `make demo` builds a whole family, plus a second one, in its own database, `backend/porchlight.db.demo` (gitignored). It deletes that file first, so every run starts from the same place. It never touches `porchlight.db`, and it refuses to write into any other file that already has accounts.
+For testing every member's path end to end, `make demo` builds a whole family, plus a second one, in its own database, `backend/kinlight.db.demo` (gitignored). It deletes that file first, so every run starts from the same place. It never touches `kinlight.db`, and it refuses to write into any other file that already has accounts.
 
 ```sh
 # Terminal 1: rebuild the demo, then serve it with fixture calendars on
@@ -102,7 +102,7 @@ Every account's password is `password1`.
 
 `.test` addresses can never reach a real inbox. The data lives in `backend/cmd/seed/demo.go`, as a plain Go list you can add members to.
 
-**Fixture calendars.** The demo members' calendar links point at `https://fixtures.porchlight.test/calendars/<name>.ics`. With `PORCHLIGHT_DEV_FIXTURES=1` (which `make demo-serve` sets), the server answers those links itself, with a feed built fresh around the current time. Between them, the feeds always have:
+**Fixture calendars.** The demo members' calendar links point at `https://fixtures.kinlight.test/calendars/<name>.ics`. With `KINLIGHT_DEV_FIXTURES=1` (which `make demo-serve` sets), the server answers those links itself, with a feed built fresh around the current time. Between them, the feeds always have:
 
 - an event today that has already ended, and one still to come;
 - an all-day event;
@@ -110,11 +110,11 @@ Every account's password is `password1`.
 - a daily standup with today's moved from 9:00 to 11:00 (Sam);
 - a daily band practice with today's deleted (Jordan).
 
-You can paste a fixture link into anyone's "Your interests", for example `https://fixtures.porchlight.test/calendars/maya.ics` for Lily. Without the setting, `.test` never resolves, so those links just show as unavailable. Every other link is fetched exactly as usual either way. Never turn the setting on in a deployment.
+You can paste a fixture link into anyone's "Your interests", for example `https://fixtures.kinlight.test/calendars/maya.ics` for Lily. Without the setting, `.test` never resolves, so those links just show as unavailable. Every other link is fetched exactly as usual either way. Never turn the setting on in a deployment.
 
 Two limits come with building feeds around "now". Between about 11 pm and 1 am, the "already ended" or "still to come" event may not fit inside today and is left out. And "today" is the server's date, which only matters if the server and browser are in different time zones.
 
-**Real calendars instead.** To try a real feed, set `SEED_CALENDAR_MAYA`, `SEED_CALENDAR_SAM`, `SEED_CALENDAR_JORDAN` or `SEED_CALENDAR_ALEX` in `backend/.env` to a private iCal link and run `make demo` again. That member gets the real link instead of the fixture. The link goes only into `porchlight.db.demo`, and `make demo` never prints it.
+**Real calendars instead.** To try a real feed, set `SEED_CALENDAR_MAYA`, `SEED_CALENDAR_SAM`, `SEED_CALENDAR_JORDAN` or `SEED_CALENDAR_ALEX` in `backend/.env` to a private iCal link and run `make demo` again. That member gets the real link instead of the fixture. The link goes only into `kinlight.db.demo`, and `make demo` never prints it.
 
 **What browsing the demo costs.** `make demo` fills every member's Articles, "Happening near you" and described widgets with realistic results, marked as just updated. Their links go to real home pages; refreshing a card replaces them with real results. While they're fresh, opening any page as anyone runs no Brave search and no AI call. Two things still cost:
 
@@ -198,7 +198,7 @@ Without the key, kid chat is off: kids see "Chat isn't set up yet. Ask a parent.
 
 The models are `KIDS_CHAT_MODEL` and `KIDS_SAFETY_MODEL`, both `anthropic/claude-haiku-5.5` by default. A model needs a zero-retention endpoint that doesn't filter out what a kid in trouble writes. The OpenAI models' zero-retention endpoints block self-harm messages, and Gemini has no zero-retention endpoint, so neither qualifies.
 
-**Prototyping.** `PORCHLIGHT_KIDS_ALLOW_RETENTION=1` lets kid chat run on any provider, with the main key if there's no kids' key. It's for trying things with the demo family. The server warns at startup when it's on. Never set it once your kids use the app.
+**Prototyping.** `KINLIGHT_KIDS_ALLOW_RETENTION=1` lets kid chat run on any provider, with the main key if there's no kids' key. It's for trying things with the demo family. The server warns at startup when it's on. Never set it once your kids use the app.
 
 **Checking behavior.** `make ai-eval-kids` runs 17 scripted kid conversations through the real chat service and models:
 - homework asked for straight, twice and in disguise, and an essay;
@@ -292,13 +292,13 @@ AI calls go through one of two packages:
 
 **Models.** Both clients use `OPENROUTER_MODEL` (default `openai/gpt-4.1-mini`) through your OpenRouter account. In Genkit that model is called `openrouter/openai/gpt-4.1-mini`. To give Genkit a different one, set `GENKIT_MODEL` in `backend/.env` to `openrouter/` plus any OpenRouter model id. Every Genkit call's tokens go to `llm_usage` like everything else's.
 
-**Switching back.** `PORCHLIGHT_BRIEFER=legacy` in `backend/.env` makes the original client write the briefing again, after a restart. The default is `genkit`, and any other value stops the server at startup. The switch goes away once the agent has run on Genkit for a while.
+**Switching back.** `KINLIGHT_BRIEFER=legacy` in `backend/.env` makes the original client write the briefing again, after a restart. The default is `genkit`, and any other value stops the server at startup. The switch goes away once the agent has run on Genkit for a while.
 
 **MiniMax.** With `MINIMAX_API_KEY` set (and optionally `MINIMAX_BASE_URL` and `MINIMAX_MODEL`), MiniMax's Anthropic-compatible API is available to Genkit as `anthropic/<MINIMAX_MODEL>`. Nothing uses it yet. It's for the owner's own experiments and never for kids' conversations: those go only to providers that don't keep or train on what they're sent, and a subscription plan doesn't promise that. Without the key, MiniMax isn't registered at all.
 
 **Checking the real providers.** `make ai-smoke` (in `backend/`) calls the real models: structured output, one tool call, a required tool call, and usage reporting, for OpenRouter and, with a key, MiniMax. It costs a fraction of a cent, so it only runs when you ask; CI never does. The tests otherwise use `internal/aikit/aitest`, a real Genkit instance whose one model answers from a script, so they need no keys or network.
 
-**Watching AI calls.** `make dev-ui` runs the API under Genkit's Developer UI at <http://localhost:4000>. It shows each model call's prompt, reply, tokens and timing. Settings pass through, e.g. `DB_PATH=porchlight.db.demo PORCHLIGHT_DEV_FIXTURES=1 make dev-ui` for the demo family. The CLI is pinned (`genkit-cli@1.44.1`) and fetched by `npx`. On first run it asks you to acknowledge Google's analytics notice; `npx genkit-cli@1.44.1 config set analyticsOptOut true` opts out instead. Traces are kept in `backend/.genkit/`. They hold full prompts and replies, so the folder is gitignored; delete it to clear them.
+**Watching AI calls.** `make dev-ui` runs the API under Genkit's Developer UI at <http://localhost:4000>. It shows each model call's prompt, reply, tokens and timing. Settings pass through, e.g. `DB_PATH=kinlight.db.demo KINLIGHT_DEV_FIXTURES=1 make dev-ui` for the demo family. The CLI is pinned (`genkit-cli@1.44.1`) and fetched by `npx`. On first run it asks you to acknowledge Google's analytics notice; `npx genkit-cli@1.44.1 config set analyticsOptOut true` opts out instead. Traces are kept in `backend/.genkit/`. They hold full prompts and replies, so the folder is gitignored; delete it to clear them.
 
 The Dev UI talks to Genkit's reflection server on 127.0.0.1:3100, which **runs any AI flow without a login**. It starts only when `GENKIT_ENV=dev` or `GENKIT_REFLECTION_ENABLED` is set, and the backend logs a warning when it does. Use it on your own machine only, and never set either variable on the homelab.
 

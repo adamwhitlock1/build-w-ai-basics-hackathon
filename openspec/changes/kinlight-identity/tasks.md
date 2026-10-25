@@ -5,14 +5,14 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 These tasks are design decision 7, pass 1: mechanical, with no visible change.
 
 - [x] 1.1 Rename the Go module to `kinlight` and rewrite every `porchlight/` import. Verify with `gofmt -l .` (empty) and `make check`.
-- [ ] 1.2 Rename the settings and files:
+- [x] 1.2 Rename the settings and files:
   - the six `PORCHLIGHT_*` variables → `KINLIGHT_*`;
   - `porchlight_session` → `kinlight_session`;
   - `porchlight.db*` → `kinlight.db*` (the default, the Makefile, `.gitignore`, `.env.example`, tests);
   - `fixtures.porchlight.test` → `fixtures.kinlight.test`;
   - `bin/porchlight` → `bin/kinlight`.
 
-  Add the startup guard: old variable names and a `porchlight.db` path stop the server with the replacement named. Test each old variable and the old path with `t.Setenv`, and check that the error names the new setting and never a value. Verify with `make check`.
+  Add the startup guard: old variable names and a `porchlight.db` path stop the server with the replacement named. The fixture host is part of the `demo-data` spec, so it gets a delta spec (added during apply). Test each old variable and the old path with `t.Setenv`, and check that the error names the new setting and never a value. Verify with `make check`.
 - [ ] 1.3 Rename the frontend: the package name, `PorchlightConfig`, `PorchlightData`, `usePorchlightPuck` and its file, and `vite.config.ts`'s `PORCHLIGHT_WEB_PORT` and `PORCHLIGHT_API`. Verify with lint and build.
 - [ ] 1.4 Rename the name in repo files: CI comments, the OpenSpec `config.yaml` context (the name only), the main specs' Purpose lines, and `frontend/README.md`. Verify with `openspec validate --specs --strict`.
 - [ ] 1.5 On the owner's machine:

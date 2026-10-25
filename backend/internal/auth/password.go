@@ -43,7 +43,7 @@ func CheckPassword(plain string, hash []byte) bool {
 // sync.OnceValue wraps a function so it runs at most once. New calls it at
 // startup, so no login has to wait for it.
 var dummyHash = sync.OnceValue(func() []byte {
-	hash, err := bcrypt.GenerateFromPassword([]byte("porchlight-dummy-password"), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte("kinlight-dummy-password"), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err) // only possible for passwords over 72 bytes
 	}

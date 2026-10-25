@@ -260,9 +260,9 @@ func calendarLink(m demoMember) (link, note string, err error) {
 }
 
 // webOrigin is where the frontend dev server runs, for invite links. It
-// reads PORCHLIGHT_WEB_PORT, as frontend/vite.config.ts does.
+// reads KINLIGHT_WEB_PORT, as frontend/vite.config.ts does.
 func webOrigin() string {
-	port := os.Getenv("PORCHLIGHT_WEB_PORT")
+	port := os.Getenv("KINLIGHT_WEB_PORT")
 	if port == "" {
 		port = "5174"
 	}
@@ -291,7 +291,7 @@ func resetDemoDB(dbPath string) error {
 		return err
 	}
 	if users > 0 {
-		return fmt.Errorf("%s already has %d users; the demo only replaces files ending in .demo (try -db porchlight.db.demo)", dbPath, users)
+		return fmt.Errorf("%s already has %d users; the demo only replaces files ending in .demo (try -db kinlight.db.demo)", dbPath, users)
 	}
 	return nil
 }

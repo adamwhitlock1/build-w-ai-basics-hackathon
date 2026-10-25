@@ -310,7 +310,7 @@ func TestSignupMeLogout(t *testing.T) {
 
 	token := c.sessionToken()
 	resp := c.do("POST", "/api/logout", nil, http.StatusNoContent, nil)
-	if !strings.Contains(resp.Header.Get("Set-Cookie"), "porchlight_session=;") {
+	if !strings.Contains(resp.Header.Get("Set-Cookie"), "kinlight_session=;") {
 		t.Errorf("logout Set-Cookie = %q, want the session cookie cleared", resp.Header.Get("Set-Cookie"))
 	}
 	c.wantError("GET", "/api/me", nil, http.StatusUnauthorized, "Please log in.")

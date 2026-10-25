@@ -18,7 +18,7 @@ import (
 
 // defaultDemoDB is where make demo writes. Its name ends in ".demo", which is
 // what lets the seed delete and rebuild it (see resetDemoDB).
-const defaultDemoDB = "porchlight.db.demo"
+const defaultDemoDB = "kinlight.db.demo"
 
 // demoFamily is one family: its creator is members[0], who must be a parent.
 type demoFamily struct {

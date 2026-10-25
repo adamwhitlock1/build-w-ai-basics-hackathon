@@ -154,7 +154,7 @@ func TestFixtureFetcher(t *testing.T) {
 	f := NewFixtureFetcher(next, func() time.Time { return now })
 	ctx := context.Background()
 
-	for _, link := range []string{FixtureLink("maya"), "webcal://fixtures.porchlight.test/calendars/sam.ics"} {
+	for _, link := range []string{FixtureLink("maya"), "webcal://fixtures.kinlight.test/calendars/sam.ics"} {
 		feed, err := f.Fetch(ctx, link)
 		if err != nil {
 			t.Fatalf("Fetch(%s): %v", link, err)
@@ -168,15 +168,15 @@ func TestFixtureFetcher(t *testing.T) {
 	}
 
 	for _, link := range []string{
-		"https://fixtures.porchlight.test/calendars/nobody.ics",
-		"https://fixtures.porchlight.test/other/maya.ics",
-		"https://fixtures.porchlight.test/calendars/maya.txt",
+		"https://fixtures.kinlight.test/calendars/nobody.ics",
+		"https://fixtures.kinlight.test/other/maya.ics",
+		"https://fixtures.kinlight.test/calendars/maya.txt",
 	} {
 		_, err := f.Fetch(ctx, link)
 		if !errors.Is(err, ErrLinkGone) {
 			t.Errorf("Fetch(%s) = %v, want ErrLinkGone", link, err)
 		}
-		if err != nil && strings.Contains(err.Error(), "fixtures.porchlight.test") {
+		if err != nil && strings.Contains(err.Error(), "fixtures.kinlight.test") {
 			t.Errorf("Fetch(%s) error contains the link: %v", link, err)
 		}
 	}
@@ -191,7 +191,7 @@ func TestFixtureFetcher(t *testing.T) {
 		t.Errorf("real fetcher got %q, want %q", next.links, real)
 	}
 
-	if _, err := f.Fetch(ctx, "ftp://fixtures.porchlight.test/calendars/maya.ics"); !errors.Is(err, ErrInvalidLink) {
+	if _, err := f.Fetch(ctx, "ftp://fixtures.kinlight.test/calendars/maya.ics"); !errors.Is(err, ErrInvalidLink) {
 		t.Errorf("an ftp fixture link gave %v, want ErrInvalidLink", err)
 	}
 }

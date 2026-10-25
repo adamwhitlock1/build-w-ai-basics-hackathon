@@ -16,7 +16,7 @@ import (
 
 const (
 	// CookieName is the name of the session cookie.
-	CookieName = "porchlight_session"
+	CookieName = "kinlight_session"
 	// SessionLifetime is how long a login lasts.
 	SessionLifetime = 30 * 24 * time.Hour
 

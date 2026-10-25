@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -45,7 +46,7 @@ func main() {
 	// Keeping the real work in run, which returns an error, means deferred
 	// cleanups run before we exit; os.Exit skips defers.
 	if err := run(context.Background(), logger); err != nil {
-		fmt.Fprintln(os.Stderr, "porchlight:", err)
+		fmt.Fprintln(os.Stderr, "kinlight:", err)
 		os.Exit(1)
 	}
 }
@@ -78,14 +79,14 @@ type config struct {
 	kidsSafetyModel string
 	// kidsAllowRetention lets kid chat run on any provider, with the main
 	// key if there's no kids' key, for prototyping with the demo family.
-	// Development only: PORCHLIGHT_KIDS_ALLOW_RETENTION=1.
+	// Development only: KINLIGHT_KIDS_ALLOW_RETENTION=1.
 	kidsAllowRetention bool
 	// parentChatModel is the parents' Assistant's OpenRouter model, on
 	// both the main and the kids' key.
 	parentChatModel string
 	// devFixtures makes the server answer the demo family's fixture
 	// calendar links itself (see calendar.FixtureFetcher). Local
-	// development only: PORCHLIGHT_DEV_FIXTURES=1.
+	// development only: KINLIGHT_DEV_FIXTURES=1.
 	devFixtures bool
 }
 
@@ -96,10 +97,13 @@ func loadConfig() (config, error) {
 	if err := godotenv.Load(".env"); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return config{}, fmt.Errorf("read .env: %w", err)
 	}
+	if err := checkOldNames(); err != nil {
+		return config{}, err
+	}
 
 	cfg := config{
 		port:               envOr("PORT", "8080"),
-		dbPath:             envOr("DB_PATH", "porchlight.db"),
+		dbPath:             envOr("DB_PATH", "kinlight.db"),
 		openRouterKey:      os.Getenv("OPENROUTER_API_KEY"),
 		openRouterModel:    envOr("OPENROUTER_MODEL", "openai/gpt-4.1-mini"),
 		openRouterBaseURL:  envOr("OPENROUTER_BASE_URL", llm.DefaultBaseURL),
@@ -112,9 +116,9 @@ func loadConfig() (config, error) {
 		kidsKey:            os.Getenv("OPENROUTER_KIDS_API_KEY"),
 		kidsChatModel:      envOr("KIDS_CHAT_MODEL", defaultKidsChatModel),
 		kidsSafetyModel:    envOr("KIDS_SAFETY_MODEL", defaultKidsSafetyModel),
-		kidsAllowRetention: os.Getenv("PORCHLIGHT_KIDS_ALLOW_RETENTION") == "1",
+		kidsAllowRetention: os.Getenv("KINLIGHT_KIDS_ALLOW_RETENTION") == "1",
 		parentChatModel:    envOr("PARENT_CHAT_MODEL", defaultParentChatModel),
-		devFixtures:        os.Getenv("PORCHLIGHT_DEV_FIXTURES") == "1",
+		devFixtures:        os.Getenv("KINLIGHT_DEV_FIXTURES") == "1",
 	}
 
 	var missing []string
@@ -129,7 +133,7 @@ func loadConfig() (config, error) {
 			strings.Join(missing, " and "))
 	}
 
-	briefer, err := parseBriefer(os.Getenv("PORCHLIGHT_BRIEFER"))
+	briefer, err := parseBriefer(os.Getenv("KINLIGHT_BRIEFER"))
 	if err != nil {
 		return config{}, err
 	}
@@ -153,7 +157,7 @@ const (
 // defaultMiniMaxBaseURL is MiniMax's Anthropic-compatible API root.
 const defaultMiniMaxBaseURL = "https://api.minimax.io/anthropic"
 
-// parseBriefer checks PORCHLIGHT_BRIEFER: "genkit" (also the default when
+// parseBriefer checks KINLIGHT_BRIEFER: "genkit" (also the default when
 // it's empty) or "legacy".
 func parseBriefer(v string) (string, error) {
 	switch v {
@@ -162,7 +166,38 @@ func parseBriefer(v string) (string, error) {
 	case "legacy":
 		return "legacy", nil
 	}
-	return "", fmt.Errorf("PORCHLIGHT_BRIEFER is %q; set it to genkit (the default) or legacy in backend/.env", v)
+	return "", fmt.Errorf("KINLIGHT_BRIEFER is %q; set it to genkit (the default) or legacy in backend/.env", v)
+}
+
+// oldSettings are the settings renamed when Porchlight became Kinlight,
+// each with its new name.
+var oldSettings = []struct{ old, now string }{
+	{"PORCHLIGHT_KIDS_ALLOW_RETENTION", "KINLIGHT_KIDS_ALLOW_RETENTION"},
+	{"PORCHLIGHT_DEV_FIXTURES", "KINLIGHT_DEV_FIXTURES"},
+	{"PORCHLIGHT_BRIEFER", "KINLIGHT_BRIEFER"},
+	{"PORCHLIGHT_LIVE_AI", "KINLIGHT_LIVE_AI"},
+	{"PORCHLIGHT_WEB_PORT", "KINLIGHT_WEB_PORT"},
+	{"PORCHLIGHT_API", "KINLIGHT_API"},
+}
+
+// checkOldNames refuses settings that still use the Porchlight names, so a
+// stale backend/.env fails loudly rather than being quietly ignored (or, for
+// DB_PATH, quietly starting an empty database). It reads only names, never
+// values, so its errors can't reveal a secret.
+func checkOldNames() error {
+	var renames []string
+	for _, s := range oldSettings {
+		if _, set := os.LookupEnv(s.old); set {
+			renames = append(renames, fmt.Sprintf("%s is now %s", s.old, s.now))
+		}
+	}
+	if strings.HasPrefix(filepath.Base(os.Getenv("DB_PATH")), "porchlight.db") {
+		renames = append(renames, "DB_PATH names a porchlight.db file: rename the file to kinlight.db and set DB_PATH to match")
+	}
+	if len(renames) > 0 {
+		return fmt.Errorf("Porchlight is now Kinlight; update backend/.env or your shell: %s", strings.Join(renames, "; "))
+	}
+	return nil
 }
 
 // envOr returns the environment variable key, or fallback if it is empty.
@@ -322,7 +357,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
-	logger.Info("porchlight API listening", "addr", "http://"+ln.Addr().String(), "model", cfg.openRouterModel,
+	logger.Info("kinlight API listening", "addr", "http://"+ln.Addr().String(), "model", cfg.openRouterModel,
 		"briefer", cfg.briefer, "genkit_model", kit.DefaultModel(), "db", cfg.dbPath)
 
 	select {
@@ -358,7 +393,7 @@ type kidAgent struct {
 // kid chat runs:
 //   - on: the kids' key, every call restricted to zero-data-retention
 //     providers that don't collect data;
-//   - prototyping (PORCHLIGHT_KIDS_ALLOW_RETENTION=1): any provider, with a
+//   - prototyping (KINLIGHT_KIDS_ALLOW_RETENTION=1): any provider, with a
 //     warning;
 //   - off: no kids' key. It returns nil, and kids see "Chat isn't set up".
 func buildKidAgent(ctx context.Context, logger *slog.Logger, cfg config) (*kidAgent, error) {
@@ -369,7 +404,7 @@ func buildKidAgent(ctx context.Context, logger *slog.Logger, cfg config) (*kidAg
 			key = cfg.openRouterKey
 		}
 		noRetention = false
-		logger.Warn("kid chat isn't restricted to no-retention providers (PORCHLIGHT_KIDS_ALLOW_RETENTION=1); for prototyping only, never once kids use it")
+		logger.Warn("kid chat isn't restricted to no-retention providers (KINLIGHT_KIDS_ALLOW_RETENTION=1); for prototyping only, never once kids use it")
 	case key == "":
 		logger.Info("kid chat is off: set OPENROUTER_KIDS_API_KEY to turn it on")
 		return nil, nil
