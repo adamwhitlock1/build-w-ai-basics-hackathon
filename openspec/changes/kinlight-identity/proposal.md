@@ -4,13 +4,19 @@
 
 ## What Changes
 
-- **The name.** Everything a family member reads says **Kinlight**:
-  - the page title, the header, sign-in and invite pages, chat labels, and error messages;
-  - the agents' and the other AI prompts' references to the app;
-  - the OpenRouter app title and the calendar reader's user agent;
-  - the README header.
-
-  Code, the repo, the Go module, `PORCHLIGHT_*` environment variables, the database file and cookie names keep "porchlight", so nothing breaks and a later rename is a copy change.
+- **The name.** Everything says **Kinlight**, in the code as well as the UI. The app isn't deployed yet, so this is a clean break.
+  - **What people read:** the page title, the header, sign-in and invite pages, chat labels, error messages, the AI prompts' references to the app, the OpenRouter app title, the calendar reader's user agent, and the README.
+  - **Code and settings:**
+    - the Go module `porchlight` becomes `kinlight`;
+    - `PORCHLIGHT_*` environment variables become `KINLIGHT_*`;
+    - the session cookie becomes `kinlight_session`;
+    - `porchlight.db` (and `.demo` and `.test`) becomes `kinlight.db`;
+    - the dev calendar host becomes `fixtures.kinlight.test`;
+    - the frontend package, identifiers such as `PorchlightConfig`, the binary, `.gitignore`, CI, the OpenSpec project context and the main specs' Purpose lines are renamed too.
+  - **BREAKING:**
+    - Everyone signs in again.
+    - Local settings and database files need the new names. The server refuses to start while an old `PORCHLIGHT_*` variable or a `porchlight.db` path is configured, and names the replacement.
+  - **Kept as history:** `devpost/`, the archived changes, and `brand/`'s research and naming docs. The GitHub repo's name doesn't change.
 - **The lantern.** The favicon (SVG and ICO), the Apple touch icon and the header lockup come from `brand/logo/`.
   - The header lockup replaces the amber dot and the "Porchlight" text.
   - The lockup is themed, so one drawing works in both themes.
@@ -50,11 +56,13 @@ Out of scope, and planned next:
   - the name in about a dozen strings;
   - new dependencies `@fontsource-variable/fraunces` and `@fontsource-variable/figtree`;
   - a contrast-check script run by CI.
+- **Everywhere:** the rename touches about 500 references in Go imports, environment variables, file names, identifiers and docs.
 - **Backend:**
   - migration `009_theme.sql` (a `theme` column on `users`);
   - `theme` in `/api/me`, and a new `PUT /api/me/theme`;
   - the name in user-facing errors, LLM prompts, the OpenRouter title and the calendar user agent;
   - the Assistant's prompt rule about kids' names;
+  - a startup guard for old setting names;
   - tests and evaluation text that quote the old name.
 - **Docs:** the README header and intro. `devpost/` gets only the Post-PoC line at archive.
-- **Not affected:** the API paths, sessions, the database file, environment variables, and the demo seed's data.
+- **Not affected:** the API paths, the database's contents once the file is renamed, and the demo seed's data.

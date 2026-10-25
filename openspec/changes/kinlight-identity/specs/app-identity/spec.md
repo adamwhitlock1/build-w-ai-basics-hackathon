@@ -11,7 +11,7 @@ Everything a family member reads SHALL name the app **Kinlight**:
 - error messages and hints;
 - empty-state prompts.
 
-When the AI is told what app it's part of, it SHALL be told Kinlight, and replies SHALL NOT call the app Porchlight. Changing the name SHALL NOT change any API path, session, stored data or setting: existing sessions, environment variables and the database SHALL keep working unchanged.
+When the AI is told what app it's part of, it SHALL be told Kinlight, and replies SHALL NOT call the app Porchlight. The app's settings, session cookie and default database file SHALL use the Kinlight name. API paths and the data in the database SHALL be unchanged. The server SHALL refuse to start while a setting uses an old Porchlight name, which is any `PORCHLIGHT_*` variable or a database path naming `porchlight.db`. It SHALL say which name replaces it.
 
 #### Scenario: Signing in
 - **WHEN** Maya opens the sign-in page
@@ -25,9 +25,13 @@ When the AI is told what app it's part of, it SHALL be told Kinlight, and replie
 - **WHEN** Jordan asks the kid agent what it's called
 - **THEN** its replies are labeled Kinlight, and it calls itself Kinlight's family helper
 
-#### Scenario: An existing session survives the rename
-- **WHEN** Sam was signed in before the update and opens the app after it
-- **THEN** he is still signed in and his page, widgets and chats are unchanged
+#### Scenario: An old setting
+- **WHEN** the server starts with `PORCHLIGHT_DEV_FIXTURES=1` set
+- **THEN** it doesn't start, and says to use `KINLIGHT_DEV_FIXTURES` instead
+
+#### Scenario: An old database path
+- **WHEN** the server starts with its database path set to `porchlight.db`
+- **THEN** it doesn't start, and says to rename the file to `kinlight.db` and update the setting
 
 ### Requirement: The lantern mark
 The browser tab icon, the home-screen icon (Apple touch icon) and the header SHALL show the lantern mark. The header SHALL show the lantern beside the Kinlight wordmark, followed by the family's name once the family has one. The mark SHALL be legible at 16 pixels and SHALL take its colors from the current theme, so it reads in both themes. Decorative copies of the mark SHALL be hidden from screen readers. The header SHALL still expose the name "Kinlight" as text to assistive technology.

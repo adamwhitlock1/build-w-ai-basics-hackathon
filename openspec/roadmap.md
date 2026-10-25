@@ -117,7 +117,7 @@ Later, as they become useful: phone push for flags, streaming polish, cost ceili
 Apply the identity in `brand/` to the app, then run it for the family on the homelab.
 
 **Decided 2026-10-25:**
-- **Name:** the app shows **Kinlight**, the working name from `brand/naming.md`. Code, the repo, the Go module and the database keep their names, so a later rename is a copy change. Clearance of the name is still open.
+- **Name:** the app is **Kinlight**, the working name from `brand/naming.md`, in the code as well as the UI. Because nothing is deployed yet, it's a clean break (revised 2026-10-25): the Go module, settings, cookie and database files are renamed too. Only history keeps "Porchlight", and the GitHub repo's name is unchanged. Clearance of the name is still open.
 - **Typefaces:** Fraunces (with its soft axis) and Figtree, self-hosted.
 - **Dark theme:** Porch light follows the device setting by default, with a Daybreak / Porch light / Automatic switch remembered per member.
 - **Order:** the rebrand first, so the family's first real use is the finished identity.
@@ -125,7 +125,7 @@ Apply the identity in `brand/` to the app, then run it for the family on the hom
 **Planned changes, in order:**
 
 1. **`kinlight-identity`:**
-   - The name in the UI and in the agents' prompts.
+   - The name everywhere: the UI, the agents' prompts, and the code and settings.
    - The lantern logo, favicon, app icon and header lockup.
    - Fraunces and Figtree.
    - The brief's color tokens for both themes, and the theme switch.

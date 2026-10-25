@@ -12,6 +12,17 @@ See proposal.md for why. What exists today:
 - **Where `/api/me` comes from.** `family.Handler` (`Me`, `MeUser`, `MeProfile`) serves it. The frontend caches it forever (`staleTime: 'static'`) and writes new answers into the cache.
 - **The logo files.** `brand/logo/` has the finished files from `build.py`. `themed/*.svg` take their colors from `--mi` (ink), `--ml` (light) and `--mg` (glass core). The kinlight wordmark is outlines of Fraunces, so it doesn't need the font.
 - **Serving.** No CSP header is set, and the Go server doesn't serve the frontend yet; `homelab-deployment` will.
+- **The old name in code.** It appears in about 500 places outside the history folders:
+  - the Go module path `porchlight/internal/...`, in every import;
+  - six `PORCHLIGHT_*` variables (`KIDS_ALLOW_RETENTION`, `DEV_FIXTURES`, `LIVE_AI`, `BRIEFER`, `WEB_PORT`, `API`);
+  - `auth.CookieName = "porchlight_session"`;
+  - `DB_PATH`'s default `porchlight.db`, and `porchlight.db.demo` and `.test`;
+  - the fixtures host `fixtures.porchlight.test`;
+  - the frontend package `porchlight-frontend`;
+  - `PorchlightConfig`, `PorchlightData` and `usePorchlightPuck`;
+  - `bin/porchlight`.
+
+  `loadConfig` calls `godotenv.Load(".env")` before reading the environment, so anything set in `backend/.env` is visible to a check made after it.
 
 ## Goals / Non-Goals
 
@@ -19,12 +30,11 @@ See proposal.md for why. What exists today:
 - One token file, where Porch light is overrides of the same names.
 - Contrast is checked by a machine, not by eye.
 - No flash of the wrong theme.
-- The rename touches only display strings.
+- After the change, "porchlight" survives only in history: `devpost/`, archived changes, and `brand/`'s research and naming docs.
 
 **Non-Goals:**
 - Any animation beyond what exists. The current `widget-in` and `spin-calm` stay until `lantern-moments`.
 - Textures, glass and illustration.
-- Renaming code identifiers (`PorchlightConfig`, `porchlight` module, `PORCHLIGHT_*`).
 - A web manifest or PWA install.
 - Theme choice for other members: parents don't set kids' themes.
 
@@ -122,17 +132,42 @@ Static icons are copied from `brand/logo/` into `frontend/public/`: `favicon.svg
 
 *Alternative:* `localStorage` only. That's simpler, but the choice wouldn't follow the member to other devices, which was the decision. Rejected.
 
-### 7. The rename is a list of display strings
+### 7. A full rename, in two passes
 
-- **Frontend:** every user-visible "Porchlight" listed in the proposal (`AuthForm`, invite page, `ChatCard`, `MessageList`'s agent label, `CrisisAlert`, `BirthYearField`, `ArticlesWidget`, the API client's error messages).
+**Pass 1, code and settings (mechanical, no visible change).** One commit per kind, so each diff is easy to review:
+1. **The Go module.** `go mod edit -module kinlight`, then rewrite the `porchlight/` imports. Verified by `gofmt -l` and `make check`.
+2. **Settings and files.** Rename these old to new:
+   - the six `PORCHLIGHT_*` variables to `KINLIGHT_*`;
+   - `porchlight_session` to `kinlight_session`;
+   - `porchlight.db*` to `kinlight.db*` (the default, the Makefile, `.gitignore`, `.env.example`, tests);
+   - `fixtures.porchlight.test` to `fixtures.kinlight.test` (fixtures, seed, tests).
+3. **The frontend.** The package name, `PorchlightConfig`, `PorchlightData`, `usePorchlightPuck` and its file, and `vite.config.ts`'s environment variables.
+4. **Repo files.** CI comments, the OpenSpec `config.yaml` context (the name only), the main specs' Purpose lines, and the roadmap's series-2 decision.
+
+**The startup guard.** `loadConfig` checks, after `.env` loads:
+- a table of the six old variable names, each with its replacement;
+- whether `DB_PATH`'s file name starts with `porchlight.db`.
+
+On a match it returns an error naming the old setting and what to use instead, and the server exits before opening anything. Its unit test sets each old variable through `t.Setenv`.
+
+The guard reads only names, never values, so it never reveals a secret. It stays until the homelab deployment is done, then can go.
+
+*Alternative:* accept both names for a while. The app isn't deployed, and a second name is exactly what a clean break avoids. Rejected.
+
+**Pass 2, display strings.**
+- **Frontend:** every user-visible "Porchlight" (`AuthForm`, the invite page, `ChatCard`, `MessageList`'s agent label, `CrisisAlert`, `BirthYearField`, `ArticlesWidget`, the API client's error messages).
 - **Backend:**
   - the three handler errors;
   - the LLM prompts in `internal/llm` (curate, events, spec, items, briefing);
   - `aikit`'s kid and parent prompts and the `kids_chats` tool description;
   - the `kids_chats` transcript's agent label;
-  - `X-Title` / `X-OpenRouter-Title`, `aikit` `AppName`, and the calendar `User-Agent`.
+  - `X-Title` / `X-OpenRouter-Title`, `aikit` `AppName`, and the calendar `User-Agent`;
+  - comments that name the app.
 
-Comments, identifiers, the module path and environment variables stay as they are. A repo-wide grep at the end lists every remaining "Porchlight", and each must be a code identifier, a comment, history (`devpost/`, archived changes, `brand/` research), or an environment variable.
+**The end check.** `git grep -i porchlight` outside `devpost/`, `openspec/changes/archive/`, `brand/research.md`, `brand/naming.md` and `brand/brief.md` finds only:
+- the startup guard's table;
+- its test;
+- the README's "formerly Porchlight" line.
 
 ### 8. Kids by name: a prompt rule plus an evaluation case
 
@@ -142,6 +177,8 @@ Comments, identifiers, the module path and environment variables stay as they ar
 
 ## Risks / Trade-offs
 
+- **[A reference to the old name is missed.]** → The end grep, `make check`, the frontend build, and CI. The `-race` job runs with `CGO_ENABLED=1` on Linux, so it catches anything platform-specific.
+- **[Someone's local `.env` still has old names.]** → The startup guard stops the server with the exact rename to make. Claude never reads `backend/.env`; the owner edits it.
 - **[The brief's colors fail a pairing the brief didn't list.]** → The contrast script decides. Adjust the value, keeping hue, and record it in tasks.
 - **[Fraunces' soft axis is missing from the npm package's default CSS.]** → Import the package's full-axes stylesheet. If `SOFT` isn't there, fall back to the default soft-less cut and note it. The wordmark is outlines, so the header is unaffected.
 - **[A screen with a hard-coded light color looks wrong in Porch light.]** → The grep for raw colors runs in tasks. The end-to-end check walks every page in both themes: home, arrange, chat, Assistant, Reviews, member pages, sign-in, invite, and create-family.
@@ -151,6 +188,10 @@ Comments, identifiers, the module path and environment variables stay as they ar
 
 ## Migration Plan
 
-1. **Database.** Migration 009 runs at startup, and every existing user gets `theme = 'auto'`.
-2. **Sessions.** Sessions are untouched, so everyone stays signed in.
-3. **Rollback.** Revert the commit. The extra column is ignored by the old code, and SQLite tolerates it.
+1. **The owner's machine:**
+   - rename the `PORCHLIGHT_*` variables in `backend/.env` to `KINLIGHT_*`, and `DB_PATH` if it's set;
+   - `mv backend/porchlight.db backend/kinlight.db`;
+   - `make demo` rebuilds `kinlight.db.demo`, and the old `porchlight.db.demo` can be deleted.
+2. **Database.** Migration 009 runs at startup, and every existing user gets `theme = 'auto'`.
+3. **Sessions.** The cookie has a new name, so everyone signs in again once.
+4. **Rollback.** Revert the commits and rename the file and variables back. The extra column is ignored by the old code.
