@@ -8,7 +8,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 ## 2. Tools in `internal/aikit`
 
-- [ ] 2.1 Add `aikit.KidTools` and `ToolNote`, and build the dynamic tools in `KidAgent.Reply`:
+- [x] 2.1 Add `aikit.KidTools` and `ToolNote`, and build the dynamic tools in `KidAgent.Reply`:
   - `ai.NewTool` per non-nil function, passed with `ai.WithTools` and `ai.WithMaxTurns(4)`;
   - outputs wrapped as untrusted data (design decision 2);
   - tool failures returned as `{"error": ...}`;
