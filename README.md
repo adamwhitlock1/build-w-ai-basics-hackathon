@@ -34,6 +34,8 @@ The server won't start while `backend/.env` or your shell still sets a `PORCHLIG
 
 ## Run
 
+To run Kinlight for your family on a home server (Docker Compose through Coolify, a Cloudflare Tunnel, backups with Litestream), see [docs/deploy.md](docs/deploy.md). What follows is for running it on a laptop to develop.
+
 ```sh
 # Terminal 1: the Go API on http://127.0.0.1:8080
 cd backend

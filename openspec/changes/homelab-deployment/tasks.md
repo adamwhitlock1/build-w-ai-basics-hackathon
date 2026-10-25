@@ -90,7 +90,7 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
 
 ## 5. Docs and wrap-up
 
-- [ ] 5.1 Write `docs/deploy.md`:
+- [x] 5.1 Write `docs/deploy.md`:
   - Coolify (a new resource from the repo using `compose.yaml`, the environment variables and what each is);
   - the backup bucket and its keys;
   - the Cloudflare Tunnel to the service, with `KINLIGHT_TRUST_CLOUDFLARE` and why the port mustn't be published;
@@ -102,4 +102,7 @@ Run Go with `CGO_ENABLED=0 GOTOOLCHAIN=local` (or `make`). Never read `backend/.
   - what never runs on the homelab.
 
   Link it from the README, and update the roadmap's series 2 as done. Verify by reading it.
+  - Done. `docs/deploy.md` covers the bucket (Cloudflare R2 suggested, since the owner is on Cloudflare), Coolify with a table of every variable, the tunnel (the cloudflared service on the same Docker network, and the trust flag only once the tunnel is the only way in), Access with a one-time-PIN email allowlist and how to lift it, the first run, the kids' key with `make ai-smoke` and `make ai-eval-kids` first, updating, restores (a lost volume and a point in time), the drill, and what never runs on the homelab. The README's Run section links it, and the roadmap marks series 2 done.
+  - **Changed while writing:** the drill restores into a throwaway container that serves the copy and never replicates, rather than duplicating the Coolify resource. Two copies writing to one backup path could corrupt it.
+  - **For the owner to confirm:** Coolify's exact menu names vary between versions, so the guide names what to look for.
 - [ ] 5.2 Run `openspec validate homelab-deployment --strict`, `make check`, and the frontend lint, `npm test`, contrast check, copy check and build. Push, open the PR, and confirm CI passes on it. Add the "Homelab deployment" line to "Post-PoC Additions" in `devpost/prd.md` and `devpost/spec.md`.
