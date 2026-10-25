@@ -15,12 +15,17 @@ These tasks are design decision 7, pass 1: mechanical, with no visible change.
   Add the startup guard: old variable names and a `porchlight.db` path stop the server with the replacement named. The fixture host is part of the `demo-data` spec, so it gets a delta spec (added during apply). Test each old variable and the old path with `t.Setenv`, and check that the error names the new setting and never a value. Verify with `make check`.
 - [x] 1.3 Rename the frontend: the package name, `PorchlightConfig`, `PorchlightData`, `usePorchlightPuck` and its file, and `vite.config.ts`'s `PORCHLIGHT_WEB_PORT` and `PORCHLIGHT_API`. Verify with lint and build.
 - [x] 1.4 Rename the name in repo files: CI comments, the OpenSpec `config.yaml` context (the name only), the main specs' Purpose lines, and `frontend/README.md`. Verify with `openspec validate --specs --strict`.
-- [ ] 1.5 On the owner's machine:
+- [x] 1.5 On the owner's machine:
   - `mv backend/porchlight.db backend/kinlight.db`;
   - rebuild the demo with `make demo`;
   - delete `porchlight.db.demo`.
 
   Ask the owner to rename the `PORCHLIGHT_*` variables and `DB_PATH` in their `backend/.env`, without reading it. Verify that the server starts on the renamed files. If it stops instead, the guard's message names what's left to rename.
+  - Done (2026-10-25):
+    - `porchlight.db` is now `kinlight.db`.
+    - `make demo` rebuilt `kinlight.db.demo`, and its four calendar links are on `fixtures.kinlight.test`.
+    - `porchlight.db.demo` and the old `bin/porchlight` are deleted.
+    - The server started with the owner's `.env` and served `db=kinlight.db`, with no guard message, so the `.env` needed no renames.
 
 ## 2. Themes and fonts
 
