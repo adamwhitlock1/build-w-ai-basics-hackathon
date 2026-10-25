@@ -9,7 +9,7 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/openai/openai-go"
 
-	"porchlight/internal/aikit/aitest"
+	"kinlight/internal/aikit/aitest"
 )
 
 func TestScriptedModel(t *testing.T) {

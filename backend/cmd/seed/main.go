@@ -27,8 +27,8 @@ import (
 	"os"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/store"
 )
 
 // The test accounts. The kid uses a "+kid" address, which Gmail delivers to

@@ -6,7 +6,7 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // TrackUsage returns the option every Kit generate call passes: middleware

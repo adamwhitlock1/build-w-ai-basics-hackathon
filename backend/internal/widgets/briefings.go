@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // Briefings writes the morning briefing: a few sentences the AI writes

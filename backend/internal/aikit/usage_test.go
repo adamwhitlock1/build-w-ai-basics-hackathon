@@ -8,8 +8,8 @@ import (
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 
-	"porchlight/internal/aikit/aitest"
-	"porchlight/internal/llm"
+	"kinlight/internal/aikit/aitest"
+	"kinlight/internal/llm"
 )
 
 // recorded is one usage entry with the attribution its context carried.

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 func TestPartOfDay(t *testing.T) {

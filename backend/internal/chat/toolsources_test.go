@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/chat"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/chat"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // recordingSource answers every search with results, remembering what it

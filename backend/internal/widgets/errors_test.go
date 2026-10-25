@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
 )
 
 // Every error a widget service returns is answered with the status, message

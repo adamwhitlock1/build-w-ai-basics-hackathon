@@ -13,7 +13,7 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/joho/godotenv"
 
-	"porchlight/internal/aikit"
+	"kinlight/internal/aikit"
 )
 
 // TestLive checks the real providers: structured output, one tool call, and

@@ -8,8 +8,8 @@ import (
 	"log/slog"
 	"time"
 
-	"porchlight/internal/calendar"
-	"porchlight/internal/store"
+	"kinlight/internal/calendar"
+	"kinlight/internal/store"
 )
 
 // Agenda works out the Today card: a member's events for today and

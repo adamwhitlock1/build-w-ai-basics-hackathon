@@ -6,8 +6,8 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // briefingStep names the briefing's model calls in usage records and logs,

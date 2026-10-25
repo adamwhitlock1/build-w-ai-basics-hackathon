@@ -23,10 +23,10 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/chat"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/chat"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // evalCase is one scripted conversation and what must be true of it.

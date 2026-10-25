@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // Curation works out the Articles and Local Events widgets, which pick

@@ -1,4 +1,4 @@
-module porchlight
+module kinlight
 
 go 1.27.0
 

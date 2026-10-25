@@ -17,11 +17,11 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // maxPromptRunes is the longest prompt we accept, counted in characters.

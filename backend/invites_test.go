@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/family"
-	"porchlight/internal/store"
+	"kinlight/internal/family"
+	"kinlight/internal/store"
 )
 
 func invitesPath(familyID int64) string {

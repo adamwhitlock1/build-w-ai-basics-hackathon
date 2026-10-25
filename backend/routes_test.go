@@ -26,15 +26,15 @@ import (
 
 	"github.com/alexedwards/scs/sqlite3store"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/family"
-	"porchlight/internal/layout"
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/family"
+	"kinlight/internal/layout"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // fakePlanner always plans the same widget.

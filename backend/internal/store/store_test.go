@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/store"
-	"porchlight/migrations"
+	"kinlight/internal/store"
+	"kinlight/migrations"
 )
 
 // openTestStore opens a fresh database in a temporary directory that the

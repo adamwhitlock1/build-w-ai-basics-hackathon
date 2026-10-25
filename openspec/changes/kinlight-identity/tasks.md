@@ -4,7 +4,7 @@ For work in `internal/aikit`, load the `developing-genkit-go` skill first; the d
 
 These tasks are design decision 7, pass 1: mechanical, with no visible change.
 
-- [ ] 1.1 Rename the Go module to `kinlight` and rewrite every `porchlight/` import. Verify with `gofmt -l .` (empty) and `make check`.
+- [x] 1.1 Rename the Go module to `kinlight` and rewrite every `porchlight/` import. Verify with `gofmt -l .` (empty) and `make check`.
 - [ ] 1.2 Rename the settings and files:
   - the six `PORCHLIGHT_*` variables → `KINLIGHT_*`;
   - `porchlight_session` → `kinlight_session`;

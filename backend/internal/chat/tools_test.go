@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/chat"
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/chat"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
 )
 
 // fakeTools records whose data each lookup was for.

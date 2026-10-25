@@ -26,16 +26,16 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/joho/godotenv"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/assistant"
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/chat"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
-	"porchlight/internal/usage"
-	"porchlight/internal/widgets"
+	"kinlight/internal/aikit"
+	"kinlight/internal/assistant"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/chat"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
+	"kinlight/internal/usage"
+	"kinlight/internal/widgets"
 )
 
 func main() {

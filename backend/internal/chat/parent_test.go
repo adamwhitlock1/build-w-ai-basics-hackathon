@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/chat"
+	"kinlight/internal/aikit"
+	"kinlight/internal/chat"
 )
 
 func TestParentReview(t *testing.T) {

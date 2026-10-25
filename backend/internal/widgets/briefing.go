@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
+	"kinlight/internal/auth"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
 )
 
 // Limits on how often a member's briefing is written. Each write is one AI

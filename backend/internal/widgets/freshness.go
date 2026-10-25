@@ -3,7 +3,7 @@ package widgets
 import (
 	"time"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // How long each kind of widget's results stay fresh. Older results are

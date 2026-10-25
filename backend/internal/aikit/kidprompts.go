@@ -3,8 +3,8 @@ package aikit
 import (
 	"strings"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // The kid agent's prompts are Go constants rather than .prompt files: a

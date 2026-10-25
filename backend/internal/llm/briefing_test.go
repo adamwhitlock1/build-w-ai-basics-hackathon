@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 var briefingMorning = time.Date(2026, 10, 13, 7, 10, 0, 0, time.UTC)

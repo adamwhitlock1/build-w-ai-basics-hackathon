@@ -13,7 +13,7 @@ import (
 	"github.com/firebase/genkit/go/core/status"
 	"github.com/firebase/genkit/go/genkit"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // ErrBlocked means the model's provider refused the request with its own

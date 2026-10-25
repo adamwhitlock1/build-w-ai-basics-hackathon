@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // WidgetBuilder builds described widgets: it turns a sentence into a live

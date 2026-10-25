@@ -10,7 +10,7 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // Steps under which the kid agent's model calls are recorded.

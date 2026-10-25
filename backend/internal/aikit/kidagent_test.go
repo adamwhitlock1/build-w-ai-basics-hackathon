@@ -8,9 +8,9 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/aikit/aitest"
-	"porchlight/internal/llm"
+	"kinlight/internal/aikit"
+	"kinlight/internal/aikit/aitest"
+	"kinlight/internal/llm"
 )
 
 const kidGuidanceMarker = "This member is a child or teenager, under 18."

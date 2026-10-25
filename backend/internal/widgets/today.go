@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/respond"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/respond"
 )
 
 // TodayFreshFor is how long the Today card's events stay fresh. Fetching a

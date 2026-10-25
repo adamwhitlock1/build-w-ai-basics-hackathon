@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // reply is one canned HTTP response from the fake OpenRouter.

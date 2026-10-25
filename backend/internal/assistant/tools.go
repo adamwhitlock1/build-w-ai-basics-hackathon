@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/chat"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/chat"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // Limits on what kids_chats hands the model.

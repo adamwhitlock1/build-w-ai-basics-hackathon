@@ -12,7 +12,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // Archetype names a way to display a widget's items.

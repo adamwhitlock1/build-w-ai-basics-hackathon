@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 // FamilyResponse is the response body of GET /api/me/family.

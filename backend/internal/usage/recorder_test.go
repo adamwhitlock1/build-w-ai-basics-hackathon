@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
-	"porchlight/internal/usage"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
+	"kinlight/internal/usage"
 )
 
 // fakeStore records inserts. If block is set, every insert waits for it to

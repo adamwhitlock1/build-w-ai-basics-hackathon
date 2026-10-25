@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
-	"porchlight/internal/layout"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/layout"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // cards describes a layout's cards as short strings like

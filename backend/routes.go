@@ -6,14 +6,14 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 
-	"porchlight/internal/assistant"
-	"porchlight/internal/auth"
-	"porchlight/internal/chat"
-	"porchlight/internal/family"
-	"porchlight/internal/layout"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/assistant"
+	"kinlight/internal/auth"
+	"kinlight/internal/chat"
+	"kinlight/internal/family"
+	"kinlight/internal/layout"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 // deps is everything routes needs to build the API. main fills it once;

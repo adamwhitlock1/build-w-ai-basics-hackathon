@@ -11,7 +11,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // Limits on a morning briefing's length, in characters. A reply up to

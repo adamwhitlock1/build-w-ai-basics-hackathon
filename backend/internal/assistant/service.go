@@ -14,9 +14,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
 )
 
 // Feature names the Assistant's AI calls in the usage records.

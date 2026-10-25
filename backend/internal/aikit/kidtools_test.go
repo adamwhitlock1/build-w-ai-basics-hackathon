@@ -9,8 +9,8 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/aikit/aitest"
+	"kinlight/internal/aikit"
+	"kinlight/internal/aikit/aitest"
 )
 
 // toolLog records tool use for a test.

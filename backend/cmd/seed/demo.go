@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"porchlight/internal/layout"
-	"porchlight/internal/llm"
+	"kinlight/internal/layout"
+	"kinlight/internal/llm"
 )
 
 // The demo families, as data. To add a member, add a demoMember; to give

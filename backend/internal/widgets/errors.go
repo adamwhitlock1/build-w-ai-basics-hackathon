@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/respond"
-	"porchlight/internal/sources"
+	"kinlight/internal/llm"
+	"kinlight/internal/respond"
+	"kinlight/internal/sources"
 )
 
 // The errors the widget services return when there's no widget to give

@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/assistant"
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/assistant"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
 )
 
 // fakeAgent records what it was asked, and can call tools first.

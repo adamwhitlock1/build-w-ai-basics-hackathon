@@ -10,7 +10,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // Limits on the search queries the curated widgets run. Every query is one

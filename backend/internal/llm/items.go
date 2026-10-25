@@ -11,7 +11,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // MaxItems caps how many items a widget shows.

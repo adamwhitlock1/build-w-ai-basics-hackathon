@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/chat"
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/chat"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
 )
 
 // fakeAgent answers with canned verdicts and replies, and records what it

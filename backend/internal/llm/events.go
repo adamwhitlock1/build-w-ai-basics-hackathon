@@ -9,7 +9,7 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 
-	"porchlight/internal/sources"
+	"kinlight/internal/sources"
 )
 
 // MaxEvents caps how many events the Local Events card shows.

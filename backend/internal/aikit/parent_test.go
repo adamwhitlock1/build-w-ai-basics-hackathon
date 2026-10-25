@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/aikit/aitest"
+	"kinlight/internal/aikit"
+	"kinlight/internal/aikit/aitest"
 )
 
 func newParentAgent(t *testing.T, replies ...aitest.Reply) (*aikit.ParentAgent, *aitest.Model, *aikit.Kit) {

@@ -9,10 +9,10 @@ import (
 
 	"github.com/firebase/genkit/go/ai"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/aikit/aitest"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/aikit"
+	"kinlight/internal/aikit/aitest"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 var briefingMorning = time.Date(2026, 10, 13, 7, 10, 0, 0, time.UTC)

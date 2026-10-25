@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
-	"porchlight/internal/widgets"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
+	"kinlight/internal/widgets"
 )
 
 func TestRememberedPicks(t *testing.T) {

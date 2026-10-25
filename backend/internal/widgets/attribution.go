@@ -3,8 +3,8 @@ package widgets
 import (
 	"context"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
 )
 
 // Features name what an AI call was for in the usage records (see

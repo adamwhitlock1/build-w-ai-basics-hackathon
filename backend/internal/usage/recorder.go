@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/store"
 )
 
 // Unattributed is the feature recorded for an AI call whose context said

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 func TestFreshnessWindows(t *testing.T) {

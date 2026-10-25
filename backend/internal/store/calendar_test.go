@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 func TestCalendarLink(t *testing.T) {

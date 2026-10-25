@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/calendar"
-	"porchlight/internal/layout"
-	"porchlight/internal/store"
+	"kinlight/internal/calendar"
+	"kinlight/internal/layout"
+	"kinlight/internal/store"
 )
 
 func TestSeedDemo(t *testing.T) {

@@ -16,10 +16,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"porchlight/internal/auth"
-	"porchlight/internal/calendar"
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/auth"
+	"kinlight/internal/calendar"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 // Limits on what the create-family intro accepts, and how long an invite

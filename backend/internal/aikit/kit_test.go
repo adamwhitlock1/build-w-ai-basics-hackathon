@@ -6,7 +6,7 @@ import (
 
 	"github.com/firebase/genkit/go/genkit"
 
-	"porchlight/internal/aikit"
+	"kinlight/internal/aikit"
 )
 
 func TestNew(t *testing.T) {

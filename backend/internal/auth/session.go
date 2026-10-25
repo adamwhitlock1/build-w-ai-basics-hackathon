@@ -10,8 +10,8 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 
-	"porchlight/internal/respond"
-	"porchlight/internal/store"
+	"kinlight/internal/respond"
+	"kinlight/internal/store"
 )
 
 const (

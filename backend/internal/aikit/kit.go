@@ -19,7 +19,7 @@ import (
 	"github.com/firebase/genkit/go/plugins/compat_oai/openrouter"
 	"github.com/openai/openai-go/option"
 
-	"porchlight/internal/llm"
+	"kinlight/internal/llm"
 )
 
 // DefaultMiniMaxModel is the MiniMax model registered when MINIMAX_MODEL

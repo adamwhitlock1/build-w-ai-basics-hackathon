@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"porchlight/internal/store"
+	"kinlight/internal/store"
 )
 
 // chatFamily is a parent and a kid in one family, and a parent in another.

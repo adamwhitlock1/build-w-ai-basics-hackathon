@@ -18,7 +18,7 @@ import (
 	"github.com/firebase/genkit/go/genkit"
 	"github.com/openai/openai-go"
 
-	"porchlight/internal/aikit"
+	"kinlight/internal/aikit"
 )
 
 // ModelName is the scripted model's Genkit name, and the Kit's default model.

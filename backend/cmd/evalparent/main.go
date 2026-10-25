@@ -23,10 +23,10 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/assistant"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/aikit"
+	"kinlight/internal/assistant"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 type evalCase struct {

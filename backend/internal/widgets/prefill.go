@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/store"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/store"
 )
 
 // The functions in this file are for seeding local test data (cmd/seed's

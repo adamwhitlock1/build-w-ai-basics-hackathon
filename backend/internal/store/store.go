@@ -16,7 +16,7 @@ import (
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 
-	"porchlight/migrations"
+	"kinlight/migrations"
 )
 
 // Errors returned by Store methods. Callers match them with errors.Is.

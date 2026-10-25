@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
-	"porchlight/internal/widgets"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
+	"kinlight/internal/widgets"
 )
 
 // These tests call Briefings directly, with no HTTP request, as the agent

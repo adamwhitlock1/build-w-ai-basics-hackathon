@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"porchlight/internal/aikit"
-	"porchlight/internal/aikit/aitest"
-	"porchlight/internal/llm"
-	"porchlight/internal/sources"
+	"kinlight/internal/aikit"
+	"kinlight/internal/aikit/aitest"
+	"kinlight/internal/llm"
+	"kinlight/internal/sources"
 )
 
 // scripted is one model answer in a contract scenario: reply text, or an
