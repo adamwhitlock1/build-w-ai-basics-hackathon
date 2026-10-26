@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, useLayoutEffect, useRef, type ReactNode } from 'react'
 import type { Layout, LayoutBlock, Span } from '../api/client'
 import { ArticlesBlock } from './blocks/Articles'
 import { BriefingBlock } from './blocks/Briefing'
@@ -53,32 +53,70 @@ export function LayoutView({ layout, freshWidgetId = null, top, belowBriefing, a
   const firstUse = !blocks.some((block) => block.type === 'Custom')
   const emptySpots = !addTile ? 0 : left > 0 ? left - 1 : firstUse ? 2 : 0
   const hasBriefing = blocks.some((block) => block.type === 'Briefing')
-  const below = belowBriefing && <div className="col-span-full">{belowBriefing}</div>
+  const below = belowBriefing && <GridItem className="col-span-full">{belowBriefing}</GridItem>
 
   return (
-    <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-      {top && <div className="col-span-full">{top}</div>}
+    // Tiny rows and no row gap: each card claims rows for its own height
+    // plus a gap (see GridItem), so a short card doesn't leave a hole beside
+    // a tall one. Cards still go left to right in the page's order.
+    <div className="grid auto-rows-[4px] grid-cols-1 items-start gap-x-5 sm:gap-x-6 md:grid-cols-2 lg:grid-cols-4">
+      {top && <GridItem className="col-span-full">{top}</GridItem>}
       {!hasBriefing && below}
 
       {blocks.map((block) => (
         <Fragment key={block.props.id}>
-          <div className={`min-w-0 ${SPAN_CLASSES[block.props.span] ?? SPAN_CLASSES[2]}`}>
+          <GridItem className={`min-w-0 ${SPAN_CLASSES[block.props.span] ?? SPAN_CLASSES[2]}`}>
             <BlockContent block={block} freshWidgetId={freshWidgetId} />
-          </div>
+          </GridItem>
           {block.type === 'Briefing' && below}
         </Fragment>
       ))}
 
       {Array.from({ length: emptySpots }, (_, i) => (
-        <div
+        <GridItem
           key={`empty-${i}`}
           className="hidden min-h-40 items-center justify-center rounded-3xl border-2 border-dashed border-line p-6 text-center text-sm text-ink-muted lg:flex"
         >
           An empty spot. Add a card to fill it.
-        </div>
+        </GridItem>
       ))}
 
-      {addTile}
+      {addTile && <GridItem className="grid">{addTile}</GridItem>}
+    </div>
+  )
+}
+
+/** The height of the grid's rows, in pixels: each card spans enough of them. */
+const ROW = 4
+
+/**
+ * One thing in the page grid, spanning as many of its tiny rows as its
+ * height needs, plus one column gap's worth below it, so the grid packs
+ * cards like bricks. It measures itself whenever it or the grid changes
+ * size (a card loading, "Done" opening, a new screen width). offsetHeight
+ * ignores transforms, so a card's arrival animation doesn't count. Hidden
+ * things (an empty spot on a narrow screen) measure 0 and claim nothing.
+ */
+function GridItem({ className = '', children }: { className?: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const item = ref.current
+    const grid = item?.parentElement
+    if (!item || !grid) return
+    const fit = () => {
+      const height = item.offsetHeight
+      const gap = parseFloat(getComputedStyle(grid).columnGap) || 0
+      item.style.gridRowEnd = height ? `span ${Math.ceil((height + gap) / ROW)}` : ''
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(item)
+    observer.observe(grid)
+    return () => observer.disconnect()
+  }, [])
+  return (
+    <div ref={ref} className={className}>
+      {children}
     </div>
   )
 }
