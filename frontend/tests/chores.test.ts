@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { choreKey, midnightDelay, completionBody, isStaleDayError } from '../src/chores/model.ts'
+import { choreKey, midnightDelay, completionBody, isStaleDayError, splitByDone } from '../src/chores/model.ts'
 
 test('household timer uses server instants across DST and subtracts elapsed time', () => {
   const day = {
@@ -35,4 +35,16 @@ test('completion is an explicit state and stale day is distinct from the count l
     isStaleDayError({ status: 409, message: 'Each member can have up to 30 active chores.' }),
     false,
   )
+})
+test('finished chores split from open ones, each keeping its order', () => {
+  const items = [
+    { id: 1, completed: true },
+    { id: 2, completed: false },
+    { id: 3, completed: true },
+    { id: 4, completed: false },
+  ]
+  const { open, done } = splitByDone(items)
+  assert.deepEqual(open.map((c) => c.id), [2, 4])
+  assert.deepEqual(done.map((c) => c.id), [1, 3])
+  assert.deepEqual(splitByDone([]), { open: [], done: [] })
 })

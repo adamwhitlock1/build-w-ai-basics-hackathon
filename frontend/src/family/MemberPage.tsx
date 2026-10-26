@@ -1,4 +1,4 @@
-import { ChoreChecklist } from '../chores/ChoreCards'
+import { ChoreChecklist, ChoreRow } from '../chores/ChoreCards'
 import { Link } from '@tanstack/react-router'
 import { useRef, useState, type RefObject } from 'react'
 import { InterestsEditor, type InterestsEditorProps } from '../account/InterestsEditor'
@@ -126,10 +126,22 @@ export function MemberPage({ memberId, headingRef }: MemberPageProps) {
           </div>
         )}
 
-        {page.data && me?.user.isAdmin && <ChoreChecklist key={`${me.user.id}:${memberId}`} viewer={me.user.id} subject={memberId} parent /> }
-
-        {/* No addTile: without the "+", LayoutView shows no empty spots either. */}
-        {page.data ? <LayoutView layout={layoutOf(page.data)} /> : <CardsLoading />}
+        {/* No addTile: without the "+", LayoutView shows no empty spots either.
+            Their chore checklist goes below their morning briefing. */}
+        {page.data ? (
+          <LayoutView
+            layout={layoutOf(page.data)}
+            belowBriefing={
+              me?.user.isAdmin && (
+                <ChoreRow>
+                  <ChoreChecklist key={`${me.user.id}:${memberId}`} viewer={me.user.id} subject={memberId} parent />
+                </ChoreRow>
+              )
+            }
+          />
+        ) : (
+          <CardsLoading />
+        )}
       </InterestsEditorContext.Provider>
     </ViewedMemberContext.Provider>
   )

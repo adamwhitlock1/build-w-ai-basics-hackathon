@@ -1,14 +1,23 @@
 import { Link } from '@tanstack/react-router'
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { useChores, useChoreSummary, useSaveChore, type ChoreWrite } from '../api/chores'
 import { nameFor } from '../family/people'
-import { isStaleDayError } from './model'
+import { isStaleDayError, splitByDone, type Checklist } from './model'
 
 const button =
   'rounded-xl border border-primary/30 px-3 py-2 text-sm text-primary hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60'
 const input =
   'min-w-0 flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-ink focus-visible:outline-2 focus-visible:outline-primary'
-const card = 'mb-6 rounded-3xl border border-line bg-surface p-5 text-ink shadow-card sm:p-6'
+const card = 'min-w-0 rounded-3xl border border-line bg-surface p-5 text-ink shadow-card sm:p-6'
+
+/**
+ * The chore cards, in a row across the page below the morning briefing:
+ * side by side from tablet width up, each as wide as a half-page card, so
+ * they don't take the whole page. A kid's one checklist sits in the left half.
+ */
+export function ChoreRow({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2">{children}</div>
+}
 
 export function ChoreChecklist({
   viewer,
@@ -26,26 +35,54 @@ export function ChoreChecklist({
   const [removing, setRemoving] = useState<number | null>(null)
   const [notice, setNotice] = useState('')
   const heading = useRef<HTMLHeadingElement>(null)
+  const doneSummary = useRef<HTMLElement>(null)
   const returnFocus = useRef<HTMLButtonElement | null>(null)
   const formId = useId()
   const data = query.data
   const stale = query.expired || (save.error && isStaleDayError(save.error))
+  const checkboxId = (id: number) => `${formId}-chore-${id}`
+  // Checking a chore moves it between the open list and the done list, which
+  // replaces its checkbox, so focus follows it once the list shows it in its
+  // new place. If it landed in the closed "Done" section, focus goes to that
+  // section's toggle instead. (The notice set after every save re-renders,
+  // so this always gets to run.)
+  const focusAfter = useRef<{ id: number; completed: boolean } | null>(null)
+  useEffect(() => {
+    const want = focusAfter.current
+    if (!want || !data) return
+    const chore = data.items.find((c) => c.id === want.id)
+    if (chore && chore.completed !== want.completed) return
+    focusAfter.current = null
+    const box = chore ? document.getElementById(checkboxId(chore.id)) : null
+    box?.focus()
+    if (box && document.activeElement === box) return
+    ;(doneSummary.current ?? heading.current)?.focus()
+  })
   async function write(change: ChoreWrite) {
-    const focusTarget = change.operation === 'completion' ? document.activeElement : returnFocus.current
+    const focusTarget = returnFocus.current
     setNotice('Saving chore…')
     try {
       await save.mutateAsync(change)
       setNotice('Chore saved.')
       setEditing(null)
       setRemoving(null)
+      if (change.operation === 'completion' && change.id !== undefined) {
+        focusAfter.current = { id: change.id, completed: Boolean(change.completed) }
+        return
+      }
       requestAnimationFrame(() => {
         if (change.operation === 'remove') heading.current?.focus()
-        else if (focusTarget instanceof HTMLElement && focusTarget.isConnected) focusTarget.focus()
+        else if (focusTarget?.isConnected) focusTarget.focus()
       })
     } catch {
       setNotice('Chore was not confirmed. Reload to check its saved state, then try again.')
+      // Not saved: the chore stays (or goes back) where it was.
+      if (change.operation === 'completion' && change.id !== undefined) {
+        focusAfter.current = { id: change.id, completed: !change.completed }
+        return
+      }
       requestAnimationFrame(() => {
-        if (focusTarget instanceof HTMLElement && focusTarget.isConnected) focusTarget.focus()
+        if (focusTarget?.isConnected) focusTarget.focus()
       })
     }
   }
@@ -95,14 +132,15 @@ export function ChoreChecklist({
       {data && (
         <>
           {data.items.length === 0 && <p className="my-4 text-ink-soft">No chores assigned yet</p>}
-          <ul className="my-3 divide-y divide-line">
-            {data.items.map((chore) => (
+          <ChoreLists data={data} doneSummary={doneSummary}>
+            {(chore) => (
               <li
                 key={chore.id}
                 className="flex flex-col items-stretch gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-center"
               >
                 <label className="flex min-w-0 flex-1 items-center gap-3 break-words">
                   <input
+                    id={checkboxId(chore.id)}
                     type="checkbox"
                     className="size-5 shrink-0 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     checked={chore.completed}
@@ -177,8 +215,8 @@ export function ChoreChecklist({
                   </div>
                 )}
               </li>
-            ))}
-          </ul>
+            )}
+          </ChoreLists>
           {parent && (
             <>
               <button
@@ -240,6 +278,41 @@ export function ChoreChecklist({
         </>
       )}
     </section>
+  )
+}
+
+type Chore = Checklist['items'][number]
+
+/**
+ * The chores still to do, then the finished ones in a "Done" section that
+ * starts closed, so a long day's list stays short as it gets done.
+ */
+function ChoreLists({
+  data,
+  doneSummary,
+  children: item,
+}: {
+  data: Checklist
+  doneSummary: RefObject<HTMLElement>
+  children: (chore: Chore) => ReactNode
+}) {
+  const { open, done } = splitByDone(data.items)
+  return (
+    <>
+      {open.length > 0 && <ul className="my-3 divide-y divide-line">{open.map(item)}</ul>}
+      {open.length === 0 && done.length > 0 && <p className="my-4 text-ink-soft">All done for today.</p>}
+      {done.length > 0 && (
+        <details className="my-3">
+          <summary
+            ref={doneSummary}
+            className="cursor-pointer rounded-lg py-1 text-sm font-medium text-ink-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Done ({done.length})
+          </summary>
+          <ul className="mt-1 divide-y divide-line">{done.map(item)}</ul>
+        </details>
+      )}
+    </>
   )
 }
 

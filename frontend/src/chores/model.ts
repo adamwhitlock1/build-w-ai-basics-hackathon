@@ -22,3 +22,7 @@ export function completionBody(date: string, completed: boolean) {
 export function isStaleDayError(error: { status?: number; message?: string }) {
   return error.status === 409 && error.message?.startsWith('A new chore day') === true
 }
+/** The checklist's chores split into those still to do and those done, each keeping its order. */
+export function splitByDone<T extends { completed: boolean }>(items: T[]) {
+  return { open: items.filter((c) => !c.completed), done: items.filter((c) => c.completed) }
+}

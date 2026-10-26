@@ -1,5 +1,5 @@
 import { LandingPage } from '../public/LandingPage'
-import { ChoreChecklist, FamilyChoreProgress } from '../chores/ChoreCards'
+import { ChoreChecklist, ChoreRow, FamilyChoreProgress } from '../chores/ChoreCards'
 import { useIsMutating } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react'
@@ -196,6 +196,15 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
   // while the page is shown normally.
   const [arrangeFrom, setArrangeFrom] = useState<Layout | null>(null)
   const arranging = arrangeFrom !== null
+  // The chore cards, shown in the grid below the morning briefing. They
+  // aren't arranged cards, so like the Chat card they step aside while
+  // arranging (LayoutView isn't shown then).
+  const chores = me && (
+    <ChoreRow>
+      <ChoreChecklist key={me.user.id} viewer={me.user.id} subject={me.user.id} parent={me.user.isAdmin} />
+      {me.user.isAdmin && <FamilyChoreProgress viewer={me.user.id} />}
+    </ChoreRow>
+  )
   const { state: saveState, start: startSaving, change: saveChange, finish: finishSaving } = useLayoutAutosave()
   const [finishing, setFinishing] = useState(false)
   // The same, for event handlers that may run twice before a re-render (a
@@ -311,8 +320,6 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
       {/* Kids get the Chat card above their cards. It isn't one of the
           arranged cards, so it steps aside while arranging. */}
       {me && !me.user.isAdmin && !arranging && <ChatCard />}
-      {me && <ChoreChecklist key={me.user.id} viewer={me.user.id} subject={me.user.id} parent={me.user.isAdmin} />}
-      {me?.user.isAdmin && <FamilyChoreProgress viewer={me.user.id} />}
 
       {editor.focusRequest && (
         <div className="mb-6 max-w-2xl sm:mb-8">
@@ -337,6 +344,7 @@ function YourPage({ headingRef, building, onArrangingChange }: YourPageProps) {
         <LayoutView
           layout={layout}
           freshWidgetId={freshId}
+          belowBriefing={chores}
           top={promptOpen && <DescribeWidgetPrompt id={promptId} onCreated={handleCreated} onClose={closePrompt} />}
           addTile={
             // The "+" at the end of the grid opens the prompt at the top of it.

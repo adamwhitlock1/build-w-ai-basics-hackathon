@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import type { Layout, LayoutBlock, Span } from '../api/client'
 import { ArticlesBlock } from './blocks/Articles'
 import { BriefingBlock } from './blocks/Briefing'
@@ -14,6 +14,11 @@ interface LayoutViewProps {
   freshWidgetId?: number | null
   /** Shown above the cards, across the whole grid (the "Add a card" prompt). */
   top?: ReactNode
+  /**
+   * Shown across the whole grid just below the morning briefing, wherever
+   * the briefing is (the chore cards), or at the top if there's no briefing.
+   */
+  belowBriefing?: ReactNode
   /** The "+" tile, placed after the cards. Without it, no empty spots are shown. */
   addTile?: ReactNode
 }
@@ -37,7 +42,7 @@ const SPAN_CLASSES: Record<Span, string> = {
  * the "+" tile in its last spot (or on a row of its own if the cards fill
  * theirs).
  */
-export function LayoutView({ layout, freshWidgetId = null, top, addTile }: LayoutViewProps) {
+export function LayoutView({ layout, freshWidgetId = null, top, belowBriefing, addTile }: LayoutViewProps) {
   const blocks = layout.root.props.blocks
   // The "+" takes one of the spots left in the last row; empty cards fill
   // the rest. On first use (no widgets of your own yet) the curated cards
@@ -47,15 +52,21 @@ export function LayoutView({ layout, freshWidgetId = null, top, addTile }: Layou
   const left = columnsLeftInLastRow(blocks)
   const firstUse = !blocks.some((block) => block.type === 'Custom')
   const emptySpots = !addTile ? 0 : left > 0 ? left - 1 : firstUse ? 2 : 0
+  const hasBriefing = blocks.some((block) => block.type === 'Briefing')
+  const below = belowBriefing && <div className="col-span-full">{belowBriefing}</div>
 
   return (
     <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
       {top && <div className="col-span-full">{top}</div>}
+      {!hasBriefing && below}
 
       {blocks.map((block) => (
-        <div key={block.props.id} className={`min-w-0 ${SPAN_CLASSES[block.props.span] ?? SPAN_CLASSES[2]}`}>
-          <BlockContent block={block} freshWidgetId={freshWidgetId} />
-        </div>
+        <Fragment key={block.props.id}>
+          <div className={`min-w-0 ${SPAN_CLASSES[block.props.span] ?? SPAN_CLASSES[2]}`}>
+            <BlockContent block={block} freshWidgetId={freshWidgetId} />
+          </div>
+          {block.type === 'Briefing' && below}
+        </Fragment>
       ))}
 
       {Array.from({ length: emptySpots }, (_, i) => (
