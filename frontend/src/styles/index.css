@@ -308,6 +308,16 @@
  * blues for our amber and its font for ours, without touching its CSS.
  */
 @layer components {
+  /* Decorative artwork follows the resolved app theme, not just the OS.
+     Only the selected background image needs to load. */
+  .porch-scene {
+    background-image: url("../brand/porch-hero.webp");
+  }
+
+  :root[data-theme="dark"] .porch-scene {
+    background-image: url("../brand/porch-hero-night.webp");
+  }
+
   .arrange-canvas {
     --puck-font-family: var(--font-sans);
     /* Hovered card: a faint amber wash and outline. */

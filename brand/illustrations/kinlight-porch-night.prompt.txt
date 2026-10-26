@@ -1,0 +1,13 @@
+Generated with the built-in imagegen tool.
+Alternative for comparison; the current landing-page artwork is preserved.
+
+Use case: lighting-weather
+Asset type: Kinlight family homepage hero illustration, wide horizontal 2:1 canvas.
+Reference 1 is our existing approved illustration and the porch concept to develop. Reference 2 is the authoritative Kinlight lantern logo. Retain its recognizable silhouette: round hanging ring, triangular peaked cap, tapered glass with central vertical bar, small stepped base and oval flame. A generous central lantern, about 25 to 30 percent of the scene height, is the main focal point.
+Keep the porch welcoming, comfortable and inclusive, without people or faces. Preserve breathing room around the lantern and safe framing for a 2:1 crop on a mobile webpage. No text, lettering, branding other than the lantern symbol, watermark, visible UI, border or collage. Make one complete standalone original illustration.
+Primary request: reinterpret the existing approved porch in much darker nighttime lighting so most decorative detail is obscured and the picture blends naturally with a dark walnut landing page.
+Reference 3 is lighting and mood guidance: masses of foliage and porch structure fall into shadow, with selective amber highlights. Do not copy its bright sky, exact composition or lamp placement.
+Preserve the broad composition and handcrafted illustration character of reference 1: central Kinlight lantern, chair on the left, bench on the right, framing posts and three steps. Keep a sense of welcome, warmth and home.
+Lighting is the major change: a small, contained warm glow from the central lantern. The lantern frame and amber glass are clearly readable. Soft light barely touches the nearest seat edges, a little floor area and the center of the steps. The roof, columns, outer seating, garden and corner plants recede into deep soft shadow; their details are genuinely obscured instead of simply recolored. At least two-thirds of the canvas should be very dark, with only selective edge information.
+Palette: warm near-black #18120e and #231b16 dominate; muted deep teal foliage #202d29 and charcoal ceiling; quiet umber wood with occasional #9a6440 edges; cream and amber lantern #ffe8b8 / #ffb547. Do not turn the night blue, use a bright dusk sky, floodlight the floor, or make a huge hazy orange halo.
+Use painterly layered shapes and subtle texture where light actually falls, with calm large dark shapes elsewhere. Ease the outermost edges naturally into near-uniform #18120e, without a border, to sit beautifully in dark UI. Still read as a porch at small size; cinematic but gentle, never scary or abandoned. Wide 2:1 landscape.
