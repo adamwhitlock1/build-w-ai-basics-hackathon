@@ -5,6 +5,10 @@
 # which replicates every write and stops when the server does.
 set -eu
 
+if [ "${KINLIGHT_HOSTED_DEMO:-}" = "1" ]; then
+  exec /app/kinlight
+fi
+
 : "${LITESTREAM_PATH:=kinlight}"
 : "${LITESTREAM_REGION:=us-east-1}"
 : "${LITESTREAM_ENDPOINT:=}"

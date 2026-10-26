@@ -13,6 +13,7 @@ import (
 
 	"kinlight/internal/aikit"
 	"kinlight/internal/auth"
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/respond"
 	"kinlight/internal/store"
 )
@@ -197,6 +198,13 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err == nil:
 		event("done", toMessage(reply))
+	case hosteddemo.OperationError(r.Context()) != nil:
+		paused := hosteddemo.OperationError(r.Context())
+		if streaming {
+			event("error", hosteddemo.ErrorBody(paused, "This answer is incomplete. Existing content is still available."))
+		} else {
+			respond.JSON(w, 429, hosteddemo.ErrorBody(paused, "Existing content is still available."))
+		}
 	case streaming:
 		event("error", respond.ErrorBody{Error: "The Assistant couldn't finish its answer.", Hint: "Try again in a moment."})
 	default:

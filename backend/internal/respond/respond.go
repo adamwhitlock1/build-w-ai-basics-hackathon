@@ -12,6 +12,9 @@ import (
 type ErrorBody struct {
 	Error string `json:"error"` // what went wrong, in plain language
 	Hint  string `json:"hint"`  // what to try next; may be empty
+	// Code, when set, names a failure the frontend handles on its own,
+	// such as the judge demo's pauses (see internal/hosteddemo).
+	Code string `json:"code,omitempty"`
 }
 
 // JSON writes v as a JSON response with the given status code.

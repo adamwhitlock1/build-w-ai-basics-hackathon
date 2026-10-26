@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"kinlight/internal/aikit"
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/llm"
 	"kinlight/internal/store"
 )
@@ -260,6 +261,9 @@ func (s *Service) Send(ctx context.Context, kid store.User, id int64, text strin
 	onKid(kidMsg)
 
 	verdict := s.check(ctx, kid, c, kidMsg, turns(before), first)
+	if err := hosteddemo.OperationError(ctx); err != nil {
+		return store.ChatMessage{}, err
+	}
 	if first {
 		title := verdict.Title
 		switch {
@@ -387,6 +391,11 @@ func (s *Service) kidTools(kid store.User, mode string, loc *time.Location, onTo
 // treated as a possible crisis.
 func (s *Service) check(ctx context.Context, kid store.User, c store.Conversation, msg store.ChatMessage, before []aikit.Turn, wantTitle bool) aikit.Verdict {
 	verdict, err := s.agent.Check(ctx, before, msg.Text, wantTitle)
+	if err != nil && hosteddemo.OperationError(ctx) != nil {
+		// The judge demo paused live AI (allowance spent or slots busy), so
+		// Send stops before any reply: nothing reached the kid to review.
+		return aikit.Verdict{}
+	}
 	switch {
 	case errors.Is(err, aikit.ErrBlocked):
 		// The check's provider refused to read the message with its own

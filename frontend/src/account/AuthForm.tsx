@@ -1,3 +1,4 @@
+import { usePublicConfig } from '../public/config'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
@@ -45,6 +46,7 @@ interface AuthFormProps {
 
 /** The email-and-password form behind both /login and /signup. */
 export function AuthForm({ mode, auth }: AuthFormProps) {
+  const { data: publicConfig } = usePublicConfig()
   const copy = COPY[mode]
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -82,7 +84,16 @@ export function AuthForm({ mode, auth }: AuthFormProps) {
     <WelcomeLayout
       title={copy.title}
       intro={copy.intro}
-      footer={
+      footer={publicConfig?.demo ? (
+        <p>
+          <Link
+            to="/"
+            className="font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Back to Kinlight
+          </Link>
+        </p>
+      ) : (
         <p>
           {copy.switchPrompt && <>{copy.switchPrompt} </>}
           <Link
@@ -92,7 +103,7 @@ export function AuthForm({ mode, auth }: AuthFormProps) {
             {copy.switchLabel}
           </Link>
         </p>
-      }
+      )}
     >
       {/* noValidate: our own inline messages replace the browser's bubbles. */}
       <form noValidate onSubmit={handleSubmit} className="space-y-5">

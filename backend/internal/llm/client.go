@@ -16,6 +16,7 @@ import (
 
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+	"kinlight/internal/hosteddemo"
 )
 
 // DefaultBaseURL is OpenRouter's OpenAI-compatible API root.
@@ -257,6 +258,10 @@ func upstreamError(err error) error {
 // is the cause. Every AI client maps its errors through here, so people see
 // the same reasons and hints whichever client made the call.
 func UpstreamFor(status int, err error) *UpstreamError {
+	var limit *hosteddemo.LimitError
+	if errors.As(err, &limit) {
+		return &UpstreamError{Reason: limit.Error(), Hint: "You can still browse the demo.", Status: 429, Err: err}
+	}
 	e := &UpstreamError{Reason: "couldn't reach OpenRouter", Hint: "Check your internet connection, then try again.", Status: status, Err: err}
 	switch {
 	case status == http.StatusUnauthorized:
@@ -288,4 +293,10 @@ func stripCodeFence(s string) string {
 	s = strings.TrimPrefix(s, "json")
 	s = strings.TrimSuffix(s, "```")
 	return strings.TrimSpace(s)
+}
+
+// WrapTransport wraps all outbound calls, including retries and startup
+// metadata, around the client's own transport and its attribution headers.
+func (c *Client) WrapTransport(wrap func(http.RoundTripper) http.RoundTripper) {
+	c.http.Transport = wrap(c.http.Transport)
 }

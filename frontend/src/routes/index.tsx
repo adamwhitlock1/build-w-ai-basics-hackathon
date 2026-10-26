@@ -1,28 +1,30 @@
-import { ChoreChecklist, FamilyChoreProgress } from '../../chores/ChoreCards'
+import { LandingPage } from '../public/LandingPage'
+import { ChoreChecklist, FamilyChoreProgress } from '../chores/ChoreCards'
 import { useIsMutating } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react'
-import { InterestsEditor, type InterestsEditorProps } from '../../account/InterestsEditor'
-import { InterestsEditorContext } from '../../account/interestsEditorContext'
-import { useInterestsEditorPanel } from '../../account/useInterestsEditorPanel'
-import type { Layout, SavedWidget } from '../../api/client'
+import { InterestsEditor, type InterestsEditorProps } from '../account/InterestsEditor'
+import { InterestsEditorContext } from '../account/interestsEditorContext'
+import { useInterestsEditorPanel } from '../account/useInterestsEditorPanel'
+import type { Layout, SavedWidget } from '../api/client'
 import {
   createWidgetKey,
   homepageQueryOptions,
+  meQueryOptions,
   useFreshPageProfile,
   useHomepage,
   useMe,
   useUpdateProfile,
-} from '../../api/hooks'
-import { ChatCard } from '../../chat/ChatCard'
-import { CrisisAlert } from '../../chat/CrisisAlert'
-import { FamilySidebar } from '../../family/FamilySidebar'
-import { MemberPage } from '../../family/MemberPage'
-import { layoutOf } from '../../puck/layout'
-import { LayoutView } from '../../puck/LayoutView'
-import { useLayoutAutosave } from '../../puck/useLayoutAutosave'
-import { DescribeWidgetPrompt } from '../../widgets/DescribeWidgetPrompt'
-import { PlusIcon } from '../../widgets/icons'
+} from '../api/hooks'
+import { ChatCard } from '../chat/ChatCard'
+import { CrisisAlert } from '../chat/CrisisAlert'
+import { FamilySidebar } from '../family/FamilySidebar'
+import { MemberPage } from '../family/MemberPage'
+import { layoutOf } from '../puck/layout'
+import { LayoutView } from '../puck/LayoutView'
+import { useLayoutAutosave } from '../puck/useLayoutAutosave'
+import { DescribeWidgetPrompt } from '../widgets/DescribeWidgetPrompt'
+import { PlusIcon } from '../widgets/icons'
 
 /** The homepage's search params, which say whose page to show. */
 interface HomeSearch {
@@ -33,7 +35,7 @@ interface HomeSearch {
   as?: number
 }
 
-export const Route = createFileRoute('/_authed/')({
+export const Route = createFileRoute('/')({
   // Anything in ?as= that isn't a user id is ignored, so a mangled link just
   // shows your own page. (`as` is always set, even to undefined: the router
   // keeps whatever the URL had for any key left out.) Whether you may see
@@ -43,8 +45,15 @@ export const Route = createFileRoute('/_authed/')({
   // Load your page's data before showing it; the component then reads it
   // from the Query cache, where new widgets are added as they're built. (A
   // member's page loads in place instead, with the sidebar still showing.)
-  loader: ({ context }) => context.queryClient.query(homepageQueryOptions),
-  component: HomePage,
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.query(meQueryOptions)
+    if (me?.needsFamilySetup) throw redirect({ to: '/create-family' })
+  },
+  loader: async ({ context }) => {
+    const me = await context.queryClient.query(meQueryOptions)
+    if (me) return context.queryClient.query(homepageQueryOptions)
+  },
+  component: RootPage,
 })
 
 /**
@@ -62,6 +71,11 @@ function userIdFrom(value: unknown): number | undefined {
  * page instead (MemberPage, at /?as=<their id>); picking yourself, or "Back
  * to your page", comes back.
  */
+function RootPage() {
+  const { data: me } = useMe()
+  return me ? <HomePage /> : <LandingPage />
+}
+
 function HomePage() {
   const { as } = Route.useSearch()
   const { data: me } = useMe()
@@ -114,7 +128,7 @@ function HomePage() {
 // downloaded when needed: as the pointer or focus reaches "Arrange", or at
 // the latest when it's tapped. React's lazy() turns the import into a
 // component that shows a fallback (<Suspense>) until it has loaded.
-const loadArrangeCanvas = () => import('../../puck/ArrangeCanvas')
+const loadArrangeCanvas = () => import('../puck/ArrangeCanvas')
 const ArrangeCanvas = lazy(() => loadArrangeCanvas().then((m) => ({ default: m.ArrangeCanvas })))
 
 /** How long a new widget keeps its amber "just arrived" border. */

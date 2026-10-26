@@ -13,6 +13,7 @@ import (
 	"kinlight/internal/chat"
 	"kinlight/internal/chores"
 	"kinlight/internal/family"
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/layout"
 	"kinlight/internal/respond"
 	"kinlight/internal/store"
@@ -25,15 +26,18 @@ import (
 // search sources and the calendar fetcher. Named fields keep call sites
 // readable where a long list of positional arguments would not.
 type deps struct {
-	Chores    *chores.Service
-	Logger    *slog.Logger
-	Store     *store.Store
-	Sessions  *scs.SessionManager
-	Planner   widgets.Planner
-	Curator   widgets.Curator
-	Briefer   widgets.Briefer
-	Sources   widgets.SourceFinder
-	Calendars widgets.CalendarFetcher
+	DemoQuota         *hosteddemo.Quota
+	DemoSlots         *hosteddemo.Slots // nil: two slots, 20s wait
+	DemoURL, VideoURL string
+	Chores            *chores.Service
+	Logger            *slog.Logger
+	Store             *store.Store
+	Sessions          *scs.SessionManager
+	Planner           widgets.Planner
+	Curator           widgets.Curator
+	Briefer           widgets.Briefer
+	Sources           widgets.SourceFinder
+	Calendars         widgets.CalendarFetcher
 	// Chat is kid chat. nil means kid chat is off (as with no kids' key):
 	// routes builds a Service with no agent.
 	Chat *chat.Service
@@ -116,6 +120,7 @@ func routes(d deps) http.Handler {
 
 	// Public.
 	mux.HandleFunc("GET /api/health", handleHealth)
+	mux.HandleFunc("GET /api/public-config", publicConfig(d))
 	mux.HandleFunc("GET /api/signup", familyHandler.SignupState)
 	mux.HandleFunc("POST /api/signup", familyHandler.Signup)
 	mux.HandleFunc("POST /api/login", familyHandler.Login)
@@ -215,7 +220,7 @@ func routes(d deps) http.Handler {
 		mux.Handle("GET /", web.App(d.WebDir))
 	}
 
-	var handler http.Handler = rejectCrossSite(sessions.LoadAndSave(mux))
+	var handler http.Handler = rejectCrossSite(sessions.LoadAndSave(demoRestrictions(d, mux)))
 	if d.PublicURL != "" {
 		// The page's inline scripts are allowed by hash, so the policy
 		// follows whatever index.html the server actually serves.

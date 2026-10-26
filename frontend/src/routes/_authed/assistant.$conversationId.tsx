@@ -1,3 +1,4 @@
+import { isDemoLimit } from '../../public/demoState'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
@@ -35,6 +36,7 @@ function AssistantPage() {
   const [text, setText] = useState('')
   const [pending, setPending] = useState<ChatMessage | null>(null)
   const [streaming, setStreaming] = useState<string | null>(null)
+  const [partial, setPartial] = useState<{ id: number; text: string } | null>(null)
   const [liveTools, setLiveTools] = useState<ToolCall[]>([])
   const [error, setError] = useState<ApiError | null>(null)
   const [confirming, setConfirming] = useState(false)
@@ -51,6 +53,8 @@ function AssistantPage() {
     setError(null)
     setLiveTools([])
     setStreaming('')
+    setPartial(null)
+    let replySoFar = ''
     try {
       await sendAssistantMessage(id, message, {
         onMessage: (m) => {
@@ -59,10 +63,11 @@ function AssistantPage() {
         },
         onTool: (tool, detail) =>
           setLiveTools((calls) => [...calls, { tool, detail, messageId: STREAMING_ID, createdAt: '' }]),
-        onDelta: (piece) => setStreaming((so) => (so ?? '') + piece),
+        onDelta: (piece) => { replySoFar += piece; setStreaming(replySoFar) },
         onDone: () => {},
       })
     } catch (err) {
+      if (err instanceof ApiError && isDemoLimit(err)) setPartial({ id: id, text: replySoFar })
       setError(err instanceof ApiError ? err : new ApiError(0, 'Something went wrong.', 'Try again in a moment.'))
     } finally {
       await queryClient.invalidateQueries({ queryKey: assistantQueryOptions(id).queryKey })
@@ -95,6 +100,7 @@ function AssistantPage() {
     ...(pending ? [pending] : []),
     // Until its first words arrive it's empty, and MessageList shows the
     // breathing light and "Thinking…" in its place.
+    ...(partial?.id === id && partial.text ? [{ id: STREAMING_ID - 1, role: 'agent' as const, text: `Incomplete answer (demo allowance reached):\n\n${partial.text}`, createdAt: '' }] : []),
     ...(streaming !== null && (pending || streaming || liveTools.length > 0)
       ? [{ id: STREAMING_ID, role: 'agent' as const, text: streaming, createdAt: '' }]
       : []),

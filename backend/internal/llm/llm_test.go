@@ -473,3 +473,32 @@ func TestNewClientForSite(t *testing.T) {
 		t.Errorf("HTTP-Referer = %q, want the public URL", got)
 	}
 }
+
+// roundTripFunc lets a test function stand in for an http.RoundTripper.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// A wrapped transport (the judge demo's allowance) keeps the attribution headers.
+func TestWrapTransportKeepsHeaders(t *testing.T) {
+	var title string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		title = r.Header.Get("X-Title")
+		w.Write([]byte(`{"data":{}}`))
+	}))
+	defer srv.Close()
+	client := llm.NewClient("test-key", "test/model", srv.URL)
+	wrapped := 0
+	client.WrapTransport(func(base http.RoundTripper) http.RoundTripper {
+		return roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			wrapped++
+			return base.RoundTrip(r)
+		})
+	})
+	if err := client.CheckKey(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if wrapped != 1 || title != "Kinlight" {
+		t.Errorf("wrapped %d calls, X-Title %q; want 1 call with Kinlight", wrapped, title)
+	}
+}

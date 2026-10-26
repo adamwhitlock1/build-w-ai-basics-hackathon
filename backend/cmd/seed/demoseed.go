@@ -50,7 +50,7 @@ func seedDemo(ctx context.Context, dbPath string, out io.Writer) error {
 	var rows []row
 	var inviteLinks []string
 	for _, fam := range demoFamilies {
-		users, err := createFamily(ctx, st, fam, hash)
+		users, err := createFamily(ctx, st, fam, hash, hash)
 		if err != nil {
 			return err
 		}
@@ -98,13 +98,14 @@ func seedDemo(ctx context.Context, dbPath string, out io.Writer) error {
 
 // createFamily creates fam's members as the app does: the first through
 // sign-up and the create-family intro, the rest through accepted invites.
-// It returns their users, in fam.members order.
-func createFamily(ctx context.Context, st *store.Store, fam demoFamily, hash []byte) ([]store.User, error) {
+// Parents get parentHash and kids kidHash as their passwords. It returns
+// their users, in fam.members order.
+func createFamily(ctx context.Context, st *store.Store, fam demoFamily, parentHash, kidHash []byte) ([]store.User, error) {
 	creator := fam.members[0]
 	if !creator.parent {
 		return nil, fmt.Errorf("%s: a family's first member must be a parent", fam.name)
 	}
-	first, err := st.CreateFamilyWithAdmin(ctx, creator.email, hash)
+	first, err := st.CreateFamilyWithAdmin(ctx, creator.email, parentHash)
 	if err != nil {
 		return nil, fmt.Errorf("create %s: %w", creator.email, err)
 	}
@@ -130,7 +131,11 @@ func createFamily(ctx context.Context, st *store.Store, fam demoFamily, hash []b
 		if err != nil {
 			return nil, fmt.Errorf("invite %s: %w", m.email, err)
 		}
-		u, err := st.AcceptInvite(ctx, token, hash)
+		memberHash := parentHash
+		if !m.parent {
+			memberHash = kidHash
+		}
+		u, err := st.AcceptInvite(ctx, token, memberHash)
 		if err != nil {
 			return nil, fmt.Errorf("accept %s's invite: %w", m.email, err)
 		}
@@ -143,6 +148,10 @@ func createFamily(ctx context.Context, st *store.Store, fam demoFamily, hash []b
 // page layout and remembered results, all dated now. It returns how the
 // member's calendar was set, for the summary.
 func fillMember(ctx context.Context, st *store.Store, u store.User, m demoMember, now time.Time) (calendarNote string, err error) {
+	return fillMemberWithCalendar(ctx, st, u, m, now, calendarLink)
+}
+
+func fillMemberWithCalendar(ctx context.Context, st *store.Store, u store.User, m demoMember, now time.Time, linkFor func(demoMember) (string, string, error)) (calendarNote string, err error) {
 	profile := store.MemberProfile{UserID: u.ID, Interests: m.interests, Location: m.location}
 	if err := st.UpsertMemberProfile(ctx, profile); err != nil {
 		return "", err
@@ -150,7 +159,7 @@ func fillMember(ctx context.Context, st *store.Store, u store.User, m demoMember
 
 	calendarNote = "none"
 	if m.calendar != "" {
-		link, note, err := calendarLink(m)
+		link, note, err := linkFor(m)
 		if err != nil {
 			return "", err
 		}

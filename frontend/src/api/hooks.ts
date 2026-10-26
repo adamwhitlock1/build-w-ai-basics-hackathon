@@ -1,3 +1,5 @@
+import { demoPaused } from '../public/demoState'
+import { usePublicConfig } from '../public/config'
 import {
   queryOptions,
   useMutation,
@@ -696,6 +698,11 @@ export function useEvents() {
  * once per stale result.
  */
 function useCuratedWidget(kind: CuratedKind) {
+  // Articles and events each need a search and a model call, so running out
+  // of either pauses their automatic refresh in the judge demo.
+  const { data: demo } = usePublicConfig()
+  const paused = demoPaused(demo?.quota)
+
   const queryClient = useQueryClient()
   const options = curatedWidgetQueryOptions(kind, usePageOwner())
   const query = useQuery(options)
@@ -704,12 +711,12 @@ function useCuratedWidget(kind: CuratedKind) {
   const keyText = inFlightKey(options.queryKey)
   const staleSince = query.data?.stale ? query.data.updatedAt : undefined
   useEffect(() => {
-    if (!staleSince) return
+    if (!staleSince || paused) return
     const once = `${keyText}@${staleSince}`
     if (staleRefreshed.has(once)) return
     staleRefreshed.add(once)
     void refreshCuratedWidget(queryClient, JSON.parse(keyText) as CuratedWidgetKey)
-  }, [queryClient, keyText, staleSince])
+  }, [queryClient, keyText, staleSince, paused])
   return query
 }
 

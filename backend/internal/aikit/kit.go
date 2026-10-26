@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ const DefaultMiniMaxModel = "MiniMax-M3.1-Flash"
 
 // Config is what New needs to build a Kit.
 type Config struct {
+	HTTPClient *http.Client
 	// OpenRouterKey is required.
 	OpenRouterKey string
 	// OpenRouterBaseURL overrides OpenRouter's API root; tests point it at
@@ -89,13 +91,18 @@ func New(ctx context.Context, cfg Config) (kit *Kit, err error) {
 		defaultModel = "openrouter/" + cfg.OpenRouterModel
 	}
 
+	opts := []option.RequestOption{option.WithBaseURL(strings.TrimRight(baseURL, "/") + "/"), option.WithMaxRetries(0)}
+	if cfg.HTTPClient != nil {
+		opts = append(opts, option.WithHTTPClient(cfg.HTTPClient))
+	}
+
 	// The SDKs' own retries are off (WithMaxRetries(0)): the Kit retries
 	// exactly as internal/llm does, so latency and cost don't change.
 	plugins := []api.Plugin{&openrouter.OpenRouter{
 		APIKey:  cfg.OpenRouterKey,
 		SiteURL: siteURL,
 		AppName: "Kinlight",
-		Opts:    []option.RequestOption{option.WithBaseURL(strings.TrimRight(baseURL, "/") + "/"), option.WithMaxRetries(0)},
+		Opts:    opts,
 	}}
 	miniMaxModel := ""
 	if cfg.MiniMaxKey != "" {

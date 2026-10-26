@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/llm"
 	"kinlight/internal/sources"
 	"kinlight/internal/store"
@@ -66,4 +67,15 @@ func NewCustomWidget(member store.User, title, source, query, prompt string, arc
 		Prompt:     prompt,
 		RenderSpec: spec,
 	}, nil
+}
+
+// PrefillDemoBriefing supplies a clearly labeled sample for the prepared demo day.
+func PrefillDemoBriefing(ctx context.Context, results ResultStore, member store.User, at time.Time) error {
+	date, _ := hosteddemo.Day(at)
+	day := briefingDay{Text: "Sample briefing: A little room for everyone today. Check your calendar, finish a daily chore, and explore something that interests you.", Date: date, TimeZone: hosteddemo.TimeZone, KidSafe: !member.IsAdmin, Uses: []string{}, Writes: maxBriefingWrites}
+	payload, err := json.Marshal(day)
+	if err != nil {
+		return err
+	}
+	return results.PutCuratedResult(ctx, store.CuratedResult{UserID: member.ID, Kind: kindBriefing, Inputs: "demo sample", Payload: payload, UpdatedAt: at})
 }

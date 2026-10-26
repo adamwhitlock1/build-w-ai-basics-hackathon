@@ -47,10 +47,15 @@ func main() {
 	}
 	dbPath := flag.String("db", "", "SQLite database file to seed (default $DB_PATH or kinlight.db; kinlight.db.demo with -demo)")
 	demo := flag.Bool("demo", false, "rebuild the demo families instead of adding the test family")
+	hostedDir := flag.String("hosted-dir", "", "provision a dedicated kinlight-demo directory")
+	reset := flag.Bool("hosted-reset", false, "reset stopped hosted demo content")
+	confirm := flag.String("confirm-dir", "", "exact directory confirmation for hosted reset")
 	flag.Parse()
 
 	var err error
-	if *demo {
+	if *hostedDir != "" {
+		err = provisionHosted(context.Background(), *hostedDir, *reset, *confirm, os.Getenv("KINLIGHT_DEMO_PARENT_PASSWORD"), os.Getenv("KINLIGHT_DEMO_KID_PASSWORD"))
+	} else if *demo {
 		if *dbPath == "" {
 			*dbPath = defaultDemoDB
 		}
