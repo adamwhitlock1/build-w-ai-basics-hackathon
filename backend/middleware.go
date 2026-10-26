@@ -89,8 +89,9 @@ func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter 
 //   - Current browsers label every request with Sec-Fetch-Site. If it says
 //     the request came from another origin ("cross-site", or "same-site",
 //     which covers another port on localhost), refuse it, whatever the
-//     method. Without the header (curl, an older browser) the request goes
-//     on to the checks below.
+//     method, except for top-level GET/HEAD navigation to the landing page.
+//     Without the header (curl, an older browser) the request goes on to
+//     the checks below.
 //   - For requests that change something (anything but GET, HEAD and
 //     OPTIONS), http.CrossOriginProtection checks Sec-Fetch-Site, or else
 //     compares the Origin header browsers send with the host the request
@@ -104,6 +105,13 @@ func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter 
 // itself ("same-origin") pass every check.
 func rejectCrossSite(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Links from other sites may open the public landing page. This
+		// exception excludes API reads, writes, fetches, and embedded pages.
+		if r.URL.Path == "/" && (r.Method == http.MethodGet || r.Method == http.MethodHead) &&
+			r.Header.Get("Sec-Fetch-Mode") == "navigate" && r.Header.Get("Sec-Fetch-Dest") == "document" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		switch r.Header.Get("Sec-Fetch-Site") {
 		case "cross-site", "same-site":
 			respond.Error(w, http.StatusForbidden, "That request came from another site.", "")

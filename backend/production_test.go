@@ -150,6 +150,72 @@ func TestServesTheWebApp(t *testing.T) {
 	}
 }
 
+func TestExternalLinksOpenLandingPage(t *testing.T) {
+	dir := t.TempDir()
+	const page = "<!doctype html><title>Kinlight</title>"
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(page), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), func(d *deps) {
+		d.WebDir = dir
+		d.PublicURL = "https://kinlight.example.test"
+	})
+
+	for _, site := range []string{"cross-site", "same-site"} {
+		for _, tt := range []struct {
+			name, method, path, mode, dest string
+			wantStatus                     int
+		}{
+			{"landing page", "GET", "/", "navigate", "document", http.StatusOK},
+			{"landing page with tracking query", "GET", "/?utm_source=devpost", "navigate", "document", http.StatusOK},
+			{"landing page headers", "HEAD", "/", "navigate", "document", http.StatusOK},
+			{"API navigation", "GET", "/api/widgets/articles", "navigate", "document", http.StatusForbidden},
+			{"API headers", "HEAD", "/api/health", "navigate", "document", http.StatusForbidden},
+			{"logout", "POST", "/api/logout", "navigate", "document", http.StatusForbidden},
+			{"root form submission", "POST", "/", "navigate", "document", http.StatusForbidden},
+			{"other page", "GET", "/login", "navigate", "document", http.StatusForbidden},
+			{"embedded page", "GET", "/", "navigate", "iframe", http.StatusForbidden},
+			{"fetch", "GET", "/", "cors", "empty", http.StatusForbidden},
+			{"image", "GET", "/", "no-cors", "image", http.StatusForbidden},
+			{"missing navigation metadata", "GET", "/", "", "", http.StatusForbidden},
+		} {
+			t.Run(site+"/"+tt.name, func(t *testing.T) {
+				req, err := http.NewRequest(tt.method, srv.URL+tt.path, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				req.Header.Set("Sec-Fetch-Site", site)
+				req.Header.Set("Sec-Fetch-Mode", tt.mode)
+				req.Header.Set("Sec-Fetch-Dest", tt.dest)
+				req.Header.Set("Referer", "https://devpost.com/")
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer resp.Body.Close()
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if resp.StatusCode != tt.wantStatus {
+					t.Fatalf("status = %d, body = %q; want %d", resp.StatusCode, body, tt.wantStatus)
+				}
+				if tt.wantStatus == http.StatusOK {
+					if !strings.Contains(resp.Header.Get("Content-Type"), "text/html") {
+						t.Errorf("content type = %q, want the landing page", resp.Header.Get("Content-Type"))
+					}
+					if tt.method == http.MethodGet && string(body) != page {
+						t.Errorf("body = %q, want the landing page", body)
+					}
+					if resp.Header.Get("Content-Security-Policy") == "" {
+						t.Error("landing page lost its security headers")
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestNoWebDirServesOnlyTheAPI(t *testing.T) {
 	srv, _ := startServerOpts(t, filepath.Join(t.TempDir(), "test.db"), nil)
 	resp, err := http.Get(srv.URL + "/invite/abc")
