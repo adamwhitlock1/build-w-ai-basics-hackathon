@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"kinlight/internal/hosteddemo"
 	"kinlight/internal/respond"
@@ -88,39 +89,74 @@ func publicConfig(d deps) http.HandlerFunc {
 			Quota    *hosteddemo.Status `json:"quota,omitempty"`
 		}{Demo: d.DemoQuota != nil, DemoURL: d.DemoURL, VideoURL: d.VideoURL}
 		if d.DemoQuota != nil {
-			s, err := d.DemoQuota.Status(r.Context())
-			if err != nil {
-				respond.Error(w, 503, "Demo allowance unavailable.", "Live calls are paused.")
-				return
+			// Without the ledger the counts are left out, but the page still
+			// learns it is the shared demo and keeps its warning banner.
+			if s, err := d.DemoQuota.Status(r.Context()); err == nil {
+				out.Quota = &s
+			} else {
+				d.Logger.WarnContext(r.Context(), "can't read the demo allowance", "err", err)
 			}
-			out.Quota = &s
 		}
 		respond.JSON(w, 200, out)
 	}
 }
+
+// demoFixed reports whether a write changes what every judge shares in a way
+// another judge can't put back: accounts, invites, calendars, a kid's birth
+// year (which picks the kid agent's persona), and deleting conversations.
+func demoFixed(method, p string) bool {
+	if method == http.MethodGet || method == http.MethodHead {
+		return false
+	}
+	switch {
+	case p == "/api/signup", p == "/api/families", strings.HasPrefix(p, "/api/families/"),
+		strings.HasPrefix(p, "/api/invites/"),
+		strings.HasSuffix(p, "/calendar"),
+		strings.HasSuffix(p, "/birth-year"):
+		return true
+	case method == http.MethodDelete:
+		return strings.Contains(p, "/chats/") || strings.HasPrefix(p, "/api/me/assistant/")
+	}
+	return false
+}
+
+// startsAI reports whether a request is one a person sends to start live AI:
+// a chat or Assistant message, or building or refreshing a card.
+func startsAI(method, p string) bool {
+	return method == http.MethodPost && (strings.HasSuffix(p, "/messages") || strings.HasPrefix(p, "/api/widgets/"))
+}
+
 func demoRestrictions(d deps, next http.Handler) http.Handler {
 	if d.DemoQuota == nil {
 		return next
 	}
-	slots := make(chan struct{}, 2)
+	slots := d.DemoSlots
+	if slots == nil {
+		slots = hosteddemo.NewSlots(2, 20*time.Second)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := r.URL.Path
-		write := r.Method != "GET" && r.Method != "HEAD"
-		blocked := write && (p == "/api/signup" || p == "/api/families" || strings.Contains(p, "/invites") || strings.HasSuffix(p, "/calendar") || strings.Contains(p, "password"))
-		if blocked {
+		if demoFixed(r.Method, r.URL.Path) {
 			respond.Error(w, 403, "That setting is fixed in the shared judge demo.", "You can still arrange pages, try AI and manage chores.")
 			return
 		}
-		// Bound complete AI operations, including streaming and tool rounds. Cached reads remain usable.
-		paid := strings.Contains(p, "/widgets/") || (r.Method == "POST" && strings.HasSuffix(p, "/messages"))
-		if paid {
-			select {
-			case slots <- struct{}{}:
-				defer func() { <-slots }()
-			case <-r.Context().Done():
+		// Turn a spent allowance away before anything is saved: otherwise a
+		// kid's message would be stored and flagged as unchecked.
+		if startsAI(r.Method, r.URL.Path) {
+			var paused error
+			if s, err := d.DemoQuota.Status(r.Context()); err != nil {
+				paused = hosteddemo.ErrUnavailable
+			} else if s.ModelsRemaining == 0 {
+				paused = &hosteddemo.LimitError{Reset: s.Reset}
+			}
+			if paused != nil {
+				respond.JSON(w, 429, hosteddemo.ErrorBody(paused, "Existing content is still available."))
 				return
 			}
 		}
-		next.ServeHTTP(w, r.WithContext(hosteddemo.WithOperation(r.Context())))
+		// Each request is one operation: it takes an AI slot on its first
+		// paid dispatch (see hosteddemo.Transport) and returns it here.
+		ctx := hosteddemo.WithOperation(r.Context(), slots)
+		defer hosteddemo.Release(ctx)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

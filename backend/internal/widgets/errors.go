@@ -81,7 +81,7 @@ func clientGone(ctx context.Context, err error) bool {
 // error was logged by the service where it happened.
 func writeServiceError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) {
 	if limit := hosteddemo.OperationError(r.Context()); limit != nil {
-		respond.Error(w, 429, limit.Error(), "Existing content is still available.")
+		respond.JSON(w, 429, hosteddemo.ErrorBody(limit, "Existing content is still available."))
 		return
 	}
 	// errors.AsType (Go 1.26) is errors.As with the target type as a type

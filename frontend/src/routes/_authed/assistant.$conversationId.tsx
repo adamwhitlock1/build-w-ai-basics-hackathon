@@ -67,7 +67,7 @@ function AssistantPage() {
         onDone: () => {},
       })
     } catch (err) {
-      if (err instanceof ApiError && isDemoLimit(err.message)) setPartial({ id: id, text: replySoFar })
+      if (err instanceof ApiError && isDemoLimit(err)) setPartial({ id: id, text: replySoFar })
       setError(err instanceof ApiError ? err : new ApiError(0, 'Something went wrong.', 'Try again in a moment.'))
     } finally {
       await queryClient.invalidateQueries({ queryKey: assistantQueryOptions(id).queryKey })

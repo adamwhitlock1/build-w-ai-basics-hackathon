@@ -30,7 +30,7 @@
 These steps require the later release/submission phase. They are not evidence of implementation completion and must not be silently marked complete after local tests.
 
 - [ ] 5.1 Provision the isolated demo and configure landing links when deployment is authorized; verify independent storage/port/keys, HTTPS session behavior, ordinary redeploy persistence, and parent/kid access in a fresh browser outside the owner's authenticated environment.
-- [ ] 5.2 Rehearse real AI with demo credentials, confirm quota and child safety behavior, and set adequate judging allowance; record live results and verify household resources are unchanged.
+- [ ] 5.2 Rehearse real AI with demo credentials, confirm quota and child safety behavior, confirm the 2,048-token output cap leaves structured answers complete for the configured model, and set adequate judging allowance; record live results and verify household resources are unchanged.
 - [ ] 5.3 Owner records and uploads the under-three-minute demo following video-prep.md; verify playback without authentication, legible UI/audio and no personal data or secrets.
 - [ ] 5.4 Owner completes submission text, required form/survey fields and judge testing instructions, then submits; verify public repository/video links and retain the submission confirmation. Keep judge access available through the judging period.
 

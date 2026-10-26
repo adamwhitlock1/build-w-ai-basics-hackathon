@@ -3,6 +3,7 @@ export function demoPaused(quota: Allowance | undefined, now = Date.now()): bool
   if (!quota || Date.parse(quota.reset) <= now) return false
   return quota.modelsRemaining === 0 || quota.searchesRemaining === 0
 }
-export function isDemoLimit(message: string): boolean {
-  return message.includes('Demo allowance reached.') || message.includes('Demo allowance unavailable.')
+/** Whether an error is the judge demo's spent (or unreadable) allowance, by the server's code. */
+export function isDemoLimit(err: { code?: string }): boolean {
+  return err.code === 'demo_limit'
 }

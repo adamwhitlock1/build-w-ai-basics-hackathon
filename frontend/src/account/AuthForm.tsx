@@ -84,7 +84,16 @@ export function AuthForm({ mode, auth }: AuthFormProps) {
     <WelcomeLayout
       title={copy.title}
       intro={copy.intro}
-      footer={publicConfig?.demo ? <Link to="/">Back to Kinlight</Link> :
+      footer={publicConfig?.demo ? (
+        <p>
+          <Link
+            to="/"
+            className="font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Back to Kinlight
+          </Link>
+        </p>
+      ) : (
         <p>
           {copy.switchPrompt && <>{copy.switchPrompt} </>}
           <Link
@@ -94,7 +103,7 @@ export function AuthForm({ mode, auth }: AuthFormProps) {
             {copy.switchLabel}
           </Link>
         </p>
-      }
+      )}
     >
       {/* noValidate: our own inline messages replace the browser's bubbles. */}
       <form noValidate onSubmit={handleSubmit} className="space-y-5">

@@ -27,6 +27,7 @@ import (
 // readable where a long list of positional arguments would not.
 type deps struct {
 	DemoQuota         *hosteddemo.Quota
+	DemoSlots         *hosteddemo.Slots // nil: two slots, 20s wait
 	DemoURL, VideoURL string
 	Chores            *chores.Service
 	Logger            *slog.Logger

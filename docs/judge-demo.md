@@ -39,15 +39,15 @@ Supply the verified demo URL and preset passwords in Devpost's testing instructi
 | Kid | `jordan@rivera.test` | Complete a chore, open sample chats, ask a new homework question |
 | Kid | `lily@rivera.test` | A younger child's page and sample conversation |
 
-Parents share the parent demo password; kids share the kid demo password. Account/invite/calendar changes are disabled in this demo. Ordinary family authorization still applies. Opening Jordan's page while logged in as Maya does not impersonate Jordan; use a separate browser profile to test as the kid.
+Parents share the parent demo password; kids share the kid demo password. Account, invite and calendar changes, a kid's birth year and deleting conversations are disabled in this demo, since another judge couldn't put them back. Ordinary family authorization still applies. Opening Jordan's page while logged in as Maya does not impersonate Jordan; use a separate browser profile to test as the kid.
 
 The prepared briefing and conversations titled “Sample” are examples. New replies use real models. All initial cards/calendar events are fictional examples too; do not portray them as verified current news or real appointments.
 
 ## Usage allowance
 
-Defaults are 100 outbound model attempts and 50 paid-search attempts per Denver day. Change `KINLIGHT_DEMO_MODEL_CALLS` / `KINLIGHT_DEMO_SEARCH_CALLS` to positive values and restart the demo to adjust limits. At most two AI operations run concurrently. Output is limited to 2,048 tokens per model call. These are request limits, not a guaranteed dollar budget: model input lengths and prices also affect cost.
+Defaults are 100 outbound model attempts and 50 paid-search attempts per Denver day. Change `KINLIGHT_DEMO_MODEL_CALLS` / `KINLIGHT_DEMO_SEARCH_CALLS` to positive values and restart the demo to adjust limits. At most two AI operations run concurrently: a request takes a slot on its first provider call and keeps it until it finishes, so page loads and cached reads never wait. A request that can't get a slot within 20 seconds is told the demo is busy, without spending allowance. Output is limited to 2,048 tokens per model call; during the real-provider rehearsal, confirm cards, briefings and safety checks still return complete structured answers with the configured model (a reasoning model counts its reasoning toward that limit). These are request limits, not a guaranteed dollar budget: model input lengths and prices also affect cost.
 
-Every attempted provider call is counted before dispatch, including safety checks, retries and tool follow-ups. Failed calls are not refunded. Midnight America/Denver opens a new day's allowance. The ledger persists across logout, restart, redeployment and content reset. When exhausted, existing pages/sample chats remain readable and the banner states the next reset. Keep adequate credit and allowance for judges through October 30; increase it deliberately if needed. Provider outages remain distinct errors. Never disable the child's safety checks to save allowance.
+Every attempted provider call is counted before dispatch, including safety checks, retries and tool follow-ups. Failed calls are not refunded. Midnight America/Denver opens a new day's allowance. The ledger persists across logout, restart, redeployment and content reset. When exhausted, new chat messages and card builds are turned away before anything is saved, existing pages/sample chats remain readable and the banner states the next reset. Keep adequate credit and allowance for judges through October 30; increase it deliberately if needed. Provider outages remain distinct errors. Never disable the child's safety checks to save allowance.
 
 ## Reset only the demo
 

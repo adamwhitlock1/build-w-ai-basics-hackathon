@@ -224,8 +224,8 @@ export async function streamMessage(path: string, text: string, handlers: Stream
           handlers.onDone(payload as ChatMessage)
           break
         case 'error': {
-          const err = payload as { error: string; hint?: string }
-          throw new ApiError(200, err.error, err.hint ?? '')
+          const err = payload as { error: string; hint?: string; code?: string }
+          throw new ApiError(200, err.error, err.hint ?? '', err.code ?? '')
         }
       }
     }

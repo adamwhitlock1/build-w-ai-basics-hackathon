@@ -199,11 +199,11 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 	case err == nil:
 		event("done", toMessage(reply))
 	case hosteddemo.OperationError(r.Context()) != nil:
-		message := hosteddemo.OperationError(r.Context()).Error()
+		paused := hosteddemo.OperationError(r.Context())
 		if streaming {
-			event("error", respond.ErrorBody{Error: message, Hint: "This answer is incomplete. Existing content is still available."})
+			event("error", hosteddemo.ErrorBody(paused, "This answer is incomplete. Existing content is still available."))
 		} else {
-			respond.Error(w, 429, message, "Existing content is still available.")
+			respond.JSON(w, 429, hosteddemo.ErrorBody(paused, "Existing content is still available."))
 		}
 	case streaming:
 		event("error", respond.ErrorBody{Error: "The Assistant couldn't finish its answer.", Hint: "Try again in a moment."})

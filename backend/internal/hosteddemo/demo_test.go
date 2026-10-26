@@ -182,7 +182,7 @@ func TestTransportAttemptsOutputBoundAndStickyFailure(t *testing.T) {
 		t.Fatal("extra paid call")
 	}
 	// Exhausting a tool's search allowance stops follow-up model dispatch in the same operation.
-	ctx := WithOperation(context.Background())
+	ctx := WithOperation(context.Background(), nil)
 	search := &http.Client{Transport: &Transport{Quota: q, Kind: "search"}}
 	for range 2 {
 		r, _ := http.NewRequestWithContext(ctx, "GET", server.URL, nil)
@@ -217,5 +217,83 @@ func TestFailedInitialProvisionCanRetryInsideVolume(t *testing.T) {
 	}
 	if err := Replace(dir, false, "", buildFile); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// A build killed partway leaves its staging directory. It blocks neither the
+// server nor a retry, and the next provisioning removes it.
+func TestKilledBuildLeavesNoBlocker(t *testing.T) {
+	dir := directory(t)
+	stale := filepath.Join(dir, buildPrefix+"killed")
+	if err := os.MkdirAll(stale, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := Replace(dir, false, "", buildFile); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatal("stale build kept")
+	}
+	if err := os.Mkdir(stale, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := Validate(dir); err != nil {
+		t.Fatalf("stale build blocked the server: %v", err)
+	}
+	if err := Replace(dir, true, dir, buildFile); err != nil {
+		t.Fatalf("stale build blocked reset: %v", err)
+	}
+}
+
+// A request takes a slot on its first paid dispatch and keeps it until
+// Release; free requests never wait, and a full demo answers busy without
+// spending allowance.
+func TestSlotsBoundOperationsNotRequests(t *testing.T) {
+	q, err := OpenQuota(directory(t), 10, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer q.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{}`)) }))
+	defer server.Close()
+	client := &http.Client{Transport: &Transport{Quota: q, Kind: "model"}}
+	dispatch := func(ctx context.Context) error {
+		r, _ := http.NewRequestWithContext(ctx, "POST", server.URL, strings.NewReader(`{}`))
+		res, err := client.Do(r)
+		if res != nil {
+			res.Body.Close()
+		}
+		return err
+	}
+	slots := NewSlots(1, 20*time.Millisecond)
+	first := WithOperation(context.Background(), slots)
+	for range 2 {
+		// The same operation reuses its slot.
+		if err := dispatch(first); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// A request that never dispatches holds nothing.
+	Release(WithOperation(context.Background(), slots))
+
+	second := WithOperation(context.Background(), slots)
+	var busy *BusyError
+	if err := dispatch(second); !errors.As(err, &busy) || !errors.As(OperationError(second), &busy) {
+		t.Fatalf("second operation err = %v, want busy", err)
+	}
+	if s, _ := q.Status(context.Background()); s.ModelsRemaining != 8 {
+		t.Fatalf("%d calls left, want 8: busy spent allowance", s.ModelsRemaining)
+	}
+	if body := ErrorBody(OperationError(second), ""); body.Code != CodeBusy {
+		t.Fatalf("busy code %q", body.Code)
+	}
+	Release(first)
+	third := WithOperation(context.Background(), slots)
+	defer Release(third)
+	if err := dispatch(third); err != nil {
+		t.Fatalf("slot not returned: %v", err)
+	}
+	if body := ErrorBody(&LimitError{}, "hint"); body.Code != CodeLimit || body.Hint != "hint" {
+		t.Fatalf("limit body %+v", body)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"kinlight/internal/auth"
 	"kinlight/internal/hosteddemo"
+	"kinlight/internal/respond"
 	"kinlight/internal/store"
 	"net/http"
 	"path/filepath"
@@ -47,6 +48,32 @@ func TestDemoRestrictionsAndPublicConfig(t *testing.T) {
 	}
 	for _, path := range []string{"/api/me/homepage", "/api/family/chores"} {
 		c.do(http.MethodGet, path, nil, 200, nil)
+	}
+	// Shared things another judge can't put back stay fixed.
+	c.do("PUT", "/api/members/2/birth-year", map[string]int{"birthYear": 2008}, 403, nil)
+	c.do("DELETE", "/api/members/2/chats/1", nil, 403, nil)
+	c.do("DELETE", "/api/me/assistant/1", nil, 403, nil)
+
+	// A spent allowance turns new AI away before anything is saved, with a
+	// code the page reads rather than the wording.
+	for range 3 {
+		_ = q.Reserve(context.Background(), "model")
+	}
+	for _, path := range []string{"/api/me/chats/1/messages", "/api/me/assistant/1/messages", "/api/widgets/from-prompt"} {
+		var body respond.ErrorBody
+		c.do("POST", path, map[string]string{"text": "hi"}, 429, &body)
+		if body.Code != hosteddemo.CodeLimit {
+			t.Errorf("POST %s code %q, want %q", path, body.Code, hosteddemo.CodeLimit)
+		}
+	}
+	c.do("GET", "/api/me/homepage", nil, 200, nil)
+
+	// Without the ledger the page still learns it's the shared demo.
+	q.Close()
+	out = nil
+	c.do("GET", "/api/public-config", nil, 200, &out)
+	if out["demo"] != true || out["quota"] != nil {
+		t.Fatalf("public config without ledger: %v", out)
 	}
 }
 func TestPublicLinks(t *testing.T) {

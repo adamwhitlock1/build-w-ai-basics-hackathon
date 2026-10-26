@@ -7,12 +7,17 @@ import (
 	_ "modernc.org/sqlite"
 	"path/filepath"
 	"time"
+	// Embedded zone data: the allowance day never depends on the image's tzdata.
+	_ "time/tzdata"
 )
 
 type LimitError struct{ Reset time.Time }
 
+// ErrUnavailable means the ledger couldn't be read or written, so nothing is dispatched.
+var ErrUnavailable = errors.New("Demo allowance unavailable. Live calls are paused; existing content is still available.")
+
 func (e *LimitError) Error() string {
-	return "Demo allowance reached. Live AI is paused until " + e.Reset.Format(time.RFC3339) + ". Existing content is still available."
+	return "Demo allowance reached. Live AI is paused until midnight Denver time. Existing content is still available."
 }
 
 type Quota struct {
@@ -26,7 +31,18 @@ type Status struct {
 	Reset             time.Time `json:"reset"`
 }
 
-var denver, _ = time.LoadLocation("America/Denver")
+// TimeZone is the zone whose midnight opens each day's allowance.
+const TimeZone = "America/Denver"
+
+var denver = mustLoad(TimeZone)
+
+func mustLoad(name string) *time.Location {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		panic(err)
+	}
+	return loc
+}
 
 func Day(now time.Time) (string, time.Time) {
 	n := now.In(denver)
@@ -63,7 +79,7 @@ func (q *Quota) Reserve(ctx context.Context, kind string) (err error) {
 	day, reset := Day(q.Now())
 	r, err := q.db.ExecContext(ctx, `INSERT INTO quota(day,kind,used) VALUES(?,?,1) ON CONFLICT(day,kind) DO UPDATE SET used=used+1 WHERE used < ?`, day, kind, limit)
 	if err != nil {
-		return errors.New("Demo allowance unavailable. Live calls are paused; existing content is still available.")
+		return ErrUnavailable
 	}
 	n, err := r.RowsAffected()
 	if err != nil {

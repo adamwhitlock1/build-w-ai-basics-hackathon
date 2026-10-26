@@ -13,7 +13,9 @@ test('daily exhaustion clears at the server reset instant, including DST days', 
 })
 test('search exhaustion pauses refresh while provider failures remain distinct', () => {
   assert.equal(demoPaused({ modelsRemaining: 5, searchesRemaining: 0, reset: '2030-01-01T00:00:00Z' }), true)
-  assert.equal(isDemoLimit('Demo allowance reached. Live AI is paused until tomorrow.'), true)
-  assert.equal(isDemoLimit('OpenRouter is out of credits'), false)
-  assert.equal(isDemoLimit('Could not reach the server'), false)
+  assert.equal(isDemoLimit({ code: 'demo_limit' }), true)
+  // A busy demo and provider failures are not the allowance.
+  assert.equal(isDemoLimit({ code: 'demo_busy' }), false)
+  assert.equal(isDemoLimit({ code: '' }), false)
+  assert.equal(isDemoLimit({}), false)
 })

@@ -391,6 +391,11 @@ func (s *Service) kidTools(kid store.User, mode string, loc *time.Location, onTo
 // treated as a possible crisis.
 func (s *Service) check(ctx context.Context, kid store.User, c store.Conversation, msg store.ChatMessage, before []aikit.Turn, wantTitle bool) aikit.Verdict {
 	verdict, err := s.agent.Check(ctx, before, msg.Text, wantTitle)
+	if err != nil && hosteddemo.OperationError(ctx) != nil {
+		// The judge demo paused live AI (allowance spent or slots busy), so
+		// Send stops before any reply: nothing reached the kid to review.
+		return aikit.Verdict{}
+	}
 	switch {
 	case errors.Is(err, aikit.ErrBlocked):
 		// The check's provider refused to read the message with its own

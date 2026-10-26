@@ -321,12 +321,15 @@ export interface LayoutResponse {
 export class ApiError extends Error {
   readonly status: number
   readonly hint: string
+  /** Names a failure the page handles on its own, such as 'demo_limit'; usually empty. */
+  readonly code: string
 
-  constructor(status: number, message: string, hint = '') {
+  constructor(status: number, message: string, hint = '', code = '') {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.hint = hint
+    this.code = code
   }
 }
 
@@ -406,7 +409,7 @@ async function toApiError(res: Response): Promise<ApiError> {
   try {
     const parsed: unknown = JSON.parse(text)
     if (isErrorBody(parsed)) {
-      return new ApiError(res.status, parsed.error, parsed.hint ?? '')
+      return new ApiError(res.status, parsed.error, parsed.hint ?? '', parsed.code ?? '')
     }
   } catch {
     // Not JSON (e.g. the dev proxy's own error page) — fall through.
@@ -431,12 +434,13 @@ async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, `Something went wrong (HTTP ${res.status}).`, 'Try again in a moment.')
 }
 
-function isErrorBody(v: unknown): v is { error: string; hint?: string } {
+function isErrorBody(v: unknown): v is { error: string; hint?: string; code?: string } {
   if (typeof v !== 'object' || v === null) return false
   const body = v as Record<string, unknown>
   return (
     typeof body.error === 'string' &&
     body.error !== '' &&
-    (body.hint === undefined || typeof body.hint === 'string')
+    (body.hint === undefined || typeof body.hint === 'string') &&
+    (body.code === undefined || typeof body.code === 'string')
   )
 }

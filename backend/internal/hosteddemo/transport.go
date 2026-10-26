@@ -55,6 +55,10 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	if err := OperationError(r.Context()); err != nil {
 		return nil, err
 	}
+	// Wait for the operation's slot before counting, so a busy demo spends no allowance.
+	if err := takeSlot(r.Context()); err != nil {
+		return nil, fmt.Errorf("judge demo: %w", err)
+	}
 	if err := t.Quota.Reserve(r.Context(), t.Kind); err != nil {
 		failOperation(r.Context(), err)
 		return nil, fmt.Errorf("judge demo: %w", err)

@@ -295,5 +295,8 @@ func stripCodeFence(s string) string {
 	return strings.TrimSpace(s)
 }
 
-// SetTransport wraps all outbound calls, including retries and startup metadata.
-func (c *Client) SetTransport(t http.RoundTripper) { c.http.Transport = t }
+// WrapTransport wraps all outbound calls, including retries and startup
+// metadata, around the client's own transport and its attribution headers.
+func (c *Client) WrapTransport(wrap func(http.RoundTripper) http.RoundTripper) {
+	c.http.Transport = wrap(c.http.Transport)
+}

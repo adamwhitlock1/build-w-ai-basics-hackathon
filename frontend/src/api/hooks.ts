@@ -698,6 +698,8 @@ export function useEvents() {
  * once per stale result.
  */
 function useCuratedWidget(kind: CuratedKind) {
+  // Articles and events each need a search and a model call, so running out
+  // of either pauses their automatic refresh in the judge demo.
   const { data: demo } = usePublicConfig()
   const paused = demoPaused(demo?.quota)
 

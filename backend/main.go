@@ -321,8 +321,10 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		cfg.demoHTTP = &http.Client{Transport: &hosteddemo.Transport{Quota: quota, Kind: "model"}, Timeout: 60 * time.Second}
 	}
 	llmClient := llm.NewClientForSite(cfg.openRouterKey, cfg.openRouterModel, cfg.openRouterBaseURL, cfg.siteURL())
-	if cfg.demoHTTP != nil {
-		llmClient.SetTransport(cfg.demoHTTP.Transport)
+	if quota != nil {
+		llmClient.WrapTransport(func(base http.RoundTripper) http.RoundTripper {
+			return &hosteddemo.Transport{Base: base, Quota: quota, Kind: "model"}
+		})
 	}
 	if err := preflight(ctx, logger, llmClient); err != nil {
 		return err
@@ -353,7 +355,9 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	// The Brave key is not checked at startup: every Brave call costs credit.
 	brave := sources.NewBraveClient(cfg.braveKey, cfg.braveBaseURL)
 	if quota != nil {
-		brave.SetTransport(&hosteddemo.Transport{Quota: quota, Kind: "search"})
+		brave.WrapTransport(func(base http.RoundTripper) http.RoundTripper {
+			return &hosteddemo.Transport{Base: base, Quota: quota, Kind: "search"}
+		})
 	}
 	// Open-Meteo is free and needs no key.
 	openMeteo := sources.NewOpenMeteoClient("", "")

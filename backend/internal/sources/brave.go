@@ -272,5 +272,7 @@ func cleanText(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-// SetTransport supplies the paid-search dispatch boundary.
-func (c *BraveClient) SetTransport(t http.RoundTripper) { c.http.Transport = t }
+// WrapTransport puts the paid-search dispatch boundary around the client's transport.
+func (c *BraveClient) WrapTransport(wrap func(http.RoundTripper) http.RoundTripper) {
+	c.http.Transport = wrap(c.http.Transport)
+}

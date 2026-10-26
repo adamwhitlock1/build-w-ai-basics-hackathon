@@ -13,6 +13,7 @@ import (
 
 	"kinlight/internal/aikit"
 	"kinlight/internal/chat"
+	"kinlight/internal/hosteddemo"
 	"kinlight/internal/llm"
 	"kinlight/internal/store"
 )
@@ -23,6 +24,8 @@ type fakeAgent struct {
 	mu       sync.Mutex
 	verdict  aikit.Verdict
 	checkErr error
+	// onCheck, if set, runs in Check and its error replaces checkErr.
+	onCheck  func(ctx context.Context) error
 	reply    string
 	replyErr error
 	chunks   []string // streamed before replyErr, if set; else reply in one chunk
@@ -46,6 +49,9 @@ func (f *fakeAgent) Check(ctx context.Context, recent []aikit.Turn, msg string, 
 	f.checks = append(f.checks, checkCall{recent, msg, wantTitle})
 	if a, ok := llm.AttributionFrom(ctx); ok {
 		f.attrs = append(f.attrs, a)
+	}
+	if f.onCheck != nil {
+		return f.verdict, f.onCheck(ctx)
 	}
 	return f.verdict, f.checkErr
 }
@@ -446,5 +452,39 @@ func TestPersonaFor(t *testing.T) {
 		if got := chat.PersonaFor(tt.year, tt.ok, now); got != tt.want {
 			t.Errorf("PersonaFor(%d, %v) = %s, want %s", tt.year, tt.ok, got, tt.want)
 		}
+	}
+}
+
+// In the judge demo, a safety check stopped by the spent allowance ends the
+// turn: no reply, and no "couldn't check" flag in the parents' Reviews.
+func TestDemoPauseLeavesNoFlag(t *testing.T) {
+	ctx := context.Background()
+	f := newFamily(t)
+	q, err := hosteddemo.OpenQuota(t.TempDir(), 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer q.Close()
+	if err := q.Reserve(ctx, "model"); err != nil {
+		t.Fatal(err)
+	}
+	agent := &fakeAgent{reply: "hi", onCheck: func(ctx context.Context) error { return q.Reserve(ctx, "model") }}
+	svc := newService(f, agent)
+	c, err := svc.Start(ctx, f.kid, aikit.ModeExplore)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.Send(hosteddemo.WithOperation(ctx, nil), f.kid, c.ID, "help with fractions", time.UTC, chat.SendEvents{
+		OnKid: func(store.ChatMessage) {}, OnChunk: func(string) {},
+	})
+	var limit *hosteddemo.LimitError
+	if !errors.As(err, &limit) {
+		t.Fatalf("Send err = %v, want the demo limit", err)
+	}
+	if n, _ := f.st.CountUnreviewedFlags(ctx, f.kid.FamilyID); n != 0 {
+		t.Errorf("%d flags stored, want none", n)
+	}
+	if len(agent.replies) != 0 {
+		t.Error("replied after the safety check was stopped")
 	}
 }

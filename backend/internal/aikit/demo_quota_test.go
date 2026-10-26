@@ -21,7 +21,9 @@ func TestDemoQuotaAcrossLegacyAndGenkit(t *testing.T) {
 	fake, url := newFakeOpenRouter(t, completion(`{"briefing":"Sunny today."}`, 10, 5), completion(`{"briefing":"Sunny today."}`, 10, 5))
 	transport := &hosteddemo.Transport{Quota: q, Kind: "model"}
 	legacy := llm.NewClient("test-key", "test/model", url)
-	legacy.SetTransport(transport)
+	legacy.WrapTransport(func(base http.RoundTripper) http.RoundTripper {
+		return &hosteddemo.Transport{Base: base, Quota: q, Kind: "model"}
+	})
 	kit, err := aikit.New(context.Background(), aikit.Config{OpenRouterKey: "test-key", OpenRouterModel: "test/model", OpenRouterBaseURL: url, HTTPClient: &http.Client{Transport: transport}})
 	if err != nil {
 		t.Fatal(err)
@@ -29,11 +31,11 @@ func TestDemoQuotaAcrossLegacyAndGenkit(t *testing.T) {
 	for _, briefer := range []interface {
 		WriteBriefing(context.Context, llm.BriefingFacts, sources.Audience) (string, error)
 	}{legacy, aikit.NewBriefer(kit)} {
-		if _, err = briefer.WriteBriefing(hosteddemo.WithOperation(context.Background()), testFacts(), sources.Everyone); err != nil {
+		if _, err = briefer.WriteBriefing(hosteddemo.WithOperation(context.Background(), nil), testFacts(), sources.Everyone); err != nil {
 			t.Fatal(err)
 		}
 	}
-	ctx := hosteddemo.WithOperation(context.Background())
+	ctx := hosteddemo.WithOperation(context.Background(), nil)
 	_, err = aikit.NewBriefer(kit).WriteBriefing(ctx, testFacts(), sources.Everyone)
 	var limit *hosteddemo.LimitError
 	if !errors.As(err, &limit) {
@@ -43,7 +45,7 @@ func TestDemoQuotaAcrossLegacyAndGenkit(t *testing.T) {
 		t.Fatal("exhausted request reached provider")
 	}
 	// The same Kit also powers kid safety; exhaustion must not invoke its model.
-	_, err = aikit.NewKidAgent(kit, "openrouter/test/model", "openrouter/test/model").Check(hosteddemo.WithOperation(context.Background()), nil, "help with math", true)
+	_, err = aikit.NewKidAgent(kit, "openrouter/test/model", "openrouter/test/model").Check(hosteddemo.WithOperation(context.Background(), nil), nil, "help with math", true)
 	if !errors.As(err, &limit) {
 		t.Fatalf("safety quota error: %v", err)
 	}
@@ -64,7 +66,7 @@ func TestDemoQuotaStopsRetryAndChatDispatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	aikit.SetRetryDelay(kit, time.Millisecond)
-	_, err = aikit.NewBriefer(kit).WriteBriefing(hosteddemo.WithOperation(context.Background()), testFacts(), sources.Everyone)
+	_, err = aikit.NewBriefer(kit).WriteBriefing(hosteddemo.WithOperation(context.Background(), nil), testFacts(), sources.Everyone)
 	if err == nil || len(fake.requests()) != 1 {
 		t.Fatalf("retry bypass: %v, %d requests", err, len(fake.requests()))
 	}
@@ -79,7 +81,7 @@ func TestDemoQuotaStopsRetryAndChatDispatch(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			ctx := hosteddemo.WithOperation(context.Background())
+			ctx := hosteddemo.WithOperation(context.Background(), nil)
 			if call(ctx) == nil || hosteddemo.OperationError(ctx) == nil {
 				t.Fatal("quota failure lost")
 			}

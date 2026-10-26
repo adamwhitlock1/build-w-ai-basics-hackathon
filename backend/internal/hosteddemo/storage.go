@@ -6,11 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
 const marker = "Kinlight hosted judge demo v1\n"
 const ContentName = "judge-content.sqlite"
+
+// buildPrefix names Replace's staging directories. One survives only when a
+// build was killed; Replace removes it under the lock.
+const buildPrefix = ".judge-build-"
 
 // Directory accepts only a dedicated directory whose ancestry contains no symlinks.
 func Directory(dir string) error {
@@ -36,6 +41,9 @@ func Directory(dir string) error {
 	for _, e := range entries {
 		if e.Type()&os.ModeSymlink != 0 {
 			return errors.New("demo directory must not contain symlinks")
+		}
+		if e.IsDir() && strings.HasPrefix(e.Name(), buildPrefix) {
+			continue
 		}
 		switch e.Name() {
 		case ".judge-demo", ".lock", ContentName, ContentName + "-wal", ContentName + "-shm", "quota.sqlite", "quota.sqlite-wal", "quota.sqlite-shm":
@@ -97,9 +105,14 @@ func Replace(dir string, reset bool, confirm string, build func(string) error) e
 			return err
 		}
 	} else {
-		entries, _ := os.ReadDir(dir)
-		if len(entries) != 0 && !(len(entries) == 1 && entries[0].Name() == ".lock") {
-			return errors.New("initial provisioning requires an empty demo directory")
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return err
+		}
+		for _, e := range entries {
+			if e.Name() != ".lock" && !(e.IsDir() && strings.HasPrefix(e.Name(), buildPrefix)) {
+				return errors.New("initial provisioning requires an empty demo directory")
+			}
 		}
 	}
 	lock, err := Lock(dir)
@@ -113,7 +126,16 @@ func Replace(dir string, reset bool, confirm string, build func(string) error) e
 			return errors.New("demo has SQLite sidecars; recover/checkpoint it before reset")
 		}
 	}
-	stage, err := os.MkdirTemp(dir, ".judge-build-")
+	stale, err := filepath.Glob(filepath.Join(dir, buildPrefix+"*"))
+	if err != nil {
+		return err
+	}
+	for _, old := range stale {
+		if err = os.RemoveAll(old); err != nil {
+			return err
+		}
+	}
+	stage, err := os.MkdirTemp(dir, buildPrefix)
 	if err != nil {
 		return err
 	}

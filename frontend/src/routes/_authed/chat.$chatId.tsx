@@ -71,7 +71,7 @@ function ChatPage() {
         onDone: () => {},
       })
     } catch (err) {
-      if (err instanceof ApiError && isDemoLimit(err.message)) setPartial({ id: chatId, text: replySoFar })
+      if (err instanceof ApiError && isDemoLimit(err)) setPartial({ id: chatId, text: replySoFar })
       setError(err instanceof ApiError ? err : new ApiError(0, 'Something went wrong.', 'Try again in a moment.'))
     } finally {
       // Fetch the conversation as stored (both messages, and the title a

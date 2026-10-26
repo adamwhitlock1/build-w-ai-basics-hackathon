@@ -31,3 +31,7 @@ The browser fixture deliberately uses scripted replies; its intermediate chunk f
 ## Delivery boundary
 
 No running household service, production database, tunnel, bucket or provider account was changed. No paid AI calls were made. The separate deployment manifest and operator runbook are ready for review. Section 5 and the actual recording/upload/submission checklist remain unchecked.
+
+## Review follow-up (2026-10-25)
+
+Concurrency slots are now taken on an operation's first provider dispatch rather than by URL, with a 20-second wait that ends as "busy" (code `demo_busy`) without spending allowance. Spent allowance turns new chat messages and card builds away with a 429 before anything is saved, and a safety check stopped by the demo no longer files a "couldn't check" review. Demo pauses carry a `code` (`demo_limit` / `demo_busy`) that the frontend reads instead of matching wording. Public config keeps `demo: true` when the ledger can't be read. The legacy model client keeps its attribution headers under the allowance transport. Birth-year changes and conversation deletes are fixed in the demo. Stale staging directories from a killed build no longer block startup or reset. Tests cover each of these; backend `go vet`/`go test ./...` and frontend lint/test/build were re-run.
