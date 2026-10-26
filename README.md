@@ -359,6 +359,12 @@ AI calls go through one of two packages:
 
 The Dev UI talks to Genkit's reflection server on 127.0.0.1:3100, which **runs any AI flow without a login**. It starts only when `GENKIT_ENV=dev` or `GENKIT_REFLECTION_ENABLED` is set, and the backend logs a warning when it does. Use it on your own machine only, and never set either variable on the homelab.
 
+## License
+
+Kinlight is licensed under the [MIT License](LICENSE).
+
+Third-party components and assets retain their respective licenses.
+
 ## How it was planned
 
 The proof of concept was planned and built with the [Devpost Learn skill pack](https://github.com/challengepost/learn-ai-basics). Its planning documents are in `devpost/`: `scope.md`, `prd.md`, `spec.md` and the build `checklist.md`. The git tag `poc-complete` marks the finished proof of concept.
